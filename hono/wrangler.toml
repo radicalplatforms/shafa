@@ -1,0 +1,10 @@
+name = "author-hono"
+account_id = "287572e2291030d8c5e360fcc593a16b"
+compatibility_date = "2023-01-01"
+
+kv_namespaces = [
+    { binding = "URL_USERNAME", id = "509028161c76473a86164e9189db1552", preview_id = "a030c2b40eb34155856a5cdec74a72e6" },
+    { binding = "SERVICES", id = "71690c8d4bb34320a41e3e797181aa19", preview_id = "01a821a4fb914053be3334bbc2ec24e6" },
+    { binding = "CACHED", id = "54bf8c4a15d74dcf8b36bae3f0176982", preview_id = "d60a43ea907e4346afef3b5873bf5c51" },
+    { binding = "IMAGES", id = "9c28c06d69ca457bbbb97bf944aa1c25", preview_id = "7eb0a5b078874a9b97dea28cfdbbd701" }
+]
