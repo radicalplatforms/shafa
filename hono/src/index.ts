@@ -14,7 +14,6 @@ import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import * as jose from 'jose'
 import faunadb, { query as q } from 'faunadb'
-import faunadb, { query as q } from 'faunadb'
 const { Paginate, Match, Index, Lambda, Get, Var, Map } = q;
 
 const app = new Hono<{ Bindings: Bindings }>()
