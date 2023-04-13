@@ -1,4 +1,5 @@
 name = "author-hono"
+main = "src/index.ts"
 account_id = "287572e2291030d8c5e360fcc593a16b"
 compatibility_date = "2023-01-01"
 
