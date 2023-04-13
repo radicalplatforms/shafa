@@ -63,7 +63,6 @@ app.post('/createItem', async (c) => {
         const item: Item = JSON.parse(c.req.body.toString());
         const result = await client.query(Call(Function('addNewItem'), 
             item.user_id, 
-            item.uuid, 
             item.desc, 
             item.brand, 
             item.photo, 
