@@ -43,20 +43,6 @@ app.get("/items", async (c) => {
 });
 
 // Add a new item to the items collection
-type Item = {
-  user_id: string;
-  uuid: string;
-  desc: string;
-  brand: string;
-  photo: string;
-  primaryColor: string;
-  pattern: string;
-  type: string;
-  subtype: string;
-  style: string;
-  rating: number;
-  quality: number;
-};
 app.post("/createItem", async (c) => {
   try {
     // Convert the request body to a JSON object
@@ -66,6 +52,7 @@ app.post("/createItem", async (c) => {
       Call(
         Function("addNewItem"),
         body.user_id,
+        body.uuid,
         body.desc,
         body.brand,
         body.photo,
