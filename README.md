@@ -19,7 +19,7 @@ A wardrobe logging, composition, and organization app
 
 **Hono deployed onto Cloudflare Workers**
 
-#### Items (Fauna)
+#### Items (Durable Object)
 
 - uuid<string>: UUIDv6, unique identifier for each piece of clothing
 - username<string>: username passed in header by Author
@@ -34,7 +34,7 @@ A wardrobe logging, composition, and organization app
 - rating<int>: 0-4 likability of item
 - quality<int>: 0-4 quality of item
 
-#### Outfits (Fauna)
+#### Outfits (Durable Object)
 
 - uuid<string>: UUIDv6, unique identifier for each outfit
 - username<string>: username passed in header by Author
