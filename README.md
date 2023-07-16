@@ -7,6 +7,17 @@ A wardrobe logging, composition, and organization app
 
 ## Next
 
+### Outfits Library Page
+
+- Contains grid of Outfit components
+  - Grouped by composite score
+
+### Outfits Queue Page
+
+- 
+
+### Items Page
+
 ## Hono
 
 # Components

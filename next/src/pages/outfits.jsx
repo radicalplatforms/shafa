@@ -78,40 +78,40 @@ const outfits = [
   {
     items: [
       {
-        name: 'Cool t-shirt', // Name, String literal of name of item
+        name: 'Yellow Camp T-shirt', // Name, String literal of name of item
         brand: 'Ralph Lauren', // Brand, String literal of brand of item, should match a brand in User.brands
         photo:
-          'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80', // Photo, String literal of CF Images ID of item
+          'https://imogeneandwillie.com/cdn/shop/products/01_759bc5f8-cb7b-4f9f-980e-09ceb1c95942.jpg?v=1680276519', // Photo, String literal of CF Images ID of item
         type: 'top', // Type, String literal of type of item (layer, top, bottom, footwear, accessory)
         rating: 3, // Rating, 0-4, likability of item
         quality: 2, // Quality, 0-4, quality of item
         created_date: new Date(), // Created Date, Date of when item was created
       },
       {
-        name: 'Cool t-shirt', // Name, String literal of name of item
+        name: 'Navy Basic T-shirt', // Name, String literal of name of item
         brand: 'Ralph Lauren', // Brand, String literal of brand of item, should match a brand in User.brands
         photo:
-          'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80', // Photo, String literal of CF Images ID of item
+          'https://imogeneandwillie.com/cdn/shop/files/01_933ea04f-0dc9-4dea-a1c3-985084c6c8c8_2100x.jpg?v=1687463842', // Photo, String literal of CF Images ID of item
+        type: 'layer', // Type, String literal of type of item (layer, top, bottom, footwear, accessory)
+        rating: 3, // Rating, 0-4, likability of item
+        quality: 2, // Quality, 0-4, quality of item
+        created_date: new Date(), // Created Date, Date of when item was created
+      },
+      {
+        name: 'Blue Chinos', // Name, String literal of name of item
+        brand: 'Ralph Lauren', // Brand, String literal of brand of item, should match a brand in User.brands
+        photo:
+          'https://imogeneandwillie.com/cdn/shop/files/bchino_01.jpg?v=1688679935', // Photo, String literal of CF Images ID of item
         type: 'top', // Type, String literal of type of item (layer, top, bottom, footwear, accessory)
         rating: 3, // Rating, 0-4, likability of item
         quality: 2, // Quality, 0-4, quality of item
         created_date: new Date(), // Created Date, Date of when item was created
       },
       {
-        name: 'Cool t-shirt', // Name, String literal of name of item
+        name: 'Black RAD One', // Name, String literal of name of item
         brand: 'Ralph Lauren', // Brand, String literal of brand of item, should match a brand in User.brands
         photo:
-          'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80', // Photo, String literal of CF Images ID of item
-        type: 'top', // Type, String literal of type of item (layer, top, bottom, footwear, accessory)
-        rating: 3, // Rating, 0-4, likability of item
-        quality: 2, // Quality, 0-4, quality of item
-        created_date: new Date(), // Created Date, Date of when item was created
-      },
-      {
-        name: 'Cool t-shirt', // Name, String literal of name of item
-        brand: 'Ralph Lauren', // Brand, String literal of brand of item, should match a brand in User.brands
-        photo:
-          'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80', // Photo, String literal of CF Images ID of item
+          'https://rad-global.com/cdn/shop/files/02_RAD_BLACK_DBL_FRONT.jpg?v=1685960434&width=955', // Photo, String literal of CF Images ID of item
         type: 'top', // Type, String literal of type of item (layer, top, bottom, footwear, accessory)
         rating: 3, // Rating, 0-4, likability of item
         quality: 2, // Quality, 0-4, quality of item
