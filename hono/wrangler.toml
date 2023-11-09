@@ -2,13 +2,23 @@ name = "shafa-hono"
 account_id = "287572e2291030d8c5e360fcc593a16b"
 compatibility_date = "2023-01-01"
 
-[durable_objects]
-bindings = [
-    {name = "ITEM", class_name = "Item"},
-    {name = "OUTFIT", class_name = "Outfit"},
-    {name = "USER", class_name = "User"}
-]
+vars = { ENVIRONMENT = "dev" }
 
-[[migrations]]
-tag = "v1"
-new_classes = ["Item", "Outfit", "User"]
+[[ d1_databases ]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "dev-shafa-hono-db"
+database_id = "9a371c58-cb3e-4126-bf4d-19e38df5e9b7"
+
+
+[env.production]
+
+name = "shafa-hono"
+account_id = "287572e2291030d8c5e360fcc593a16b"
+compatibility_date = "2023-01-01"
+
+vars = { ENVIRONMENT = "prod" }
+
+#[[ d1_databases ]]
+#binding = "DB" # i.e. available in your Worker on env.DB
+#database_name = "prod-shafa-hono-db"
+#database_id = "852e5bcb-6da1-47f7-9e50-a60672d5ea90"

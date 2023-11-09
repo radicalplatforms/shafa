@@ -1,27 +1,51 @@
 import { Hono } from "hono";
-export { Item } from "./item";
-export { Outfit } from "./outfit";
-export { User } from "./user";
+import { logger } from "hono/logger";
+import { prettyJSON } from "hono/pretty-json";
+import { version } from "../package.json";
+import { drizzle } from 'drizzle-orm/d1';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { zValidator } from "@hono/zod-validator";
+import { z } from 'zod';
+
+import { item, outfit, item_to_outfit } from "./schema";
+
+const insertItemSchema = createInsertSchema(item);
+const selectItemSchema = createSelectSchema(item);
 
 type Bindings = {
-  ITEM: DurableObjectNamespace;
-  OUTFIT: DurableObjectNamespace;
-  USER: DurableObjectNamespace;
+  DB: D1Database;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-app.get("*", async (c) => {
-  const id = c.env.ITEM.idFromName("A");
-  const obj = c.env.ITEM.get(id);
-  const resp = await obj.fetch(c.req.url);
+app.use("*", logger());
+app.use("*", prettyJSON());
 
-  if (resp.status === 404) {
-    return c.text("404 Not Found", 404);
+app.get("/", async (c) => {
+  return c.text(`Shafa API v` + version);
+});
+
+app.get("/api/items", async (c) => {
+  try {
+    const db = drizzle(c.env.DB);
+    const query = db.select().from(item);
+    const results = await query.all();
+    return c.json(results)
+  } catch (e) {
+    return c.json({err: e}, 500)
   }
+});
 
-  const count = parseInt(await resp.text());
-  return c.text(`Count is ${count}`);
+app.post("/api/items", zValidator("json", insertItemSchema), async (c) => {
+    const body = c.req.valid("json");
+    console.log(body);
+    try {
+        const db = drizzle(c.env.DB);
+        const results = await db.insert(item).values(body).returning().get();
+        return c.json(results)
+    } catch (e) {
+        return c.json({err: e}, 500)
+    }
 });
 
 export default app;
