@@ -6,7 +6,7 @@
     "dev": "wrangler dev src/index.ts",
     "deploy": "wrangler publish src/index.ts",
     "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts",
-    "up": "drizzle-kit up:sqlite"
+    "up": "drizzle-kit up:sqlite --schema=src/schema.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.1.11",

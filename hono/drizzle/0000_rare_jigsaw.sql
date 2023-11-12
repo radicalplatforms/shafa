@@ -1,4 +1,4 @@
-CREATE TABLE `item` (
+CREATE TABLE `items` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`name` text,
 	`brand` text,
@@ -9,16 +9,16 @@ CREATE TABLE `item` (
 	`timestamp` text DEFAULT CURRENT_TIMESTAMP
 );
 --> statement-breakpoint
-CREATE TABLE `item_to_outfit` (
-	`item_id` integer,
-	`outfit_id` integer,
+CREATE TABLE `items_to_outfits` (
+	`item_id` integer NOT NULL,
+	`outfit_id` integer NOT NULL,
 	`item_type` integer NOT NULL,
 	PRIMARY KEY(`item_id`, `outfit_id`),
-	FOREIGN KEY (`item_id`) REFERENCES `item`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`outfit_id`) REFERENCES `outfit`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`item_id`) REFERENCES `items`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`outfit_id`) REFERENCES `outfits`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `outfit` (
+CREATE TABLE `outfits` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`rating` integer DEFAULT 2,
 	`wear_date` text DEFAULT CURRENT_DATE
