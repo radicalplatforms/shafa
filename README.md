@@ -45,6 +45,22 @@ A wardrobe logging, composition, and organization app
 - rating<int>: 0-4 likability of item
 - quality<int>: 0-4 quality of item
 
+##### GET /items
+
+Returns an array of Items. Can be filtered by query params.
+
+##### POST /items
+
+Creates a new Item. Returns the newly created Item.
+
+##### PUT /items/:id
+
+Updates an existing Item. Returns the updated Item.
+
+##### DELETE /items/:id
+
+Deletes an existing Item. Returns the deleted Item.
+
 #### Outfits (Durable Object)
 
 - uuid<string>: UUIDv6, unique identifier for each outfit
@@ -55,6 +71,22 @@ A wardrobe logging, composition, and organization app
 - footwear<string>: ref to ITEMS, footwear
 - accessories[]<string>: array of ITEMS that can be used as accessories
 - rating<int>: 0-4 likability of item
+
+##### GET /outfits
+
+Returns an array of Outfits. Can be filtered by query params.
+
+##### POST /outfits
+
+Creates a new Outfit. Returns the newly created Outfit.
+
+##### PUT /outfits/:id
+
+Updates an existing Outfit. Returns the updated Outfit.
+
+##### DELETE /outfits/:id
+
+Deletes an existing Outfit. Returns the deleted Outfit.
 
 #### Users (From Author)
 
