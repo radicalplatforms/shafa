@@ -60,7 +60,9 @@ app.get("/api/items", async (c) => {
             await db.query.items.findMany({
                 where: type !== -1 ? eq(items.type, type) : undefined,
                 extras: {
-                    lastWorn: sql<string>`(SELECT wear_date FROM outfits WHERE id = (SELECT outfit_id FROM items_to_outfits WHERE item_id = items.id ORDER BY outfit_id DESC LIMIT 1))`.as("last_worn")
+                    lastWorn: sql<string>`(SELECT wear_date FROM outfits WHERE id = (SELECT outfit_id FROM items_to_outfits WHERE item_id = items.id ORDER BY outfit_id DESC LIMIT 1))`.as("last_worn"),
+                    rollingMonthWears: sql<number>`(SELECT COUNT(DISTINCT(wear_date)) FROM outfits WHERE id IN (SELECT outfit_id FROM items_to_outfits WHERE item_id = items.id) AND wear_date >= date('now', '-1 month'))`.as("rolling_month_wears"),
+                    rollingYearWears: sql<number>`(SELECT COUNT(DISTINCT(wear_date)) FROM outfits WHERE id IN (SELECT outfit_id FROM items_to_outfits WHERE item_id = items.id) AND wear_date >= date('now', '-1 year'))`.as("rolling_year_wears")
                 },
                 orderBy: [asc(sql.identifier('last_worn')), desc(items.rating), desc(items.quality)]
             })
