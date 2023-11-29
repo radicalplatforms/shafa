@@ -76,19 +76,37 @@ app.post("/api/items", zValidator("json", insertItemSchema.omit({id: true, times
     const body = c.req.valid("json");
     try {
         const db = drizzle(c.env.DB);
-        const results = await db.insert(items).values(body).returning().get();
-        return c.json(results)
+        return c.json(
+            await db.insert(items).values(body).returning()
+        )
     } catch (e) {
         return c.json(e, 500)
     }
 });
 
-app.put("/api/items", zValidator("json", insertItemSchema.omit({timestamp: true})), async (c) => {
+app.put("/api/items/:id", zValidator("json", insertItemSchema.omit({timestamp: true})), async (c) => {
+    const id: number = +c.req.param('id');
     const body = c.req.valid("json");
     try {
         const db = drizzle(c.env.DB);
-        const results = await db.update(items).set(body).where(eq(items.id, body.id)).returning().get();
-        return c.json(results)
+        return c.json(
+            await db.update(items).set(body).where(eq(items.id, id)).returning()
+        )
+    } catch (e) {
+        return c.json(e, 500)
+    }
+});
+
+app.delete("/api/items/:id", async (c) => {
+    const id: number = +c.req.param('id');
+    try {
+        const db = drizzle(c.env.DB);
+
+        await db.delete(itemsToOutfits).where(eq(itemsToOutfits.itemId, id)).run();
+
+        return c.json(
+            await db.delete(items).where(eq(items.id, id)).returning()
+        )
     } catch (e) {
         return c.json(e, 500)
     }
