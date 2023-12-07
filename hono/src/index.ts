@@ -3,12 +3,12 @@ import {logger} from "hono/logger";
 import {prettyJSON} from "hono/pretty-json";
 import {version} from "../package.json";
 import {drizzle} from 'drizzle-orm/d1';
-import {sql, eq, asc, desc} from "drizzle-orm";
+import {sql, and, eq, asc, desc, inArray, arrayContained} from "drizzle-orm";
 import {createInsertSchema, createSelectSchema} from 'drizzle-zod';
 import {zValidator} from "@hono/zod-validator";
 import {z} from 'zod';
 
-import {items, outfits, itemsToOutfits, itemTypeEnum} from "./schema";
+import {items, outfits, itemsToOutfits, itemTypeEnum, itemsToOutfitsRelations, outfitsRelations} from "./schema";
 import * as schema from "./schema";
 
 const insertItemSchema = createInsertSchema(items, {
@@ -30,13 +30,9 @@ const insertOutfitSchema = createInsertSchema(outfits, {
     ).max(8).optional()
 }).omit({id: true});
 
-const selectOutfitSchema = createSelectSchema(outfits).extend({
-    itemIdsTypes: z.array(
-        z.object({
-            id: z.number(),
-            type: z.nativeEnum(itemTypeEnum)
-        })
-    ).max(8).optional()
+const selectOutfitSchema = z.object({
+    rating: z.coerce.number().min(0).max(4).optional(),
+    "itemId[]": z.array(z.coerce.number()).optional()
 });
 
 type Bindings = {
@@ -113,6 +109,8 @@ app.delete("/api/items/:id", async (c) => {
 });
 
 app.get("/api/outfits", async (c) => {
+    const rating = c.req.query('rating') as number | undefined;
+    const itemIds = c.req.queries('itemId[]') as number[] | [] || [];
     try {
         const db = drizzle(c.env.DB, {schema});
         return c.json(
@@ -126,10 +124,21 @@ app.get("/api/outfits", async (c) => {
                         with: {
                             item: true
                         },
-                        orderBy: (itemsToOutfits, {asc}) => [asc(itemsToOutfits.type)],
+                        orderBy: (itemsToOutfits, {asc}) => [asc(itemsToOutfits.type)]
                     }
                 },
-                orderBy: (outfits, {desc}) => [desc(outfits.wearDate)]
+                orderBy: (outfits, {desc}) => [desc(outfits.wearDate)],
+                where: and(
+                    itemIds.length > 0 ? inArray(outfits.id, (
+                        await db.select()
+                            .from(itemsToOutfits)
+                            .where(inArray(itemsToOutfits.itemId, itemIds))
+                            .groupBy(itemsToOutfits.outfitId)
+                            .having(sql`count(distinct item_id) = ${itemIds.length}`)
+                            .all()
+                    ).map(e => e.outfitId)) : undefined,
+                    rating !== undefined ? eq(outfits.rating, rating) : undefined
+                )
             })
         )
     } catch (e) {
