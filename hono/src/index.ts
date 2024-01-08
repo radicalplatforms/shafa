@@ -3,7 +3,7 @@ import {logger} from "hono/logger";
 import {prettyJSON} from "hono/pretty-json";
 import {version} from "../package.json";
 import {drizzle} from 'drizzle-orm/d1';
-import {sql, and, eq, asc, desc, inArray, arrayContained} from "drizzle-orm";
+import {sql, and, eq, asc, desc, like, inArray, or, arrayContained} from "drizzle-orm";
 import {createInsertSchema, createSelectSchema} from 'drizzle-zod';
 import {zValidator} from "@hono/zod-validator";
 import {z} from 'zod';
@@ -50,11 +50,12 @@ app.get("/", async (c) => {
 
 app.get("/api/items", async (c) => {
     const type: number = Number(c.req.query('type') || -1);
+    const search: string = c.req.query('search') || "";
     try {
         const db = drizzle(c.env.DB, {schema});
         return c.json(
             await db.query.items.findMany({
-                where: type !== -1 ? eq(items.type, type) : undefined,
+                where: and(type !== -1 ? eq(items.type, type) : undefined, search !== "" ? or(like(items.name, `%${search}%`), like(items.brand, `%${search}%`)) : undefined),
                 extras: {
                     lastWorn: sql<string>`(SELECT wear_date FROM outfits WHERE id = (SELECT outfit_id FROM items_to_outfits WHERE item_id = items.id ORDER BY outfit_id DESC LIMIT 1))`.as("last_worn"),
                     rollingMonthWears: sql<number>`(SELECT COUNT(DISTINCT(wear_date)) FROM outfits WHERE id IN (SELECT outfit_id FROM items_to_outfits WHERE item_id = items.id) AND wear_date >= date('now', '-1 month'))`.as("rolling_month_wears"),
