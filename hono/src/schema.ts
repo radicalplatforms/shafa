@@ -17,7 +17,8 @@ export const items = sqliteTable("items", {
     type: integer('type').notNull(),
     rating: integer('rating').default(2),
     quality: integer('quality').default(2),
-    timestamp: text('timestamp').default(sql`CURRENT_TIMESTAMP`)
+    timestamp: text('timestamp').default(sql`CURRENT_TIMESTAMP`),
+    authorUsername: text('author_username').notNull(),
 });
 
 export const itemsRelations = relations(items, ({ many }) => ({
@@ -27,7 +28,8 @@ export const itemsRelations = relations(items, ({ many }) => ({
 export const outfits = sqliteTable("outfits", {
     id: integer('id').primaryKey(),
     rating: integer('rating').default(2),
-    wearDate: text('wear_date').default(sql`CURRENT_DATE`)
+    wearDate: text('wear_date').default(sql`CURRENT_DATE`),
+    authorUsername: text('author_username').notNull(),
 });
 
 export const outfitsRelations = relations(outfits, ({ many }) => ({

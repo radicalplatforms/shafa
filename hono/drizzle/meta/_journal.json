@@ -8,6 +8,13 @@
       "when": 1699555171696,
       "tag": "0000_rare_jigsaw",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1704774434001,
+      "tag": "0001_light_annihilus",
+      "breakpoints": true
     }
   ]
 }
