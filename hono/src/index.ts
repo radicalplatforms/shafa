@@ -15,7 +15,7 @@ const insertItemSchema = createInsertSchema(items, {
     type: z.nativeEnum(itemTypeEnum),
     rating: z.number().min(0).max(4),
     quality: z.number().min(0).max(4)
-});
+}).omit({authorUsername: true});
 
 const selectItemSchema = createSelectSchema(items);
 
@@ -28,12 +28,13 @@ const insertOutfitSchema = createInsertSchema(outfits, {
             type: z.nativeEnum(itemTypeEnum)
         })
     ).max(8).optional()
-}).omit({id: true});
+}).omit({id: true, authorUsername: true});
 
 const selectOutfitSchema = z.object({
     rating: z.coerce.number().min(0).max(4).optional(),
     "itemId[]": z.array(z.coerce.number()).optional()
 });
+
 
 type Bindings = {
     DB: D1Database;
@@ -73,6 +74,8 @@ app.post("/api/items", zValidator("json", insertItemSchema.omit({id: true, times
     const body = c.req.valid("json");
     try {
         const db = drizzle(c.env.DB);
+        const author_username = "rak3rman";
+        (body as any).authorUsername = author_username;
         return c.json(
             await db.insert(items).values(body).returning()
         )
@@ -84,6 +87,8 @@ app.post("/api/items", zValidator("json", insertItemSchema.omit({id: true, times
 app.put("/api/items/:id", zValidator("json", insertItemSchema.omit({timestamp: true})), async (c) => {
     const id: number = +c.req.param('id');
     const body = c.req.valid("json");
+    const author_username = "rak3rman";
+    (body as any).authorUsername = author_username;
     try {
         const db = drizzle(c.env.DB);
         return c.json(
@@ -151,6 +156,8 @@ app.post("/api/outfits", zValidator("json", insertOutfitSchema), async (c) => {
     const body = c.req.valid("json");
     try {
         const db = drizzle(c.env.DB);
+        const author_username = "rak3rman";
+        (body as any).authorUsername = author_username;
 
         const itemIdsTypes = body.itemIdsTypes
         delete body.itemIdsTypes
@@ -176,6 +183,8 @@ app.put("/api/outfits/:id", zValidator("json", insertOutfitSchema), async (c) =>
     const body = c.req.valid("json");
     try {
         const db = drizzle(c.env.DB);
+        const author_username = "rak3rman";
+        (body as any).authorUsername = author_username;
 
         const itemIdsTypes = body.itemIdsTypes
         delete body.itemIdsTypes

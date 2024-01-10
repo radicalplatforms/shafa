@@ -8,6 +8,7 @@ vars = { ENVIRONMENT = "dev" }
 binding = "DB" # i.e. available in your Worker on env.DB
 database_name = "dev-shafa-hono-db"
 database_id = "9a371c58-cb3e-4126-bf4d-19e38df5e9b7"
+migrations_dir = "drizzle"
 
 
 [env.production]
