@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="859248dc-b837-4b9d-8c8b-622b30c5efe1" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="leeza_hono_testing" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="2OIVWiX3hatIQImq1KzJ9E2AIJv" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/rak3rman/WebstormProjects/shafa/next/src",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "prettierjs.PrettierConfiguration.Package": "/Users/rak3rman/WebstormProjects/shafa/next/node_modules/prettier",
+    "settings.editor.selected.configurable": "preferences.intentionPowerPack",
+    "ts.external.directory.path": "/Users/rak3rman/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external",
+    "vue.rearranger.settings.migration": "true"
+  },
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "sqlite"
+    ],
+    "com.intellij.ide.scratch.LRUPopupBuilder$1/SQL Dialect": [
+      "SQLite"
+    ]
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/next/src" />
+      <recent name="$PROJECT_DIR$/next" />
+      <recent name="$PROJECT_DIR$/hono/src" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/next" />
+      <recent name="$PROJECT_DIR$/next/app" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="859248dc-b837-4b9d-8c8b-622b30c5efe1" name="Changes" comment="" />
+      <created>1681248116245</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1681248116245</updated>
+      <workItem from="1681248117342" duration="1354000" />
+      <workItem from="1681349026424" duration="634000" />
+      <workItem from="1681350287572" duration="321000" />
+      <workItem from="1681441298576" duration="1821000" />
+      <workItem from="1681503276841" duration="3433000" />
+      <workItem from="1681591978462" duration="757000" />
+      <workItem from="1685824084834" duration="41000" />
+      <workItem from="1685824134018" duration="10879000" />
+      <workItem from="1687116398639" duration="9558000" />
+      <workItem from="1687639702331" duration="3748000" />
+      <workItem from="1689129234018" duration="12018000" />
+      <workItem from="1689822759546" duration="674000" />
+      <workItem from="1694228143610" duration="606000" />
+      <workItem from="1699340683434" duration="3021000" />
+      <workItem from="1699467412449" duration="30693000" />
+      <workItem from="1699833108064" duration="1000" />
+      <workItem from="1699851361247" duration="607000" />
+      <workItem from="1699852507571" duration="2298000" />
+      <workItem from="1699945663656" duration="1824000" />
+      <workItem from="1700071028696" duration="18179000" />
+      <workItem from="1700498171187" duration="833000" />
+      <workItem from="1700530626247" duration="311000" />
+      <workItem from="1701040722576" duration="2233000" />
+      <workItem from="1701143335118" duration="2064000" />
+      <workItem from="1701216647004" duration="385000" />
+      <workItem from="1701275921929" duration="21000" />
+      <workItem from="1701276025542" duration="240000" />
+      <workItem from="1701293700424" duration="4607000" />
+      <workItem from="1701447301507" duration="681000" />
+      <workItem from="1701451142961" duration="179000" />
+      <workItem from="1701543982040" duration="1881000" />
+      <workItem from="1701630610571" duration="1415000" />
+      <workItem from="1701657788393" duration="917000" />
+      <workItem from="1701754407644" duration="607000" />
+      <workItem from="1701823402643" duration="12615000" />
+      <workItem from="1701918062747" duration="6080000" />
+      <workItem from="1702055912864" duration="9399000" />
+      <workItem from="1702431011477" duration="2401000" />
+      <workItem from="1702683671742" duration="1503000" />
+      <workItem from="1703276196841" duration="1709000" />
+      <workItem from="1703687754949" duration="924000" />
+      <workItem from="1703720848630" duration="1000" />
+      <workItem from="1703797903434" duration="621000" />
+      <workItem from="1704142702642" duration="1567000" />
+      <workItem from="1704226217390" duration="251000" />
+      <workItem from="1704420183170" duration="522000" />
+      <workItem from="1704651502826" duration="5324000" />
+      <workItem from="1704748587292" duration="2568000" />
+      <workItem from="1704778014940" duration="2090000" />
+      <workItem from="1704827562438" duration="3740000" />
+      <workItem from="1704928262040" duration="2981000" />
+      <workItem from="1705009035028" duration="55000" />
+    </task>
+    <task id="LOCAL-00001" summary="feat: base hono commit">
+      <created>1681248872390</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1681248872390</updated>
+    </task>
+    <task id="LOCAL-00002" summary="bug: made GET request use headers, not JSON">
+      <created>1681349655150</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1681349655150</updated>
+    </task>
+    <task id="LOCAL-00003" summary="bug: import issues, now results in Fauna err">
+      <created>1681442295795</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1681442295795</updated>
+    </task>
+    <task id="LOCAL-00004" summary="feat: start of next frontend">
+      <created>1687128861600</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1687128861600</updated>
+    </task>
+    <task id="LOCAL-00005" summary="feat: work on inline item component">
+      <created>1689468459283</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1689468459283</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="feat: base hono commit" />
+    <MESSAGE value="bug: made GET request use headers, not JSON" />
+    <MESSAGE value="bug: import issues, now results in Fauna err" />
+    <MESSAGE value="feat: start of next frontend" />
+    <MESSAGE value="feat: work on inline item component" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: work on inline item component" />
+  </component>
+</project>

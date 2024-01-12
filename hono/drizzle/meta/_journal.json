@@ -15,6 +15,13 @@
       "when": 1704774434001,
       "tag": "0001_light_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1705042060079,
+      "tag": "0002_pretty_talon",
+      "breakpoints": true
     }
   ]
 }

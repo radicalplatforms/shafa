@@ -1,5 +1,5 @@
 import {relations, sql} from "drizzle-orm";
-import { integer, sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core';
+import {integer, sqliteTable, text, primaryKey} from 'drizzle-orm/sqlite-core';
 
 export enum itemTypeEnum {
     'layer',
@@ -21,7 +21,7 @@ export const items = sqliteTable("items", {
     authorUsername: text('author_username').notNull(),
 });
 
-export const itemsRelations = relations(items, ({ many }) => ({
+export const itemsRelations = relations(items, ({many}) => ({
     itemsToOutfits: many(itemsToOutfits),
 }));
 
@@ -32,8 +32,30 @@ export const outfits = sqliteTable("outfits", {
     authorUsername: text('author_username').notNull(),
 });
 
-export const outfitsRelations = relations(outfits, ({ many }) => ({
+export const outfitsRelations = relations(outfits, ({many}) => ({
     itemsToOutfits: many(itemsToOutfits),
+}));
+
+export const tags = sqliteTable("tags", {
+    id: integer('id').primaryKey(),
+    name: text('name').notNull()
+});
+
+export const tagsToOutfits = sqliteTable("tags_to_outfits", {
+    tagId: integer('tag_id').notNull().references(() => tags.id),
+    outfitId: integer('outfit_id').notNull().references(() => outfits.id)
+})
+
+
+export const tagsToOutfitsRelations = relations(tagsToOutfits, ({one}) => ({
+    tag: one(tags, {
+        fields: [tagsToOutfits.tagId],
+        references: [tags.id],
+    }),
+    outfit: one(outfits, {
+        fields: [tagsToOutfits.outfitId],
+        references: [outfits.id],
+    }),
 }));
 
 export const itemsToOutfits = sqliteTable("items_to_outfits", {
@@ -46,7 +68,7 @@ export const itemsToOutfits = sqliteTable("items_to_outfits", {
     };
 });
 
-export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
+export const itemsToOutfitsRelations = relations(itemsToOutfits, ({one}) => ({
     item: one(items, {
         fields: [itemsToOutfits.itemId],
         references: [items.id],
