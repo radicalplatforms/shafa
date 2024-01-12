@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231025.0",
-    "wrangler": "^2.20.1"
+    "wrangler": "^3.22.4"
   },
   "resolveJsonModule": true
 }

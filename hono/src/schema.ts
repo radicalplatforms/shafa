@@ -1,6 +1,17 @@
 import {relations, sql} from "drizzle-orm";
 import {integer, sqliteTable, text, primaryKey} from 'drizzle-orm/sqlite-core';
 
+/**
+ * An enumeration for item types.
+ *
+ * @enum {number}
+ * @property {number} layer - corresponding to the layer item type.
+ * @property {number} top - corresponding to the top item type.
+ * @property {number} bottom - corresponding to the bottom item type.
+ * @property {number} footwear - corresponding to the footwear item type.
+ * @property {number} accessory - corresponding to the accessory item type.
+ */
+
 export enum itemTypeEnum {
     'layer',
     'top',
@@ -9,6 +20,9 @@ export enum itemTypeEnum {
     'accessory'
 }
 
+/**
+ * Items
+ */
 export const items = sqliteTable("items", {
     id: integer('id').primaryKey(),
     name: text('name'),
@@ -25,6 +39,10 @@ export const itemsRelations = relations(items, ({many}) => ({
     itemsToOutfits: many(itemsToOutfits),
 }));
 
+
+/**
+ * Outfits
+ */
 export const outfits = sqliteTable("outfits", {
     id: integer('id').primaryKey(),
     rating: integer('rating').default(2),
@@ -36,28 +54,23 @@ export const outfitsRelations = relations(outfits, ({many}) => ({
     itemsToOutfits: many(itemsToOutfits),
 }));
 
+/**
+ * Tags
+ */
 export const tags = sqliteTable("tags", {
     id: integer('id').primaryKey(),
-    name: text('name').notNull()
+    name: text('name').notNull(),
+    authorUsername: text('author_username').notNull(),
 });
 
-export const tagsToOutfits = sqliteTable("tags_to_outfits", {
-    tagId: integer('tag_id').notNull().references(() => tags.id),
-    outfitId: integer('outfit_id').notNull().references(() => outfits.id)
-})
 
-
-export const tagsToOutfitsRelations = relations(tagsToOutfits, ({one}) => ({
-    tag: one(tags, {
-        fields: [tagsToOutfits.tagId],
-        references: [tags.id],
-    }),
-    outfit: one(outfits, {
-        fields: [tagsToOutfits.outfitId],
-        references: [outfits.id],
-    }),
+export const tagsRelations = relations(tags, ({many}) => ({
+    tagsToOutfits: many(tagsToOutfits),
 }));
 
+/**
+ * Items to Outfits
+ */
 export const itemsToOutfits = sqliteTable("items_to_outfits", {
     itemId: integer('item_id').notNull().references(() => items.id),
     outfitId: integer('outfit_id').notNull().references(() => outfits.id),
@@ -78,3 +91,24 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({one}) => ({
         references: [outfits.id],
     }),
 }));
+
+/**
+ * Tags to Outfits
+ */
+export const tagsToOutfits = sqliteTable("tags_to_outfits", {
+    tagId: integer('tag_id').notNull().references(() => tags.id),
+    outfitId: integer('outfit_id').notNull().references(() => outfits.id)
+})
+
+
+export const tagsToOutfitsRelations = relations(tagsToOutfits, ({one}) => ({
+    tag: one(tags, {
+        fields: [tagsToOutfits.tagId],
+        references: [tags.id],
+    }),
+    outfit: one(outfits, {
+        fields: [tagsToOutfits.outfitId],
+        references: [outfits.id],
+    }),
+}));
+
