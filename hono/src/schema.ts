@@ -55,20 +55,6 @@ export const outfitsRelations = relations(outfits, ({many}) => ({
 }));
 
 /**
- * Tags
- */
-export const tags = sqliteTable("tags", {
-    id: integer('id').primaryKey(),
-    name: text('name').notNull(),
-    authorUsername: text('author_username').notNull(),
-});
-
-
-export const tagsRelations = relations(tags, ({many}) => ({
-    tagsToOutfits: many(tagsToOutfits),
-}));
-
-/**
  * Items to Outfits
  */
 export const itemsToOutfits = sqliteTable("items_to_outfits", {
@@ -91,24 +77,3 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({one}) => ({
         references: [outfits.id],
     }),
 }));
-
-/**
- * Tags to Outfits
- */
-export const tagsToOutfits = sqliteTable("tags_to_outfits", {
-    tagId: integer('tag_id').notNull().references(() => tags.id),
-    outfitId: integer('outfit_id').notNull().references(() => outfits.id)
-})
-
-
-export const tagsToOutfitsRelations = relations(tagsToOutfits, ({one}) => ({
-    tag: one(tags, {
-        fields: [tagsToOutfits.tagId],
-        references: [tags.id],
-    }),
-    outfit: one(outfits, {
-        fields: [tagsToOutfits.outfitId],
-        references: [outfits.id],
-    }),
-}));
-
