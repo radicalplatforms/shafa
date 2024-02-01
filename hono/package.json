@@ -7,7 +7,7 @@
     "test": "jest test",
     "format": "prettier --write . && eslint --fix .",
     "check-prettier": "prettier --check .",
-    "check-eslint": "eslint .",
+    "check-eslint": "eslint . --max-warnings 0",
     "deploy": "wrangler publish src/index.ts",
     "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts",
     "migrate": "wrangler d1 migrations apply dev-shafa-hono-db"

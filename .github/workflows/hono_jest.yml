@@ -1,4 +1,4 @@
-name: hono_format
+name: hono_jest
 
 on:
   push:
@@ -27,6 +27,6 @@ jobs:
         run: npm ci
         working-directory: hono
 
-      - name: Run ESlint
-        run: 
-          working-directory: hono
+      - name: Run Jest
+        run: npm run test
+        working-directory: hono

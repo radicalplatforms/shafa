@@ -1,4 +1,4 @@
-name: hono_jest
+name: hono_format
 
 on:
   push:
