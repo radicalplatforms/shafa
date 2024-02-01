@@ -17,7 +17,7 @@ app.use('*', logger());
 app.use('*', prettyJSON());
 
 app.get('/', async (c) => {
-  return c.text('Shafa API v' + version);
+  return c.text(`Shafa API v${version}`);
 });
 
 const routes = app.route('/api/items', items).route('/api/outfits', outfits);
