@@ -1,12 +1,12 @@
-import app from '../src/index';
-
-const MOCK_ENV = {
-  DB: {
-    prepare: () => {
-      // Mocked D1
-    },
-  },
-};
+// import app from '../src/index';
+//
+// const MOCK_ENV = {
+//  DB: {
+//    prepare: () => {
+//      // Mocked D1
+//    },
+//  },
+// };
 
 describe('GET /items', () => {
   it('should return no items', async () => {

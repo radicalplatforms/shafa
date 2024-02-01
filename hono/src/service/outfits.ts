@@ -16,6 +16,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 const insertOutfitSchema = createInsertSchema(outfits, {
   rating: z.number().min(0).max(4),
+  authorUsername: z.string().optional(),
 })
   .extend({
     itemIdsTypes: z
@@ -28,17 +29,14 @@ const insertOutfitSchema = createInsertSchema(outfits, {
       .max(8)
       .optional(),
   })
-  .omit({ id: true, authorUsername: true });
-
-const selectOutfitSchema = z.object({
-  rating: z.coerce.number().min(0).max(4).optional(),
-  'itemId[]': z.array(z.coerce.number()).optional(),
-});
+  .omit({ id: true });
 
 app.get('/', async (c) => {
   const rating = c.req.query('rating') as number | undefined;
   const itemIds = (c.req.queries('itemId[]') as number[] | []) || [];
+
   const db = drizzle(c.env.DB, { schema });
+
   return c.json(
     await db.query.outfits.findMany({
       with: {
@@ -80,9 +78,9 @@ app.get('/', async (c) => {
 
 app.post('/', zValidator('json', insertOutfitSchema), async (c) => {
   const body = c.req.valid('json');
+  body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
+
   const db = drizzle(c.env.DB);
-  const author_username = 'rak3rman';
-  (body as any).authorUsername = author_username;
 
   const itemIdsTypes = body.itemIdsTypes;
   delete body.itemIdsTypes;
@@ -111,10 +109,11 @@ app.post('/', zValidator('json', insertOutfitSchema), async (c) => {
 
 app.put('/:id', zValidator('json', insertOutfitSchema), async (c) => {
   const id: number = +c.req.param('id');
+
   const body = c.req.valid('json');
+  body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
+
   const db = drizzle(c.env.DB);
-  const author_username = 'rak3rman';
-  (body as any).authorUsername = author_username;
 
   const itemIdsTypes = body.itemIdsTypes;
   delete body.itemIdsTypes;
@@ -143,6 +142,7 @@ app.put('/:id', zValidator('json', insertOutfitSchema), async (c) => {
 
 app.delete('/:id', async (c) => {
   const id: number = +c.req.param('id');
+
   const db = drizzle(c.env.DB);
 
   await db.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, id)).run();

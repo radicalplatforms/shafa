@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator';
 import { sql, and, eq, asc, desc, like, or } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { createInsertSchema } from 'drizzle-zod';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -18,14 +18,15 @@ const insertItemSchema = createInsertSchema(items, {
   type: z.nativeEnum(itemTypeEnum),
   rating: z.number().min(0).max(4),
   quality: z.number().min(0).max(4),
-}).omit({ authorUsername: true });
-
-const selectItemSchema = createSelectSchema(items);
+  authorUsername: z.string().optional(),
+});
 
 app.get('/', async (c) => {
   const type: number = Number(c.req.query('type') || -1);
   const search: string = c.req.query('search') || '';
+
   const db = drizzle(c.env.DB, { schema });
+
   return c.json(
     await db.query.items.findMany({
       where: and(
@@ -72,9 +73,10 @@ app.post(
   zValidator('json', insertItemSchema.omit({ id: true, timestamp: true })),
   async (c) => {
     const body = c.req.valid('json');
+    body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
+
     const db = drizzle(c.env.DB);
-    const author_username = 'rak3rman';
-    (body as any).authorUsername = author_username;
+
     return c.json(await db.insert(items).values(body).returning());
   },
 );
@@ -84,10 +86,12 @@ app.put(
   zValidator('json', insertItemSchema.omit({ timestamp: true })),
   async (c) => {
     const id: number = +c.req.param('id');
+
     const body = c.req.valid('json');
-    const author_username = 'rak3rman';
-    (body as any).authorUsername = author_username;
+    body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
+
     const db = drizzle(c.env.DB);
+
     return c.json(
       await db.update(items).set(body).where(eq(items.id, id)).returning(),
     );
@@ -96,6 +100,7 @@ app.put(
 
 app.delete('/:id', async (c) => {
   const id: number = +c.req.param('id');
+
   const db = drizzle(c.env.DB);
 
   await db.delete(itemsToOutfits).where(eq(itemsToOutfits.itemId, id)).run();
