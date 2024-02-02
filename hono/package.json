@@ -3,14 +3,17 @@
   "version": "0.0.0",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev src/index.ts",
     "test": "jest test",
     "format": "prettier --write . && eslint --fix .",
     "check-prettier": "prettier --check .",
     "check-eslint": "eslint . --max-warnings 0",
-    "deploy": "wrangler publish src/index.ts",
-    "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts",
-    "migrate": "wrangler d1 migrations apply dev-shafa-hono-db"
+    "wrdev": "wrangler dev src/index.ts",
+    "wrstage": "wrangler deploy src/index.ts --env stage",
+    "wrprod": "wrangler deploy src/index.ts --env production",
+    "wrdev-migrate": "wrangler d1 migrations apply dev-shafa-hono-db && wrangler d1 migrations apply dev-shafa-hono-db --local",
+    "wrstage-migrate": "wrangler d1 migrations apply stage-shafa-hono-db --env stage",
+    "wrprod-migrate": "wrangler d1 migrations apply prod-shafa-hono-db --env production",
+    "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts"
   },
   "dependencies": {
     "@hono/eslint-config": "^0.0.4",
