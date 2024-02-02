@@ -1,8 +1,6 @@
-name: hono_jest
+name: Hono Jest
 
 on:
-  push:
-    branches: main
   pull_request:
     branches: main
 
