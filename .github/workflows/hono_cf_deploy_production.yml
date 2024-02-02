@@ -13,10 +13,6 @@ jobs:
         os: [ ubuntu-latest ]
         node: [ 18 ]
 
-    env:
-      NUXT_DIR: nuxt
-      SUMMARIZE_DIR: nuxt/summarize
-
     steps:
       - uses: actions/setup-node@v4
         with:
