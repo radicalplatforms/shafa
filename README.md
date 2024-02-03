@@ -1,105 +1,60 @@
 # Shafa
 A wardrobe logging, composition, and organization app
 
-# Purpose
+## Purpose
 
-# Stack Overview
+## Stack Overview
 
-## Next
+### Hono
 
-### Outfits Library Page
+#### Local Setup
 
-- Contains grid of Outfit components
-  - Grouped by composite score
+Clone the project (using https, ssh, or Github CLI).
+Navigate to the hono directory and install backend dependencies using `npm`:
 
-### Outfits Queue Page
+```
+cd shafa/hono
+npm i
+```
 
-- 
+In order to run the backend, you'll need to get your [Cloudflare D1](https://developers.cloudflare.com/d1/) database setup locally (unless you have creds to access the remote D1 db).
+To migrate/setup your local db locally, run the following and accept the prompts:
 
-### Items Page
+```
+npm run wrdev-migrate-local
+```
 
-## Hono
+NOTE: You'll also have to run this command each time a migration file is added to the backend database.
 
-# Components
+To run the project locally using `miniflare` (a local, simplified version of Cloudflare Workers), run the following:
 
-### Web Assets (shafa.app)
+```
+npm run wrdev
+```
 
-**Next deployed onto Cloudflare Workers**
+You should now be able to interface with the backend!
+Check out the [wrangler docs](https://developers.cloudflare.com/workers/wrangler/commands/#d1) for additional information on how to view/manipulate the D1 database.
 
-### Logical API (api.shafa.app)
+#### Running with a Remote D1 Database
 
-**Hono deployed onto Cloudflare Workers**
+Accessing the remote D1 database requires special admin credentials that can be provided by @rak3rman, the repo owner.
+Only individuals responsible for *deployment-related activites* will be given creds, as the entire backend can be simulated locally with miniflare.
+If you have such creds, what follows are additional commands that you can run:
 
-#### Items (Durable Object)
+```
+npm run wrstage              // deploys the current local build to the stage environment
+npm run wrprod               // deploys the current local build to the production environment
 
-- uuid<string>: UUIDv6, unique identifier for each piece of clothing
-- username<string>: username passed in header by Author
-- desc<string>: very short description of item
-- brand<string>: brand of item (tagging opportunity)
-- photo<string>: Cloudflare Images ID
-- primaryColor<string>: HEX value  (color picker?)
-- pattern?
-- type<string>: bottom/top/outerwear/shoes/etc
-- subtype<string>: TBD
-- style<string>: professional, casual, etc
-- rating<int>: 0-4 likability of item
-- quality<int>: 0-4 quality of item
-
-##### GET /items
-
-Returns an array of Items. Can be filtered by query params.
-
-##### POST /items
-
-Creates a new Item. Returns the newly created Item.
-
-##### PUT /items/:id
-
-Updates an existing Item. Returns the updated Item.
-
-##### DELETE /items/:id
-
-Deletes an existing Item. Returns the deleted Item.
-
-#### Outfits (Durable Object)
-
-- uuid<string>: UUIDv6, unique identifier for each outfit
-- username<string>: username passed in header by Author
-- layer<string>: ref to ITEMS, layer(ed) outfit layer
-- top<string>: ref to ITEMS, top outfit layer
-- bottom<string>: ref to ITEMS, bottom outfit layer
-- footwear<string>: ref to ITEMS, footwear
-- accessories[]<string>: array of ITEMS that can be used as accessories
-- rating<int>: 0-4 likability of item
-
-##### GET /outfits
-
-Returns an array of Outfits. Can be filtered by query params.
-
-##### POST /outfits
-
-Creates a new Outfit. Returns the newly created Outfit.
-
-##### PUT /outfits/:id
-
-Updates an existing Outfit. Returns the updated Outfit.
-
-##### DELETE /outfits/:id
-
-Deletes an existing Outfit. Returns the deleted Outfit.
-
-#### Users (From Author)
-
-## Deployment
-
-TODO
+npm run wrdev-migrate        // migrates the local and remote development databases
+npm run wrdev-migrate-remote // ONLY migrates the remote development database
+npm run wrstage-migrate      // migrates the remote stage database
+npm run wrprod-migrate       // migrates the remote production database
+```
 
 ## Contributors
 
-- **Radison Akerman** // Frontend
-- **Leeza Andryushchenko** // Backend
-- **Richard Yang** // Backend
-- **Sengdao Inthavong** // Backend
+- **Radison Akerman** // Backend, Frontend, DevOps
+- **Vincent Do** // Backend
 
 ## License
-This project (shafa) is protected by the Mozilla Public License 2.0 as disclosed in the [LICENSE](https://github.com/rakermanfoundation/shafa/blob/main/LICENSE). Adherence to the policies and terms listed is required.
+This project (shafa) is protected by the Mozilla Public License 2.0 as disclosed in the [LICENSE](https://github.com/rak3rman/shafa/blob/main/LICENSE). Adherence to the policies and terms listed is required.
