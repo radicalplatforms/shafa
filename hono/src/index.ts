@@ -1,3 +1,4 @@
+import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 
 import { logger } from 'hono/logger';
@@ -15,6 +16,16 @@ app.onError((err, c) => {
 
 app.use('*', logger());
 app.use('*', prettyJSON());
+
+app.use('*', async (c, next) => {
+  if (!c.env) {
+    throw new Error('Environment variable is not available');
+  }
+  const dbConfig = c.env!.DB as D1Database;
+  const db = drizzle(dbConfig);
+  c.set('db', db);
+  await next();
+});
 
 app.get('/', async (c) => {
   return c.text(`Shafa API v${version}`);
