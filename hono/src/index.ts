@@ -1,10 +1,8 @@
-import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { version } from '../package.json';
-import * as schema from './schema';
 import items from './service/items';
 import outfits from './service/outfits';
 
