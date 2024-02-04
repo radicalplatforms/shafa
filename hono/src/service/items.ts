@@ -1,12 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
 import { sql, and, eq, asc, desc, like, or } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/d1';
 import { createInsertSchema } from 'drizzle-zod';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { items, itemsToOutfits, itemTypeEnum } from '../schema';
-import * as schema from '../schema';
+import drizzleDB from '../utils/drizzleDB';
 
 type Bindings = {
   DB: D1Database;
@@ -21,14 +20,14 @@ const insertItemSchema = createInsertSchema(items, {
   authorUsername: z.string().optional(),
 });
 
+app.use('*', drizzleDB);
+
 app.get('/', async (c) => {
   const type: number = Number(c.req.query('type') || -1);
   const search: string = c.req.query('search') || '';
 
-  const db = drizzle(c.env.DB, { schema });
-
   return c.json(
-    await db.query.items.findMany({
+    await c.get('db').query.items.findMany({
       where: and(
         type !== -1 ? eq(items.type, type) : undefined,
         search !== ''
@@ -75,9 +74,7 @@ app.post(
     const body = c.req.valid('json');
     body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
 
-    const db = drizzle(c.env.DB);
-
-    return c.json(await db.insert(items).values(body).returning());
+    return c.json(await c.get('db').insert(items).values(body).returning());
   },
 );
 
@@ -90,10 +87,13 @@ app.put(
     const body = c.req.valid('json');
     body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
 
-    const db = drizzle(c.env.DB);
-
     return c.json(
-      await db.update(items).set(body).where(eq(items.id, id)).returning(),
+      await c
+        .get('db')
+        .update(items)
+        .set(body)
+        .where(eq(items.id, id))
+        .returning(),
     );
   },
 );
@@ -101,11 +101,15 @@ app.put(
 app.delete('/:id', async (c) => {
   const id: number = +c.req.param('id');
 
-  const db = drizzle(c.env.DB);
+  await c
+    .get('db')
+    .delete(itemsToOutfits)
+    .where(eq(itemsToOutfits.itemId, id))
+    .run();
 
-  await db.delete(itemsToOutfits).where(eq(itemsToOutfits.itemId, id)).run();
-
-  return c.json(await db.delete(items).where(eq(items.id, id)).returning());
+  return c.json(
+    await c.get('db').delete(items).where(eq(items.id, id)).returning(),
+  );
 });
 
 export default app;

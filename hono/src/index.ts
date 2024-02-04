@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { version } from '../package.json';
+import * as schema from './schema';
 import items from './service/items';
 import outfits from './service/outfits';
 
@@ -22,7 +23,7 @@ app.use('*', async (c, next) => {
     throw new Error('Environment variable is not available');
   }
   const dbConfig = c.env!.DB as D1Database;
-  const db = drizzle(dbConfig);
+  const db = drizzle(dbConfig, { schema });
   c.set('db', db);
   await next();
 });

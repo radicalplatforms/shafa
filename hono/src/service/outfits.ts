@@ -1,12 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
 import { sql, and, eq, inArray } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/d1';
 import { createInsertSchema } from 'drizzle-zod';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { outfits, itemsToOutfits, itemTypeEnum } from '../schema';
-import * as schema from '../schema';
+import drizzleDB from '../utils/drizzleDB';
 
 type Bindings = {
   DB: D1Database;
@@ -31,14 +30,14 @@ const insertOutfitSchema = createInsertSchema(outfits, {
   })
   .omit({ id: true });
 
+app.use('*', drizzleDB);
+
 app.get('/', async (c) => {
   const rating = c.req.query('rating') as number | undefined;
   const itemIds = (c.req.queries('itemId[]') as number[] | []) || [];
 
-  const db = drizzle(c.env.DB, { schema });
-
   return c.json(
-    await db.query.outfits.findMany({
+    await c.get('db').query.outfits.findMany({
       with: {
         itemsToOutfits: {
           columns: {
@@ -57,7 +56,8 @@ app.get('/', async (c) => {
           ? inArray(
               outfits.id,
               (
-                await db
+                await c
+                  .get('db')
                   .select()
                   .from(itemsToOutfits)
                   .where(inArray(itemsToOutfits.itemId, itemIds))
@@ -80,19 +80,19 @@ app.post('/', zValidator('json', insertOutfitSchema), async (c) => {
   const body = c.req.valid('json');
   body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
 
-  const db = drizzle(c.env.DB);
-
   const itemIdsTypes = body.itemIdsTypes;
   delete body.itemIdsTypes;
 
-  const newOutfit = await db
+  const newOutfit = await c
+    .get('db')
     .insert(outfits)
     .values(body)
     .returning({ id: outfits.id })
     .get();
 
   if (itemIdsTypes !== undefined) {
-    await db
+    await c
+      .get('db')
       .insert(itemsToOutfits)
       .values(
         itemIdsTypes.map((e) => ({
@@ -113,17 +113,17 @@ app.put('/:id', zValidator('json', insertOutfitSchema), async (c) => {
   const body = c.req.valid('json');
   body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
 
-  const db = drizzle(c.env.DB);
-
   const itemIdsTypes = body.itemIdsTypes;
   delete body.itemIdsTypes;
 
   if (itemIdsTypes !== undefined) {
-    await db
+    await c
+      .get('db')
       .delete(itemsToOutfits)
       .where(eq(itemsToOutfits.outfitId, id))
       .run();
-    await db
+    await c
+      .get('db')
       .insert(itemsToOutfits)
       .values(
         itemIdsTypes.map((e) => ({
@@ -136,18 +136,27 @@ app.put('/:id', zValidator('json', insertOutfitSchema), async (c) => {
   }
 
   return c.json(
-    await db.update(outfits).set(body).where(eq(outfits.id, id)).returning(),
+    await c
+      .get('db')
+      .update(outfits)
+      .set(body)
+      .where(eq(outfits.id, id))
+      .returning(),
   );
 });
 
 app.delete('/:id', async (c) => {
   const id: number = +c.req.param('id');
 
-  const db = drizzle(c.env.DB);
+  await c
+    .get('db')
+    .delete(itemsToOutfits)
+    .where(eq(itemsToOutfits.outfitId, id))
+    .run();
 
-  await db.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, id)).run();
-
-  return c.json(await db.delete(outfits).where(eq(outfits.id, id)).returning());
+  return c.json(
+    await c.get('db').delete(outfits).where(eq(outfits.id, id)).returning(),
+  );
 });
 
 export default app;
