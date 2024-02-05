@@ -7,7 +7,7 @@ Shafa makes wardrobe logging, composition, and organization easy.
 
 We built Shafa on the following principles:
 
-- Deciding what to wear in the morning should be frictionless
+- Deciding what to wear throughout the day should be frictionless
 - Simplicity is key, remove the need for extra bells and whistles
 - Onboarding a closet needs to be ultrafast and easy, collect as few data points as possible
 - Don't suggest new outfits, leverage past decisions and provide clear metrics
@@ -17,7 +17,7 @@ We built Shafa on the following principles:
 
 Shafa is a state-of-the-art full-stack web application.
 We built the Shafa backend on [Hono](https://hono.dev), a ultrafast web framework that leverages the power of Cloudflare Workers.
-The Shafa frontend is still up in the air (we are eyeing native iOS, Next.js, and Nuxt) — stay tuned, it'll be slick.
+The Shafa frontend is still up in the air (we are eyeing native iOS, Next.js, and Nuxt) — stay tuned.
 
 Get started using the documentation below for each respective stack.
 
@@ -34,7 +34,7 @@ npm i
 ```
 
 In order to run the backend, you'll need to get your [Cloudflare D1](https://developers.cloudflare.com/d1/) database setup locally (unless you have creds to access the remote D1 db).
-To migrate/setup your local db locally, run the following and accept the prompts:
+To migrate/setup your local db, run the following and accept the prompts:
 
 ```
 npm run wrdev-migrate-local
@@ -72,12 +72,13 @@ npm run wrprod-migrate       // migrates the remote production database
 
 In `npm run wrdev`, you can also access/manipulate the remote database instance by pressing `l`.
 Be careful when manipulating and migrating the remote database instance — reserve this for when your local db isn't working properly or you'd like to share a database with others who also have creds.
+Be particularly careful with the `wrstage*` and `wrprod*` commands, they are potentially destructive actions and will not ask you to confirm your deployment/migration changes.
 On this same token, consider the dev remote database instance volatile, and the stage and production instances stable.
 
-## Contributors
+## Team
 
-- **Radison Akerman** // Backend, Frontend, DevOps
-- **Vincent Do** // Backend
+- **Radison Akerman** // Manager & Individual Contributor, Fullstack
+- **Vincent Do** // Individual Contributor, Backend
 
 ## License
 This project (shafa) is protected by the Mozilla Public License 2.0 as disclosed in the [LICENSE](https://github.com/rak3rman/shafa/blob/main/LICENSE). Adherence to the policies and terms listed is required.
