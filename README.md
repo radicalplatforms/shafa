@@ -3,9 +3,25 @@ A wardrobe logging, composition, and organization app
 
 ## Purpose
 
+Shafa makes wardrobe logging, composition, and organization easy.
+
+We built Shafa on the following principles:
+
+- Deciding what to wear in the morning should be frictionless
+- Simplicity is key, remove the need for extra bells and whistles
+- Onboarding a closet needs to be ultrafast and easy, collect as few data points as possible
+- Don't suggest new outfits, leverage past decisions and provide clear metrics
+- User interface needs to be slick and intuitive, minimal learning curve and clicks
+
 ## Stack Overview
 
-### Hono
+Shafa is a state-of-the-art full-stack web application.
+We built the Shafa backend on [Hono](https://hono.dev), a ultrafast web framework that leverages the power of Cloudflare Workers.
+The Shafa frontend is still up in the air (we are eyeing native iOS, Next.js, and Nuxt) — stay tuned, it'll be slick.
+
+Get started using the documentation below for each respective stack.
+
+### Hono (Backend)
 
 #### Local Setup
 
@@ -42,6 +58,9 @@ Only individuals responsible for *deployment-related activites* will be given cr
 If you have such creds, what follows are additional commands that you can run:
 
 ```
+wrangler login               // logs you into Cloudflare, you may have to run
+                             // `npm i -g wrangler` to install wrangler globally
+
 npm run wrstage              // deploys the current local build to the stage environment
 npm run wrprod               // deploys the current local build to the production environment
 
@@ -50,6 +69,10 @@ npm run wrdev-migrate-remote // ONLY migrates the remote development database
 npm run wrstage-migrate      // migrates the remote stage database
 npm run wrprod-migrate       // migrates the remote production database
 ```
+
+In `npm run wrdev`, you can also access/manipulate the remote database instance by pressing `l`.
+Be careful when manipulating and migrating the remote database instance — reserve this for when your local db isn't working properly or you'd like to share a database with others who also have creds.
+On this same token, consider the dev remote database instance volatile, and the stage and production instances stable.
 
 ## Contributors
 
