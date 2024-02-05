@@ -7,7 +7,7 @@ export type Bindings = {
 }
 
 export type Variables = {
-  db: DrizzleD1Database
+  db: DrizzleD1Database<typeof schema>
 }
 
 export default async function injectDB(c: Context, next: Function) {

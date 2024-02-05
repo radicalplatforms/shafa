@@ -6,4 +6,18 @@ module.exports = {
     project: './tsconfig.json',
   },
   plugins: ['drizzle'],
+  rules: {
+    'drizzle/enforce-delete-with-where': [
+      'error',
+      {
+        drizzleObjectName: ['db', 'get'],
+      },
+    ],
+    'drizzle/enforce-update-with-where': [
+      'error',
+      {
+        drizzleObjectName: ['db', 'get'],
+      },
+    ],
+  },
 }
