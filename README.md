@@ -1,6 +1,9 @@
 # Shafa
 A wardrobe logging, composition, and organization app
 
+> [!IMPORTANT]
+> Shafa is in active development towards our first stable release (v1.0.0). Things may break unexpectedly.
+
 ## Purpose
 
 Shafa makes wardrobe logging, composition, and organization easy.
