@@ -1,10 +1,5 @@
-import { relations, sql } from 'drizzle-orm';
-import {
-  integer,
-  sqliteTable,
-  text,
-  primaryKey,
-} from 'drizzle-orm/sqlite-core';
+import { relations, sql } from 'drizzle-orm'
+import { integer, sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core'
 
 /**
  * An enumeration for item types.
@@ -38,11 +33,11 @@ export const items = sqliteTable('items', {
   quality: integer('quality').default(2),
   timestamp: text('timestamp').default(sql`CURRENT_TIMESTAMP`),
   authorUsername: text('author_username').notNull(),
-});
+})
 
 export const itemsRelations = relations(items, ({ many }) => ({
   itemsToOutfits: many(itemsToOutfits),
-}));
+}))
 
 /**
  * Outfits
@@ -52,11 +47,11 @@ export const outfits = sqliteTable('outfits', {
   rating: integer('rating').default(2),
   wearDate: text('wear_date').default(sql`CURRENT_DATE`),
   authorUsername: text('author_username').notNull(),
-});
+})
 
 export const outfitsRelations = relations(outfits, ({ many }) => ({
   itemsToOutfits: many(itemsToOutfits),
-}));
+}))
 
 /**
  * Items to Outfits
@@ -75,9 +70,9 @@ export const itemsToOutfits = sqliteTable(
   (table) => {
     return {
       pk: primaryKey(table.itemId, table.outfitId),
-    };
-  },
-);
+    }
+  }
+)
 
 export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
   item: one(items, {
@@ -88,4 +83,4 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
     fields: [itemsToOutfits.outfitId],
     references: [outfits.id],
   }),
-}));
+}))

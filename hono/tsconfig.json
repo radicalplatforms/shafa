@@ -12,4 +12,5 @@
     "jsxImportSource": "hono/jsx",
     "resolveJsonModule": true,
   },
+  "include": ["src/**/*", "test/**/*", ".eslintrc.js", "jest.config.js"],
 }
