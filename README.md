@@ -1,105 +1,87 @@
 # Shafa
 A wardrobe logging, composition, and organization app
 
-# Purpose
+> [!IMPORTANT]
+> Shafa is in active development towards our first stable release (v1.0.0). Things may break unexpectedly.
 
-# Stack Overview
+## Purpose
 
-## Next
+Shafa makes wardrobe logging, composition, and organization easy.
 
-### Outfits Library Page
+We built Shafa on the following principles:
 
-- Contains grid of Outfit components
-  - Grouped by composite score
+- Deciding what to wear throughout the day should be frictionless
+- Simplicity is key, remove the need for extra bells and whistles
+- Onboarding a closet needs to be ultrafast and easy, collect as few data points as possible
+- Don't suggest new outfits, leverage past decisions and provide clear metrics
+- User interface needs to be slick and intuitive, minimal learning curve and clicks
 
-### Outfits Queue Page
+## Stack Overview
 
-- 
+Shafa is a state-of-the-art full-stack web application.
+We built the Shafa backend on [Hono](https://hono.dev), a ultrafast web framework that leverages the power of Cloudflare Workers.
+The Shafa frontend is still up in the air (we are eyeing native iOS, Next.js, and Nuxt) — stay tuned.
 
-### Items Page
+Get started using the documentation below for each respective stack.
 
-## Hono
+### Hono (Backend)
 
-# Components
+#### Local Setup
 
-### Web Assets (shafa.app)
+Clone the project (using https, ssh, or Github CLI).
+Navigate to the hono directory and install backend dependencies using `npm`:
 
-**Next deployed onto Cloudflare Workers**
+```
+cd shafa/hono
+npm i
+```
 
-### Logical API (api.shafa.app)
+In order to run the backend, you'll need to get your [Cloudflare D1](https://developers.cloudflare.com/d1/) database setup locally (unless you have creds to access the remote D1 db).
+To migrate/setup your local db, run the following and accept the prompts:
 
-**Hono deployed onto Cloudflare Workers**
+```
+npm run wrdev-migrate-local
+```
 
-#### Items (Durable Object)
+NOTE: You'll also have to run this command each time a migration file is added to the backend database.
 
-- uuid<string>: UUIDv6, unique identifier for each piece of clothing
-- username<string>: username passed in header by Author
-- desc<string>: very short description of item
-- brand<string>: brand of item (tagging opportunity)
-- photo<string>: Cloudflare Images ID
-- primaryColor<string>: HEX value  (color picker?)
-- pattern?
-- type<string>: bottom/top/outerwear/shoes/etc
-- subtype<string>: TBD
-- style<string>: professional, casual, etc
-- rating<int>: 0-4 likability of item
-- quality<int>: 0-4 quality of item
+To run the project locally using `miniflare` (a local, simplified version of Cloudflare Workers), run the following:
 
-##### GET /items
+```
+npm run wrdev
+```
 
-Returns an array of Items. Can be filtered by query params.
+You should now be able to interface with the backend!
+Check out the [wrangler docs](https://developers.cloudflare.com/workers/wrangler/commands/#d1) for additional information on how to view/manipulate the D1 database.
 
-##### POST /items
+#### Running with a Remote D1 Database
 
-Creates a new Item. Returns the newly created Item.
+Accessing the remote D1 database requires special admin credentials that can be provided by @rak3rman, the repo owner.
+Only individuals responsible for *deployment-related activites* will be given creds, as the entire backend can be simulated locally with miniflare.
+If you have such creds, what follows are additional commands that you can run:
 
-##### PUT /items/:id
+```
+wrangler login               // logs you into Cloudflare, you may have to run
+                             // `npm i -g wrangler` to install wrangler globally
 
-Updates an existing Item. Returns the updated Item.
+npm run wrstage              // deploys the current local build to the stage environment
+npm run wrprod               // deploys the current local build to the production environment
 
-##### DELETE /items/:id
+npm run wrdev-migrate        // migrates the local and remote development databases
+npm run wrdev-migrate-remote // ONLY migrates the remote development database
+npm run wrstage-migrate      // migrates the remote stage database
+npm run wrprod-migrate       // migrates the remote production database
+```
 
-Deletes an existing Item. Returns the deleted Item.
+In `npm run wrdev`, you can also access/manipulate the remote database instance by pressing `l`.
+Be careful when manipulating and migrating the remote database instance — reserve this for when your local db isn't working properly or you'd like to share a database with others who also have creds.
+Be particularly careful with the `wrstage*` and `wrprod*` commands, they are potentially destructive actions and will not ask you to confirm your deployment/migration changes.
+On this same token, consider the dev remote database instance volatile, and the stage and production instances stable.
 
-#### Outfits (Durable Object)
+## Team
 
-- uuid<string>: UUIDv6, unique identifier for each outfit
-- username<string>: username passed in header by Author
-- layer<string>: ref to ITEMS, layer(ed) outfit layer
-- top<string>: ref to ITEMS, top outfit layer
-- bottom<string>: ref to ITEMS, bottom outfit layer
-- footwear<string>: ref to ITEMS, footwear
-- accessories[]<string>: array of ITEMS that can be used as accessories
-- rating<int>: 0-4 likability of item
-
-##### GET /outfits
-
-Returns an array of Outfits. Can be filtered by query params.
-
-##### POST /outfits
-
-Creates a new Outfit. Returns the newly created Outfit.
-
-##### PUT /outfits/:id
-
-Updates an existing Outfit. Returns the updated Outfit.
-
-##### DELETE /outfits/:id
-
-Deletes an existing Outfit. Returns the deleted Outfit.
-
-#### Users (From Author)
-
-## Deployment
-
-TODO
-
-## Contributors
-
-- **Radison Akerman** // Frontend
-- **Leeza Andryushchenko** // Backend
-- **Richard Yang** // Backend
-- **Sengdao Inthavong** // Backend
+- **Radison Akerman** // Manager & Individual Contributor, Fullstack
+- **Vincent Do** // Individual Contributor, Backend
 
 ## License
-This project (shafa) is protected by the Mozilla Public License 2.0 as disclosed in the [LICENSE](https://github.com/rakermanfoundation/shafa/blob/main/LICENSE). Adherence to the policies and terms listed is required.
+This project (shafa) is protected by the Mozilla Public License 2.0 as disclosed in the [LICENSE](https://github.com/rak3rman/shafa/blob/main/LICENSE). Adherence to the policies and terms listed is required.
