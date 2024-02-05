@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator';
 import { sql, and, eq, inArray } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { z } from 'zod';
 
 import { outfits, itemsToOutfits, itemTypeEnum } from '../schema';
@@ -32,7 +32,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
 
 app.use('*', drizzleDB);
 
-app.get('/', async (c) => {
+app.get('/', async (c: Context) => {
   const rating = c.req.query('rating') as number | undefined;
   const itemIds = (c.req.queries('itemId[]') as number[] | []) || [];
 
@@ -76,7 +76,7 @@ app.get('/', async (c) => {
   );
 });
 
-app.post('/', zValidator('json', insertOutfitSchema), async (c) => {
+app.post('/', zValidator('json', insertOutfitSchema), async (c: Context) => {
   const body = c.req.valid('json');
   body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
 
@@ -107,7 +107,7 @@ app.post('/', zValidator('json', insertOutfitSchema), async (c) => {
   return c.json(newOutfit);
 });
 
-app.put('/:id', zValidator('json', insertOutfitSchema), async (c) => {
+app.put('/:id', zValidator('json', insertOutfitSchema), async (c: Context) => {
   const id: number = +c.req.param('id');
 
   const body = c.req.valid('json');
@@ -145,7 +145,7 @@ app.put('/:id', zValidator('json', insertOutfitSchema), async (c) => {
   );
 });
 
-app.delete('/:id', async (c) => {
+app.delete('/:id', async (c: Context) => {
   const id: number = +c.req.param('id');
 
   await c

@@ -3,8 +3,7 @@ import type { Context } from 'hono';
 import * as schema from '../schema';
 
 const drizzleDB = async (c: Context, next: Function) => {
-  const dbConfig = c.env.DB;
-  const db = drizzle(dbConfig, { schema });
+  const db = drizzle(c.env.DB, { schema });
   c.set('db', db);
   await next();
 };

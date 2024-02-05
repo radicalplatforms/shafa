@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator';
 import { sql, and, eq, asc, desc, like, or } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { z } from 'zod';
 
 import { items, itemsToOutfits, itemTypeEnum } from '../schema';
@@ -22,7 +22,7 @@ const insertItemSchema = createInsertSchema(items, {
 
 app.use('*', drizzleDB);
 
-app.get('/', async (c) => {
+app.get('/', async (c: Context) => {
   const type: number = Number(c.req.query('type') || -1);
   const search: string = c.req.query('search') || '';
 
@@ -70,7 +70,7 @@ app.get('/', async (c) => {
 app.post(
   '/',
   zValidator('json', insertItemSchema.omit({ id: true, timestamp: true })),
-  async (c) => {
+  async (c: Context) => {
     const body = c.req.valid('json');
     body.authorUsername = 'rak3rman'; // TODO: remove and replace with author integration
 
@@ -81,7 +81,7 @@ app.post(
 app.put(
   '/:id',
   zValidator('json', insertItemSchema.omit({ timestamp: true })),
-  async (c) => {
+  async (c: Context) => {
     const id: number = +c.req.param('id');
 
     const body = c.req.valid('json');
@@ -98,7 +98,7 @@ app.put(
   },
 );
 
-app.delete('/:id', async (c) => {
+app.delete('/:id', async (c: Context) => {
   const id: number = +c.req.param('id');
 
   await c
