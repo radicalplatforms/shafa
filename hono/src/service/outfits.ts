@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { sql, and, eq, inArray } from 'drizzle-orm'
 import { createInsertSchema } from 'drizzle-zod'
-import { type Context, Hono } from 'hono'
+import { Hono } from 'hono'
 import { z } from 'zod'
 import { outfits, itemsToOutfits, itemTypeEnum } from '../schema'
 import type { Bindings, Variables } from '../utils/injectDB'
@@ -26,7 +26,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
   })
   .omit({ id: true })
 
-app.get('/', injectDB, async (c: Context) => {
+app.get('/', injectDB, async (c) => {
   const rating = c.req.query('rating') as number | undefined
   const itemIds = (c.req.queries('itemId[]') as number[] | []) || []
 
@@ -70,7 +70,7 @@ app.get('/', injectDB, async (c: Context) => {
   )
 })
 
-app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c: Context) => {
+app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
   const body = c.req.valid('json')
   body.authorUsername = 'rak3rman' // TODO: remove and replace with author integration
 
@@ -101,7 +101,7 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c: Contex
   return c.json(newOutfit)
 })
 
-app.put('/:id', zValidator('json', insertOutfitSchema), injectDB, async (c: Context) => {
+app.put('/:id', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
   const id: number = +c.req.param('id')
 
   const body = c.req.valid('json')
@@ -128,7 +128,7 @@ app.put('/:id', zValidator('json', insertOutfitSchema), injectDB, async (c: Cont
   return c.json(await c.get('db').update(outfits).set(body).where(eq(outfits.id, id)).returning())
 })
 
-app.delete('/:id', injectDB, async (c: Context) => {
+app.delete('/:id', injectDB, async (c) => {
   const id: number = +c.req.param('id')
 
   await c.get('db').delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, id)).run()
