@@ -5,7 +5,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { items, itemsToOutfits, itemTypeEnum } from '../schema'
 import type { Bindings, Variables } from '../utils/injectDB'
-import injectDB, { createDB } from '../utils/injectDB'
+import injectDB from '../utils/injectDB'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -20,10 +20,8 @@ app.get('/', injectDB, async (c) => {
   const type: number = Number(c.req.query('type') || -1)
   const search: string = c.req.query('search') || ''
 
-  const db = createDB(c)
-
   return c.json(
-    await db.query.items.findMany({
+    await c.get('db').query.items.findMany({
       where: and(
         type !== -1 ? eq(items.type, type) : undefined,
         search !== ''
