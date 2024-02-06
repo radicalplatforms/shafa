@@ -8,8 +8,8 @@
     "lib": ["esnext"],
     "types": ["jest", "@cloudflare/workers-types"],
     "jsx": "react-jsx",
-    "jsxFragmentFactory": "Fragment",
     "jsxImportSource": "hono/jsx",
     "resolveJsonModule": true,
   },
+  "include": ["src/**/*", "test/**/*", ".eslintrc.js", "jest.config.js"],
 }

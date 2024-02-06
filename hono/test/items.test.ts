@@ -12,5 +12,5 @@ describe('GET /items', () => {
   it('should return no items', async () => {
     // const res = await app.request('/items', {}, MOCK_ENV);
     // expect(await res.json()).toEqual([])
-  });
-});
+  })
+})
