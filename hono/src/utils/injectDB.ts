@@ -10,8 +10,11 @@ export type Variables = {
   db: DrizzleD1Database<typeof schema>
 }
 
+export function createDB(c: Context) {
+  return drizzle(c.env.DB, { schema })
+}
+
 export default async function injectDB(c: Context, next: Function) {
-  const drizzleDB = drizzle(c.env.DB, { schema })
-  c.set('db', drizzleDB)
+  c.set('db', createDB)
   await next()
 }

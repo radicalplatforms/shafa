@@ -1,9 +1,9 @@
 import { zValidator } from '@hono/zod-validator'
-import { sql, and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { createInsertSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { outfits, itemsToOutfits, itemTypeEnum } from '../schema'
+import { itemsToOutfits, itemTypeEnum, outfits } from '../schema'
 import type { Bindings, Variables } from '../utils/injectDB'
 import injectDB from '../utils/injectDB'
 
