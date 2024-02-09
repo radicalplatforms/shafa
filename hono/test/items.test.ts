@@ -1,27 +1,48 @@
-import { enableFetchMocks } from 'jest-fetch-mock'
-enableFetchMocks();
 import app from '../src/index'
 
-jest.mock('drizzle-orm/d1', () => ({
-  drizzle: jest.fn().mockImplementation(() => ({
-    fetch: jest.fn().mockResolvedValue([]),
-    insert: jest.fn().mockResolvedValue([]),
-  })),
-}))
+interface Item {
+  id?: number
+  name: string
+  brand: string
+  photo: string
+  type: number
+  rating?: number
+  quality?: number
+  timestamp?: string
+  authorUsername?: string
+}
+
+let inMemoryDB: Item[] = []
 
 const MOCK_ENV = {
-  DB: {},
-};
+  DB: {
+    prepare: () => ({
+      bind: () => ({
+        raw: async () => inMemoryDB,
+        query: async () => inMemoryDB,
+      }),
+      query: async () => inMemoryDB,
+    }),
+    insert: (item: Item) => {
+      inMemoryDB.push(item)
+      return inMemoryDB
+    },
+
+    reset: () => {
+      inMemoryDB = []
+    },
+  },
+}
 
 describe('GET /items', () => {
-  it('should return no items', async () => {
-    const res = await app.request('/api/items', {}, MOCK_ENV)
-    console.log(res)
-    expect(await res.json()).toEqual([])
-    expect(res.status).toBe(200)
+  beforeEach(() => {
+    MOCK_ENV.DB.reset()
+  })
 
-    const mockDrizzle = require('drizzle-orm/d1').drizzle()
-    expect(mockDrizzle.query).toHaveBeenCalled()
+  test('should return no items', async () => {
+    const res = await app.request('/api/items', {}, MOCK_ENV)
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual([])
   })
 })
-

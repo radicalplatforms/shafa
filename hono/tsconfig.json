@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     "strict": true,
     "lib": ["esnext"],
-    "types": ["jest", "@cloudflare/workers-types"],
+    "types": ["jest", "@cloudflare/workers-types", "jest-environment-miniflare/globals"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "resolveJsonModule": true,
