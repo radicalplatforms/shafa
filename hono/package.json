@@ -24,7 +24,6 @@
     "drizzle-orm": "^0.28.6",
     "drizzle-zod": "^0.5.1",
     "hono": "^3.12.3",
-    "jest-fetch-mock": "^3.0.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -37,8 +36,6 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-drizzle": "^0.2.3",
     "jest": "^29.7.0",
-    "jest-environment-miniflare": "^2.14.2",
-    "miniflare": "^3.20240129.1",
     "prettier": "3.2.4",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3",
