@@ -12,7 +12,7 @@ const POST_ITEM_ONE = {
   authorUsername: 'rak3rman',
 }
 
-describe('GET /items', () => {
+describe('Items Unit Test', () => {
   let worker: UnstableDevWorker
 
   beforeAll(async () => {
@@ -40,13 +40,13 @@ describe('GET /items', () => {
     await worker.stop()
   })
 
-  test('should return no items', async () => {
+  test('GET /items: should return no items', async () => {
     const res = await worker.fetch('/api/items')
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual([])
   })
 
-  test('POST /posts', async () => {
+  test('POST /items: should create and return one item', async () => {
     const res = await worker.fetch('/api/items', {
       method: 'POST',
       body: JSON.stringify(POST_ITEM_ONE),
