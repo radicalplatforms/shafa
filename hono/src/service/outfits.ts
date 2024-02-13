@@ -11,7 +11,7 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 const insertOutfitSchema = createInsertSchema(outfits, {
   rating: z.number().min(0).max(4),
-  authorUsername: z.string().optional(),
+  authorUsername: z.string().default(''),
 })
   .extend({
     itemIdsTypes: z
