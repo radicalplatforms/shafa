@@ -1,11 +1,11 @@
-name: Hono Cloudflare Deploy Stage
+name: Hono Deploy Production
 
 on:
-  pull_request:
+  push:
     branches: main
 
 jobs:
-  nuxt:
+  cf_deploy_hono:
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -30,7 +30,7 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          command: d1 migrations apply stage-shafa-hono-db --env stage
+          command: d1 migrations apply prod-shafa-hono-db --env production
           workingDirectory: hono
 
       - name: Deploy Hono
@@ -38,7 +38,7 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          command: deploy src/index.ts --env stage
+          command: deploy src/index.ts --env production
           workingDirectory: hono
 
 #      - name: Rollback D1
