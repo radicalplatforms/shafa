@@ -32,3 +32,7 @@ jobs:
       - name: Check ESLint
         run: npm run check-eslint
         working-directory: hono
+
+      - name: Check TS Compilation
+        run: npm run check-ts
+        working-directory: hono
