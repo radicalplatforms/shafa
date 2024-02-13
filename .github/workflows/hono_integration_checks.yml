@@ -80,5 +80,7 @@ jobs:
         working-directory: hono
 
       - name: Run Jest
+        uses: cloudflare/wrangler-action@v3
         run: npm run test
+        uses: cloudflare/wrangler-action@v3
         working-directory: hono
