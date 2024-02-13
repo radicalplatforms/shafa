@@ -80,7 +80,7 @@ jobs:
         working-directory: hono
 
       - name: Run Jest
-        uses: cloudflare/wrangler-action@v3
-        with:
-          script: npm run test
+        run: |
+          npm run wrdev-migrate-test
+          npm run test
         working-directory: hono
