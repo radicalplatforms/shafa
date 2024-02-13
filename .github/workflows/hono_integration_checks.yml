@@ -81,5 +81,6 @@ jobs:
 
       - name: Run Jest
         uses: cloudflare/wrangler-action@v3
-        run: npm run test
+        with:
+          script: npm run test
         working-directory: hono
