@@ -3,16 +3,17 @@
   "version": "0.0.0",
   "main": "src/index.ts",
   "scripts": {
+    "test": "npm run wrdev-migrate-test && jest test",
     "wrdev": "wrangler dev src/index.ts",
     "wrstage": "wrangler deploy src/index.ts --env stage",
     "wrprod": "wrangler deploy src/index.ts --env production",
     "wrdev-migrate": "npm run wrdev-migrate-local && npm run wrdev-migrate-remote",
     "wrdev-migrate-local": "wrangler d1 migrations apply dev-shafa-hono-db --local",
     "wrdev-migrate-remote": "wrangler d1 migrations apply dev-shafa-hono-db",
+    "wrdev-migrate-test": "wrangler d1 migrations apply test-shafa-hono-db --local --env test --persist-to=./test/drizzle-test",
     "wrstage-migrate": "wrangler d1 migrations apply stage-shafa-hono-db --env stage",
     "wrprod-migrate": "wrangler d1 migrations apply prod-shafa-hono-db --env production",
     "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts",
-    "test": "jest test",
     "format": "prettier --write . && eslint --fix .",
     "check-prettier": "prettier --check .",
     "check-eslint": "eslint . --max-warnings 0"
@@ -24,6 +25,7 @@
     "drizzle-orm": "^0.28.6",
     "drizzle-zod": "^0.5.1",
     "hono": "^3.12.3",
+    "rimraf": "^5.0.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {
