@@ -1,11 +1,11 @@
-name: Hono Cloudflare Deploy Production
+name: Hono Deploy Production
 
 on:
   push:
     branches: main
 
 jobs:
-  nuxt:
+  cf_deploy_hono:
     runs-on: ${{ matrix.os }}
 
     strategy:
