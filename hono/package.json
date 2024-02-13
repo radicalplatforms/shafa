@@ -14,7 +14,8 @@
     "wrstage-migrate": "wrangler d1 migrations apply stage-shafa-hono-db --env stage",
     "wrprod-migrate": "wrangler d1 migrations apply prod-shafa-hono-db --env production",
     "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts",
-    "format": "prettier --write . && eslint --fix .",
+    "format": "prettier --log-level warn --write . && eslint --fix .",
+    "check-ts": "tsc --noEmit --target esnext --project tsconfig.json",
     "check-prettier": "prettier --check .",
     "check-eslint": "eslint . --max-warnings 0"
   },

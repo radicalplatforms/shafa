@@ -13,7 +13,7 @@ const insertItemSchema = createInsertSchema(items, {
   type: z.nativeEnum(itemTypeEnum),
   rating: z.number().min(0).max(4),
   quality: z.number().min(0).max(4),
-  authorUsername: z.string().optional(),
+  authorUsername: z.string().default(''),
 })
 
 app.get('/', injectDB, async (c) => {

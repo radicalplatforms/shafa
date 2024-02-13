@@ -10,6 +10,7 @@
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "resolveJsonModule": true,
+    "skipLibCheck": true,
   },
   "include": ["src/**/*", "test/**/*", ".eslintrc.js", "jest.config.js"],
 }
