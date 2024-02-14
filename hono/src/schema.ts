@@ -1,4 +1,4 @@
-import { relations, sql } from 'drizzle-orm'
+import { isNotNull, relations, sql } from 'drizzle-orm'
 import { integer, sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core'
 
 /**
@@ -32,7 +32,7 @@ export const items = sqliteTable('items', {
   rating: integer('rating').default(2),
   quality: integer('quality').default(2),
   timestamp: text('timestamp').default(sql`CURRENT_TIMESTAMP`),
-  authorUsername: text('author_username').default(''),
+  authorUsername: text('author_username').notNull(),
 })
 
 export const itemsRelations = relations(items, ({ many }) => ({
@@ -46,7 +46,7 @@ export const outfits = sqliteTable('outfits', {
   id: integer('id').primaryKey(),
   rating: integer('rating').default(2),
   wearDate: text('wear_date').default(sql`CURRENT_DATE`),
-  authorUsername: text('author_username').default(''),
+  authorUsername: text('author_username').notNull(),
 })
 
 export const outfitsRelations = relations(outfits, ({ many }) => ({
