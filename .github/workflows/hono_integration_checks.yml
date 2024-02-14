@@ -80,5 +80,7 @@ jobs:
         working-directory: hono
 
       - name: Run Jest
-        run: npm run test
+        run: | 
+          npm run wrtest-migrate-local && 
+          npm run test
         working-directory: hono

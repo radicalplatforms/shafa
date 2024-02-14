@@ -1,16 +1,7 @@
 import { execSync } from 'child_process'
 import type { UnstableDevWorker } from 'wrangler'
 import { unstable_dev } from 'wrangler'
-
-const POST_ITEM_ONE = {
-  name: 'Vintage Denim Pants',
-  brand: 'Levi',
-  photo: 'https://example.com/',
-  type: 0,
-  rating: 2,
-  quality: 4,
-  authorUsername: 'rak3rman',
-}
+import { validItem } from './factory/items'
 
 describe('Items Unit Test', () => {
   let worker: UnstableDevWorker
@@ -20,24 +11,14 @@ describe('Items Unit Test', () => {
       env: 'test',
       experimental: {
         disableExperimentalWarning: true,
-        d1Databases: [
-          {
-            binding: 'DB',
-            database_name: 'test-shafa-hono-db',
-            database_id: '6e3f30c1-e1f8-4060-b0d3-8c733a1a8dd4',
-            migrations_dir: './drizzle',
-          },
-        ],
       },
       ip: '127.0.0.1',
-      persistTo: './test/drizzle-test',
+      persistTo: './test/util/tmp-d1-db',
     })
   })
 
   afterAll(async () => {
-    await execSync(
-      `wrangler d1 execute test-shafa-hono-db --local --env test --file=./test/drizzle-test/cleanup-test-db.sql --persist-to=./test/drizzle-test`
-    )
+    await execSync(`npm run db-clean`)
     await worker.stop()
   })
 
@@ -50,10 +31,10 @@ describe('Items Unit Test', () => {
   test('POST /items: should create and return one item', async () => {
     const res = await worker.fetch('/api/items', {
       method: 'POST',
-      body: JSON.stringify(POST_ITEM_ONE),
+      body: JSON.stringify(validItem()),
       headers: { 'Content-Type': 'application/json' },
     })
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject([POST_ITEM_ONE])
+    expect(await res.json()).toMatchObject([validItem()])
   })
 })
