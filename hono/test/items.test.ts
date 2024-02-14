@@ -29,7 +29,7 @@ describe('Items Unit Test', () => {
           },
         ],
       },
-      ip: "127.0.0.1",
+      ip: '127.0.0.1',
       persistTo: './test/drizzle-test',
     })
   })
