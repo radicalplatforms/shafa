@@ -17,6 +17,7 @@ describe('Items Unit Test', () => {
 
   beforeAll(async () => {
     worker = await unstable_dev('./src/index.ts', {
+      env: 'test',
       experimental: {
         disableExperimentalWarning: true,
         d1Databases: [
@@ -28,7 +29,7 @@ describe('Items Unit Test', () => {
           },
         ],
       },
-      env: 'test',
+      ip: "127.0.0.1",
       persistTo: './test/drizzle-test',
     })
   })
