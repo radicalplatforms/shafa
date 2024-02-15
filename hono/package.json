@@ -14,7 +14,7 @@
     "wrprod-migrate": "wrangler d1 migrations apply prod-shafa-hono-db --env production",
     "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts",
     "test": "jest test",
-    "wrtest-clean-db-local": "wrangler d1 execute test-shafa-hono-db --local --env test --file=./test/util/cleanup-test-db.sql --persist-to=./test/tmp-d1-db",
+    "wrtest-clean-db-local": "wrangler d1 execute test-shafa-hono-db --local --env test --file=./test/utils/cleanup-test-db.sql --persist-to=./test/tmp-d1-db",
     "format": "prettier --log-level warn --write . && eslint --fix .",
     "check-ts": "tsc --noEmit --target esnext --project tsconfig.json",
     "check-prettier": "prettier --check .",
