@@ -1,6 +1,7 @@
 import { execSync } from 'child_process'
 import type { UnstableDevWorker } from 'wrangler'
 import { unstable_dev } from 'wrangler'
+import type { items } from '../src/schema'
 import { validItem } from './factory/items'
 
 describe('Items Unit Test', () => {
@@ -13,12 +14,12 @@ describe('Items Unit Test', () => {
         disableExperimentalWarning: true,
       },
       ip: '127.0.0.1',
-      persistTo: './test/util/tmp-d1-db',
+      persistTo: './test/tmp-d1-db',
     })
   })
 
   afterAll(async () => {
-    await execSync(`npm run db-clean`)
+    execSync(`npm run wrtest-clean-db-local`)
     await worker.stop()
   })
 
@@ -34,7 +35,9 @@ describe('Items Unit Test', () => {
       body: JSON.stringify(validItem()),
       headers: { 'Content-Type': 'application/json' },
     })
+    const json = (await res.json()) as (typeof items)[]
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject([validItem()])
+    expect(json).toMatchObject([validItem()])
+    expect(json[0].id).toEqual(1)
   })
 })
