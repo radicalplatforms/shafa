@@ -26,6 +26,36 @@ Get started using the documentation below for each respective stack.
 
 ### Hono (Backend)
 
+#### Database Schema
+
+erDiagram
+    items {
+        Int id
+        String name
+        String brand
+        String photo
+        Int type
+        Int rating
+        String timestamp
+        Int author_username
+    }
+
+    outfits {
+        Int id
+        Int rating
+        String wearDate
+        String author_username
+    }
+
+    items_to_outfits {
+        Int item_id
+        Int outfit_id
+        Int item_type
+    }
+
+    items ||--|{ items_to_outfits : "has outfits"
+    outfits ||--|{ items_to_outfits : "has items"
+    
 #### Local Setup
 
 Clone the project (using https, ssh, or Github CLI).
