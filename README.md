@@ -28,6 +28,7 @@ Get started using the documentation below for each respective stack.
 
 #### Database Schema
 
+```mermaid
 erDiagram
     items {
         Int id
@@ -55,6 +56,7 @@ erDiagram
 
     items ||--|{ items_to_outfits : "has outfits"
     outfits ||--|{ items_to_outfits : "has items"
+```
     
 #### Local Setup
 
