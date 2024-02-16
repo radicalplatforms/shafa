@@ -40,4 +40,19 @@ describe('Items Unit Test', () => {
     expect(json).toMatchObject([validItem()])
     expect(json[0].id).toEqual(1)
   })
+
+  test('POST && GET /items: should create and return one item', async () => {
+  })
+
+  test('POST /items: should create multiple and return items', async () => {
+  })
+
+  test('POST && GET /items: should create multiple and return items', async () => {
+  })
+
+  test('POST /items: should error when create invalid item', async () => {
+  })
+
+  test('POST /items: should create single item when creating duplicates', async () => {
+  })
 })
