@@ -1,20 +1,17 @@
-import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1'
+import { Client } from '@neondatabase/serverless'
+import { drizzle } from 'drizzle-orm/neon-serverless'
+import type { NeonDatabase } from 'drizzle-orm/neon-serverless'
 import type { Context } from 'hono'
-import * as schema from '../schema'
-
-export type Bindings = {
-  DB: D1Database
-}
+import type * as schema from '../schema'
 
 export type Variables = {
-  db: DrizzleD1Database<typeof schema>
-}
-
-export function createDB(c: Context) {
-  return drizzle(c.env.DB, { schema })
+  db: NeonDatabase<typeof schema>
 }
 
 export default async function injectDB(c: Context, next: Function) {
-  c.set('db', createDB(c))
+  const client = new Client(c.env.DATABASE_URL)
+  c.set('db', drizzle(client))
+  //  await client.connect()
   await next()
+  //  await client.end()
 }

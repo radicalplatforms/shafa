@@ -1,35 +1,35 @@
 import { zValidator } from '@hono/zod-validator'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { isCuid } from '@paralleldrive/cuid2'
+import { eq } from 'drizzle-orm'
 import { createInsertSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { itemsToOutfits, itemTypeEnum, outfits } from '../schema'
-import type { Bindings, Variables } from '../utils/injectDB'
+import type { Variables } from '../utils/injectDB'
 import injectDB from '../utils/injectDB'
 
-const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+const app = new Hono<{ Variables: Variables }>()
 
 const insertOutfitSchema = createInsertSchema(outfits, {
-  rating: z.number().min(0).max(4),
+  rating: z.number().min(0).max(4).default(2),
   authorUsername: z.string().default(''),
 })
   .extend({
     itemIdsTypes: z
       .array(
         z.object({
-          id: z.number(),
-          type: z.nativeEnum(itemTypeEnum),
+          id: z.custom((val) => {
+            return typeof val === 'string' ? isCuid(val) : false
+          }),
+          type: z.enum(itemTypeEnum),
         })
       )
-      .max(8)
-      .optional(),
+      .min(1)
+      .max(8),
   })
   .omit({ id: true })
 
 app.get('/', injectDB, async (c) => {
-  const rating = c.req.query('rating') as number | undefined
-  const itemIds = (c.req.queries('itemId[]') as number[] | []) || []
-
   return c.json(
     await c.get('db').query.outfits.findMany({
       with: {
@@ -45,93 +45,74 @@ app.get('/', injectDB, async (c) => {
         },
       },
       orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
-      where: and(
-        itemIds.length > 0
-          ? inArray(
-              outfits.id,
-              (
-                await c
-                  .get('db')
-                  .select()
-                  .from(itemsToOutfits)
-                  .where(inArray(itemsToOutfits.itemId, itemIds))
-                  .groupBy(itemsToOutfits.outfitId)
-                  .having(
-                    sql`count(distinct item_id) =
-                                    ${itemIds.length}`
-                  )
-                  .all()
-              ).map((e) => e.outfitId)
-            )
-          : undefined,
-        rating !== undefined ? eq(outfits.rating, rating) : undefined
-      ),
     })
   )
 })
 
 app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
   const body = c.req.valid('json')
-  body.authorUsername = 'rak3rman' // TODO: remove and replace with author integration
 
-  const itemIdsTypes = body.itemIdsTypes
-  delete body.itemIdsTypes
+  return c.json(
+    await c.get('db').transaction(async (tx) => {
+      // Create outfit
+      const newOutfit = await tx
+        .insert(outfits)
+        .values({
+          ...body,
+          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+        })
+        .onConflictDoNothing()
+        .returning()
 
-  const newOutfit = await c
-    .get('db')
-    .insert(outfits)
-    .values(body)
-    .returning({ id: outfits.id })
-    .get()
-
-  if (itemIdsTypes !== undefined) {
-    await c
-      .get('db')
-      .insert(itemsToOutfits)
-      .values(
-        itemIdsTypes.map((e) => ({
+      // Insert item to outfit relationships
+      await tx.insert(itemsToOutfits).values(
+        body.itemIdsTypes.map((e) => ({
           itemId: e.id,
-          outfitId: newOutfit.id,
+          outfitId: newOutfit[0].id,
           type: e.type,
         }))
       )
-      .run()
-  }
 
-  return c.json(newOutfit)
+      return newOutfit
+    })
+  )
 })
 
 app.put('/:id', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
-  const id: number = +c.req.param('id')
-
+  const id: string = c.req.param('id')
   const body = c.req.valid('json')
-  body.authorUsername = 'rak3rman' // TODO: remove and replace with author integration
 
-  const itemIdsTypes = body.itemIdsTypes
-  delete body.itemIdsTypes
+  return c.json(
+    await c.get('db').transaction(async (tx) => {
+      // Update outfit
+      const updatedOutfit = await tx
+        .update(outfits)
+        .set({
+          ...body,
+          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+        })
+        .where(eq(outfits.id, id))
+        .returning()
 
-  if (itemIdsTypes !== undefined) {
-    await c.get('db').delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, id)).run()
-    await c
-      .get('db')
-      .insert(itemsToOutfits)
-      .values(
-        itemIdsTypes.map((e) => ({
+      // Delete all item to outfit relationships
+      await tx.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, id))
+
+      // Insert item to outfit relationships
+      await tx.insert(itemsToOutfits).values(
+        body.itemIdsTypes.map((e) => ({
           itemId: e.id,
-          outfitId: id,
+          outfitId: updatedOutfit[0].id,
           type: e.type,
         }))
       )
-      .run()
-  }
 
-  return c.json(await c.get('db').update(outfits).set(body).where(eq(outfits.id, id)).returning())
+      return updatedOutfit
+    })
+  )
 })
 
 app.delete('/:id', injectDB, async (c) => {
-  const id: number = +c.req.param('id')
-
-  await c.get('db').delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, id)).run()
+  const id: string = c.req.param('id')
 
   return c.json(await c.get('db').delete(outfits).where(eq(outfits.id, id)).returning())
 })
