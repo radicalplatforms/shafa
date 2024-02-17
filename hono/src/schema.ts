@@ -12,7 +12,7 @@ export const itemTypeEnum: [string, ...string[]] = [
   'footwear',
   'accessory',
 ]
-const itemTypeEnumPg = pgEnum('itemType', itemTypeEnum)
+export const itemTypeEnumPg = pgEnum('itemType', itemTypeEnum)
 
 /**
  * Items
@@ -24,7 +24,7 @@ export const items = pgTable('items', {
   name: text('name').notNull(),
   brand: text('brand'),
   photoUrl: text('photo_url'),
-  type: itemTypeEnumPg('itemType').notNull(),
+  type: itemTypeEnumPg('type').notNull(),
   rating: smallint('rating').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   authorUsername: text('author_username').notNull(),
@@ -62,7 +62,7 @@ export const itemsToOutfits = pgTable(
     outfitId: text('outfit_id')
       .notNull()
       .references(() => outfits.id),
-    type: itemTypeEnumPg('itemType').notNull(),
+    itemType: itemTypeEnumPg('item_type').notNull(),
   },
   (table) => {
     return {

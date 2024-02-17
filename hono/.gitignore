@@ -2,3 +2,4 @@ node_modules
 test/tmp-d1-db
 .wrangler
 .idea
+.dev.vars

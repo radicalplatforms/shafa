@@ -21,7 +21,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
           id: z.custom((val) => {
             return typeof val === 'string' ? isCuid(val) : false
           }),
-          type: z.enum(itemTypeEnum),
+          itemType: z.enum(itemTypeEnum),
         })
       )
       .min(1)
@@ -41,7 +41,7 @@ app.get('/', injectDB, async (c) => {
           with: {
             item: true,
           },
-          orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.type)],
+          orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
         },
       },
       orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
@@ -69,7 +69,7 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
         body.itemIdsTypes.map((e) => ({
           itemId: e.id,
           outfitId: newOutfit[0].id,
-          type: e.type,
+          itemType: e.itemType,
         }))
       )
 
@@ -102,7 +102,7 @@ app.put('/:id', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
         body.itemIdsTypes.map((e) => ({
           itemId: e.id,
           outfitId: updatedOutfit[0].id,
-          type: e.type,
+          itemType: e.itemType,
         }))
       )
 
