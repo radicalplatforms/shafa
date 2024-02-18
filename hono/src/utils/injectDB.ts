@@ -4,7 +4,6 @@ import type { NeonDatabase } from 'drizzle-orm/neon-serverless'
 import type { Context } from 'hono'
 import { env } from 'hono/adapter'
 import * as schema from '../schema'
-import { items, itemsToOutfits, itemTypeEnum, outfits } from '../schema'
 
 export type Variables = {
   db: NeonDatabase<typeof schema>
