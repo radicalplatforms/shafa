@@ -19,10 +19,6 @@ const insertItemSchema = createInsertSchema(items, {
 }).omit({ id: true, createdAt: true, authorUsername: true })
 
 app.get('/', injectDB, async (c) => {
-  console.log('M1-1')
-  const tmp = await c.get('db').query.items.findMany()
-  console.log(tmp)
-  console.log('M1-2')
   return c.json(await c.get('db').query.items.findMany())
 })
 
