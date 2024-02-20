@@ -29,6 +29,9 @@ describe('Items Unit Test', () => {
     expect(await res.json()).toEqual([])
   })
 
+  test('POST /items: should error when create invalid item', async () => {
+  })
+
   test('POST /items: should create and return one item', async () => {
     const res = await worker.fetch('/api/items', {
       method: 'POST',
@@ -41,18 +44,32 @@ describe('Items Unit Test', () => {
     expect(json[0].id).toEqual(1)
   })
 
-  test('POST && GET /items: should create and return one item', async () => {
+  test('POST /items: should create single item when creating duplicates', async () => {
   })
 
   test('POST /items: should create multiple and return items', async () => {
   })
 
-  test('POST && GET /items: should create multiple and return items', async () => {
+  // TODO ADD GET FILTERs HERE AFTER POSTING
+  // test('GET /items: ', async () => {
+  // })
+
+  test('PUT /items: should error when updating invalid item', async () => {
   })
 
-  test('POST /items: should error when create invalid item', async () => {
+  test('PUT /items: should update one item', async () => {
   })
 
-  test('POST /items: should create single item when creating duplicates', async () => {
+  // TODO ADD GET FILTERs HERE AFTER PUTTING
+  // test('GET /items: ', async () => {
+  // })
+
+  test('DELETE /items: should delete one item', async () => {
+  })
+
+  test('GET /items: should return empty for deleted item', async () => {
+  })
+
+  test('DELETE /items: should delete multiple items', async () => {
   })
 })
