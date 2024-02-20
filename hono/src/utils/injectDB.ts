@@ -11,9 +11,11 @@ export type Variables = {
 
 export default async function injectDB(c: Context, next: Function) {
   const { DATABASE_URL } = env<{ DATABASE_URL: string }>(c)
+
   const client = new Client(DATABASE_URL!)
   const db = drizzle(client, { schema })
   c.set('db', db)
+
   await client.connect()
   await next()
   await client.end()

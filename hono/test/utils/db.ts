@@ -21,7 +21,7 @@ export async function start(
   }
 }
 
-export async function createDbAndMigrate(name: string, port: number = 5555, version: number = 16) {
+export async function provision(name: string, port: number = 5555, version: number = 16) {
   const url = `postgres://localhost:${port}/${name}`
 
   try {
@@ -36,11 +36,26 @@ export async function createDbAndMigrate(name: string, port: number = 5555, vers
   }
 }
 
+export async function clean(name: string, port: number = 5555, version: number = 16) {
+  const url = `postgres://localhost:${port}/${name}`
+
+  try {
+    const client = postgres(url)
+    const db = drizzle(client)
+
+    const sqlString = fs.readFileSync('test/utils/clean-db.sql', 'utf8')
+    await db.execute(sql.raw(sqlString))
+  } catch (e) {
+    stop(port, version)
+    throw e
+  }
+}
+
 export async function seed(
   name: string,
+  seeds: string[],
   port: number = 5555,
-  version: number = 16,
-  seeds: string[]
+  version: number = 16
 ) {
   const url = `postgres://localhost:${port}/${name}`
 

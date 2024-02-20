@@ -1,8 +1,8 @@
 {
+  "id": "575244e2-446c-44a4-911c-bd2161725f51",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "5",
   "dialect": "pg",
-  "id": "a8686837-8ee0-4492-851d-0d311406e00d",
-  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "items": {
       "name": "items",
@@ -92,8 +92,12 @@
           "name": "items_to_outfits_item_id_items_id_fk",
           "tableFrom": "items_to_outfits",
           "tableTo": "items",
-          "columnsFrom": ["item_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -101,16 +105,23 @@
           "name": "items_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "items_to_outfits",
           "tableTo": "outfits",
-          "columnsFrom": ["outfit_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "outfit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "items_to_outfits_item_id_outfit_id": {
-          "name": "items_to_outfits_item_id_outfit_id",
-          "columns": ["item_id", "outfit_id"]
+        "items_to_outfits_item_id_outfit_id_pk": {
+          "name": "items_to_outfits_item_id_outfit_id_pk",
+          "columns": [
+            "item_id",
+            "outfit_id"
+          ]
         }
       },
       "uniqueConstraints": {}
@@ -165,8 +176,8 @@
   },
   "schemas": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
+    "tables": {}
   }
 }

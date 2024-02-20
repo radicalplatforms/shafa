@@ -66,7 +66,7 @@ export const itemsToOutfits = pgTable(
   },
   (table) => {
     return {
-      pk: primaryKey(table.itemId, table.outfitId),
+      pk: primaryKey({ columns: [table.itemId, table.outfitId] }),
     }
   }
 )

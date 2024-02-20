@@ -12,4 +12,4 @@ const main = async () => {
   process.exit(0)
 }
 
-main()
+main().then()

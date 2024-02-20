@@ -89,7 +89,7 @@ app.delete('/:id', injectDB, async (c) => {
       }
 
       // Delete the specified item
-      return await tx.delete(items).where(eq(items.id, id)).returning()
+      return tx.delete(items).where(eq(items.id, id)).returning()
     })
   )
 })
