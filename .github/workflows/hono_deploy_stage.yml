@@ -1,12 +1,15 @@
-name: Hono Cloudflare Deploy Stage
+name: Hono Deploy Stage
 
 on:
-  pull_request:
-    branches: main
+  workflow_run:
+    workflows: ["Hono Integration Checks"]
+    types:
+      - completed
 
 jobs:
-  nuxt:
+  cf_deploy_hono:
     runs-on: ${{ matrix.os }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     strategy:
       matrix:

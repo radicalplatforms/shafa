@@ -9,11 +9,14 @@
     "wrdev-migrate": "npm run wrdev-migrate-local && npm run wrdev-migrate-remote",
     "wrdev-migrate-local": "wrangler d1 migrations apply dev-shafa-hono-db --local",
     "wrdev-migrate-remote": "wrangler d1 migrations apply dev-shafa-hono-db",
+    "wrtest-migrate-local": "wrangler d1 migrations apply test-shafa-hono-db --local --env test --persist-to=./test/tmp-d1-db",
     "wrstage-migrate": "wrangler d1 migrations apply stage-shafa-hono-db --env stage",
     "wrprod-migrate": "wrangler d1 migrations apply prod-shafa-hono-db --env production",
     "generate": "drizzle-kit generate:sqlite --schema=src/schema.ts",
     "test": "jest test",
-    "format": "prettier --write . && eslint --fix .",
+    "wrtest-clean-db-local": "wrangler d1 execute test-shafa-hono-db --local --env test --file=./test/utils/cleanup-test-db.sql --persist-to=./test/tmp-d1-db",
+    "format": "prettier --log-level warn --write . && eslint --fix .",
+    "check-ts": "tsc --noEmit --target esnext --project tsconfig.json",
     "check-prettier": "prettier --check .",
     "check-eslint": "eslint . --max-warnings 0"
   },
@@ -39,7 +42,7 @@
     "prettier": "3.2.4",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3",
-    "wrangler": "^3.26.0"
+    "wrangler": "^3.28.1"
   },
   "resolveJsonModule": true
 }

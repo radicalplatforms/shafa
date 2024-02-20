@@ -15,6 +15,6 @@ export function createDB(c: Context) {
 }
 
 export default async function injectDB(c: Context, next: Function) {
-  c.set('db', createDB)
+  c.set('db', createDB(c))
   await next()
 }
