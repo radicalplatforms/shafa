@@ -1,3 +1,4 @@
+import { swaggerUI } from '@hono/swagger-ui'
 import { zValidator } from '@hono/zod-validator'
 import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm'
 import { createInsertSchema } from 'drizzle-zod'
@@ -53,6 +54,8 @@ app.get('/', injectDB, async (c) => {
     })
   )
 })
+
+app.get('/ui', swaggerUI({ url: '/doc' }))
 
 app.post(
   '/',
