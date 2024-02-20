@@ -6,7 +6,19 @@ import * as schema from '../src/schema'
 import { seededOutfitsSimple } from './factory/outfits'
 import { clean, provision, seed } from './utils/db'
 
-const DB_NAME = 'outfits_test'
+/**
+ * Outfits Smoke Tests
+ *
+ * Smoke testing, also known as 'build verification testing', is a type of
+ * software testing that comprises a non-exhaustive set of tests that aim at
+ * ensuring that the most critical functions work. The result of this testing is
+ * used to decide if a build is stable enough to proceed with further testing.
+ *
+ * Here we are testing the set of "outfits" APIs in a non-exhaustive way. A good
+ * guideline is to hit every endpoint and not dig deep into edge cases.
+ */
+
+const DB_NAME = 'outfits_smoke_test'
 
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
@@ -27,8 +39,8 @@ beforeAll(async () => {
   await provision(DB_NAME)
 })
 
-describe('Outfits: No Seeding', () => {
-  beforeEach(async () => {
+describe('[Smoke] Outfits: No Seeding', () => {
+  afterAll(async () => {
     await clean(DB_NAME)
   })
 
@@ -39,10 +51,13 @@ describe('Outfits: No Seeding', () => {
   })
 })
 
-describe('Outfits: Seeded [items-simple, outfits-simple]', () => {
+describe('[Smoke] Outfits: Seeded [items-simple, outfits-simple]', () => {
   beforeAll(async () => {
-    await clean(DB_NAME)
     await seed(DB_NAME, ['items-simple.sql', 'outfits-simple.sql'])
+  })
+
+  afterAll(async () => {
+    await clean(DB_NAME)
   })
 
   test('GET /outfits: should return 1 seeded outfit with items', async () => {
