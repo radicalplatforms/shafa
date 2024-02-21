@@ -59,10 +59,10 @@ jobs:
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
           secrets: DATABASE_URL
-          env:
-            DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
           command: deploy --name ${{ env.DEPLOY_TAG }} --route ${{ env.DEPLOY_ROUTE }} --env stage
           workingDirectory: hono
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
 
       - name: Comment on Pull Request
         uses: thollander/actions-comment-pull-request@v2
