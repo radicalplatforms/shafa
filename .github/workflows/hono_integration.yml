@@ -178,6 +178,8 @@ jobs:
 
       - name: Deploy Hono
         uses: cloudflare/wrangler-action@v3
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: deploy --name ${{ env.DEPLOY_TAG }}
