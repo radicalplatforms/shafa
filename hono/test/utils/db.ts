@@ -6,7 +6,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
 
-const TEMP_ROOT = `/tmp/postgres-local`
+const TEMP_ROOT = `tmp-postgres-local`
 
 export async function start(
   port: number = 5555,
@@ -137,8 +137,8 @@ function getStopScript(port: number, version: number): string {
     }
     default: {
       return `
-        sudo -u postgres /usr/lib/postgresql/${version}/bin/pg_ctl stop -D ${TEMP_ROOT}/data
-        sudo -u postgres rm -rf ${TEMP_ROOT}
+        /usr/lib/postgresql/${version}/bin/pg_ctl stop -D ${TEMP_ROOT}/data
+        rm -rf ${TEMP_ROOT}
       `
     }
   }
