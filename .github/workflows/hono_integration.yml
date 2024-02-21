@@ -178,12 +178,14 @@ jobs:
 
       - name: Deploy Hono
         uses: cloudflare/wrangler-action@v3
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: deploy --name ${{ env.DEPLOY_TAG }}
           workingDirectory: hono
           packageManager: pnpm
-          postCommands: echo "${{ env.DATABASE_URL }}?sslmode=require" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
+          postCommands: echo "${{ env.DATABASE_URL }}" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
 
       - name: Comment on Pull Request
         uses: thollander/actions-comment-pull-request@v2
