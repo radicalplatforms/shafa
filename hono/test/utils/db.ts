@@ -94,20 +94,19 @@ function getInstallationScript(
       `
     }
     case 'win32': {
-      throw new Error('Unsupported OS, try run on OS X or Linux')
+      throw new Error('Unsupported OS, try to run on Mac or Linux')
     }
     default: {
-      // eslint-disable-next-line
       const installation = includeInstallation
-        ? `sudo apt update; sudo apt install postgresql-${version};`
+        ? `apt update; apt install postgresql-${version};`
         : ''
 
       return `
         ${installation}
-        sudo -u postgres mkdir -p ${TEMP_ROOT}/data;
-        sudo -u postgres /usr/lib/postgresql/${version}/bin/initdb -D ${TEMP_ROOT}/data;
-        sudo -u postgres /usr/lib/postgresql/${version}/bin/pg_ctl -o "-F -p ${port}" -D ${TEMP_ROOT}/data -l ${TEMP_ROOT}/logfile start;
-        sudo -u postgres createuser -p ${port} -s $(whoami);
+        mkdir -p ${TEMP_ROOT}/data;
+        /usr/lib/postgresql/${version}/bin/initdb -D ${TEMP_ROOT}/data;
+        /usr/lib/postgresql/${version}/bin/pg_ctl -o "-F -p ${port}" -D ${TEMP_ROOT}/data -l ${TEMP_ROOT}/logfile start;
+        createuser -p ${port} -s $(whoami);
       `
     }
   }
@@ -122,7 +121,7 @@ function getCreateDbScript(name: string, port: number): string {
     }
     default: {
       return `
-        sudo -u postgres createdb -p ${port} ${name};
+        createdb -p ${port} ${name};
       `
     }
   }
