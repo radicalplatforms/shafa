@@ -98,15 +98,15 @@ function getInstallationScript(
     }
     default: {
       const installation = includeInstallation
-        ? `apt update; apt install postgresql-${version};`
+        ? `sudo apt update; sudo apt install postgresql-${version};`
         : ''
 
       return `
         ${installation}
         mkdir -p ${TEMP_ROOT}/data;
         /usr/lib/postgresql/${version}/bin/initdb -D ${TEMP_ROOT}/data;
+        sudo chmod 2777 /var/run/postgresql;
         /usr/lib/postgresql/${version}/bin/pg_ctl -o "-F -p ${port}" -D ${TEMP_ROOT}/data -l ${TEMP_ROOT}/logfile start;
-        createuser -p ${port} -s $(whoami);
       `
     }
   }
