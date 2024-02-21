@@ -1,17 +1,16 @@
-import { SwaggerUI } from '@hono/swagger-ui' // Keep this import
-// import { swaggerUI } from '@hono/swagger-ui' // Remove this duplicate import
-import { zValidator } from '@hono/zod-validator'
-import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm'
-import { createInsertSchema } from 'drizzle-zod'
-import { Hono } from 'hono'
-import { z } from 'zod'
-import { items, itemsToOutfits, itemTypeEnum } from '../schema'
+import { SwaggerUI } from '@hono/swagger-ui';
+import { Hono } from 'hono';
 import type { Bindings, Variables } from '../utils/injectDB'
-import injectDB from '../utils/injectDB'
+import swaggerJson from '../../docs/swagger.json'
+
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-app.get('/ui', (c) => {
+app.get('/doc', (c) => {
+  return c.json(swaggerJson);
+});
+
+app.get('/', (c) => {
   return c.html(`
     <html lang="en">
       <head>
@@ -27,10 +26,10 @@ app.get('/ui', (c) => {
         </style>
       </head>
       <body>
-        ${SwaggerUI({ url: '/docs/swagger.json' })}
+        ${SwaggerUI({ spec: swaggerJson, url: '/doc'})}
       </body>
     </html>
-  `)
-})
+  `);
+});
 
-export default app
+export default app;
