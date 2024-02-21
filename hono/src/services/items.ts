@@ -10,8 +10,8 @@ import injectDB from '../utils/injectDB'
 const app = new Hono<{ Variables: Variables }>()
 
 const insertItemSchema = createInsertSchema(items, {
-  name: z.string().min(1).max(50),
-  brand: z.string().min(1).max(50),
+  name: z.string().min(1).max(60),
+  brand: z.string().min(1).max(60),
   photoUrl: z.string().url(),
   type: z.enum(itemTypeEnum),
   rating: z.number().min(0).max(4).default(2),
