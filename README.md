@@ -35,7 +35,7 @@ erDiagram
         String name
         String brand
         String photo
-        Enum<String> type
+        Enum type
         Int rating
         String created_at
         String author_username
@@ -51,7 +51,7 @@ erDiagram
     items_to_outfits {
         String item_id
         String outfit_id
-        Enum<String> item_type
+        Enum item_type
     }
 
     items ||--|{ items_to_outfits : "has outfits"
