@@ -9,7 +9,7 @@ import app from '../../src/index'
  * ensuring that the most critical functions work. The result of this testing is
  * used to decide if a build is stable enough to proceed with further testing.
  *
- * Here we are testing hono to make sure that it compiles and returned expected
+ * Here we are testing hono to make sure that it compiles and returns expected
  * output, this is a trivial test.
  */
 

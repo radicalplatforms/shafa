@@ -10,6 +10,7 @@ env:
 
 jobs:
   cf_deploy_hono_prod:
+    name: Deploy Hono to Prod
     runs-on: ${{ matrix.os }}
 
     strategy:

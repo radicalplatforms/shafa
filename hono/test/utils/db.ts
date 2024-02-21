@@ -113,18 +113,9 @@ function getInstallationScript(
 }
 
 function getCreateDbScript(name: string, port: number): string {
-  switch (platform()) {
-    case 'darwin': {
-      return `
-        createdb -p ${port} ${name}
-      `
-    }
-    default: {
-      return `
-        createdb -p ${port} ${name};
-      `
-    }
-  }
+  return `
+    createdb -p ${port} ${name};
+  `
 }
 
 function getStopScript(port: number, version: number): string {
