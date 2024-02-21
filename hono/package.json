@@ -3,9 +3,7 @@
   "version": "0.0.0",
   "main": "src/index.ts",
   "scripts": {
-    "wrdev": "wrangler dev src/index.ts",
-    "wrstage": "wrangler deploy src/index.ts --env stage",
-    "wrprod": "wrangler deploy src/index.ts --env production",
+    "dev": "wrangler dev",
     "migrate": "tsx migrate.ts",
     "generate": "drizzle-kit generate:pg",
     "test": "jest --silent --detectOpenHandles --testPathIgnorePatterns='neon.system' --testPathIgnorePatterns='remote.system' --testPathIgnorePatterns='/system'",
@@ -32,6 +30,7 @@
     "@cloudflare/workers-types": "^4.20231025.0",
     "@shelf/postgres-local": "^1.0.6",
     "@types/jest": "^29.5.11",
+    "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "babel-jest": "^29.7.0",

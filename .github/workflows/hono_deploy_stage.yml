@@ -6,6 +6,14 @@ on:
     types:
       - completed
 
+env:
+  NEON_DATABASE_USERNAME: ${{ secrets.NEON_DATABASE_USERNAME }}
+  NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+  NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  DEPLOY_TAG: ${{ github.event.number }}-stage-shafa-hono
+  DEPLOY_ROUTE: ${{ github.event.number }}-stage.api.shafa.radison.workers.dev/*
+
 jobs:
   cf_deploy_hono:
     runs-on: ${{ matrix.os }}
@@ -28,10 +36,34 @@ jobs:
         run: npm ci
         working-directory: hono
 
+      - name: Create Neon Branch
+        uses: neondatabase/create-branch-action@v4
+        id: create-branch
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: ${{ env.DEPLOY_TAG }}
+          username: ${{ env.NEON_DATABASE_USERNAME }}
+          api_key: ${{ env.NEON_API_TOKEN }}
+
+      - name: Run Migrations
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
+        run: npm run migrate
+
       - name: Deploy Hono
-        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          command: deploy src/index.ts --env stage
+          apiToken: ${{ env.CF_API_TOKEN }}
+          secrets: DATABASE_URL
+          env:
+            DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
+          command: deploy --name ${{ env.DEPLOY_TAG }} --route ${{ env.DEPLOY_ROUTE }} --env stage
           workingDirectory: hono
+
+      - name: Comment on Pull Request
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            **Successfully Deployed to Stage Environment**
+            Cloudflare Staging URL :rocket: : ${{ env.DEPLOY_ROUTE }}
+            Neon Branch :elephant: : https://console.neon.tech/app/projects/${{ env.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}

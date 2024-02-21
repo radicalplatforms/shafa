@@ -1,3 +1,5 @@
+import { neonConfig } from '@neondatabase/serverless'
+import ws from 'ws'
 import { itemsTest } from './system.test'
 
 /**
@@ -18,5 +20,9 @@ import { itemsTest } from './system.test'
  * user that is manipulating data on a production system. Destroy any data that
  * would prevent a subsequent system test run from passing.
  */
+
+// Neon Config: Set Node.js Websocket Driver
+// https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined
+neonConfig.webSocketConstructor = ws
 
 itemsTest()
