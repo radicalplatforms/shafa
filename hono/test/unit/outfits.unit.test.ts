@@ -1,29 +1,28 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Context } from 'hono'
 import postgres from 'postgres'
-import * as schema from '../src/schema'
-import { clean, provision } from './utils/db'
+import * as schema from '../../src/schema'
+import { clean, provision } from '../utils/db'
 
 /**
- * Items Functional Tests
+ * Outfits Unit Tests
  *
- * Functional testing is a type of software testing where the system is tested
- * against the functional requirements/specifications. Functions (or features)
- * are tested by feeding them input and examining the output. This type of
- * testing is not concerned with how processing occurs, but rather, with the
- * results of processing.
+ * Unit testing is a method of software testing where individual components of
+ * a program are tested to ensure they work correctly. The intention is to
+ * isolate each part of the program and verify its functionality. It helps to
+ * detect and fix bugs early in the development stage.
  *
- * Here we are testing the set of "items" APIs in an exhaustive way. We want
+ * Here we are testing the set of "outfits" APIs in an exhaustive way. We want
  * to find and test every edge case (as well as common cases) for each method.
  */
 
-const DB_NAME = 'items_functional_test'
+const DB_NAME = 'outfits_unit_test'
 
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
 //       because of this function decomposition is not possible without overhead
-jest.mock('../src/utils/injectDB', () => {
-  const originalModule = jest.requireActual('../src/utils/injectDB')
+jest.mock('../../src/utils/injectDB', () => {
+  const originalModule = jest.requireActual('../../src/utils/injectDB')
   return {
     __esModule: true,
     ...originalModule,
@@ -38,7 +37,7 @@ beforeAll(async () => {
   await provision(DB_NAME)
 })
 
-describe('[Functional] Items: GET /items', () => {
+describe('[Unit] Outfits: GET /outfits', () => {
   afterAll(async () => {
     await clean(DB_NAME)
   })

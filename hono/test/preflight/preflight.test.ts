@@ -1,7 +1,7 @@
-import { itemsTest } from './system.test'
+import app from '../../src/index'
 
 /**
- * System Tests (Remote)
+ * Preflight Tests (Source)
  *
  * WARNING (HIGHER DB COSTS): These tests will be run against a fork of the
  * production database. Please be concise and frugal with database manipulations
@@ -19,4 +19,18 @@ import { itemsTest } from './system.test'
  * would prevent a subsequent system test run from passing.
  */
 
-itemsTest()
+export default async function preflightTest() {
+  describe('[Preflight] Items: GET /items', () => {
+    test('GET /items: should resolve', async () => {
+      const res = await app.request('/api/items')
+      expect(res.status).toBe(200)
+    })
+  })
+
+  describe('[Preflight] Outfits: GET /outfits', () => {
+    test('GET /outfits: should resolve', async () => {
+      const res = await app.request('/api/outfits')
+      expect(res.status).toBe(200)
+    })
+  })
+}

@@ -1,10 +1,10 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Context } from 'hono'
 import postgres from 'postgres'
-import app from '../src/index'
-import * as schema from '../src/schema'
-import { seededOutfitsSimple } from './factory/outfits'
-import { clean, provision, seed } from './utils/db'
+import app from '../../src/index'
+import * as schema from '../../src/schema'
+import { clean, provision, seed } from '../utils/db'
+import { seededOutfitsSimple } from '../utils/factory/outfits'
 
 /**
  * Outfits Smoke Tests
@@ -23,8 +23,8 @@ const DB_NAME = 'outfits_smoke_test'
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
 //       because of this function decomposition is not possible without overhead
-jest.mock('../src/utils/injectDB', () => {
-  const originalModule = jest.requireActual('../src/utils/injectDB')
+jest.mock('../../src/utils/injectDB', () => {
+  const originalModule = jest.requireActual('../../src/utils/injectDB')
   return {
     __esModule: true,
     ...originalModule,

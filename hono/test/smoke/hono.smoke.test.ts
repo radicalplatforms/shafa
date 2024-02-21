@@ -1,5 +1,5 @@
-import { version } from '../package.json'
-import app from '../src/index'
+import { version } from '../../package.json'
+import app from '../../src/index'
 
 /**
  * Hono Smoke Tests

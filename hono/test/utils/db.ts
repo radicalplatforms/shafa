@@ -64,7 +64,7 @@ export async function seed(
     const db = drizzle(client)
 
     for (const seed of seeds) {
-      const sqlString = fs.readFileSync('test/seeds/' + seed, 'utf8')
+      const sqlString = fs.readFileSync('test/utils/seeds/' + seed, 'utf8')
       await db.execute(sql.raw(sqlString))
     }
   } catch (e) {

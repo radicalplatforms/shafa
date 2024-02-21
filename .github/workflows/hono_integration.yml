@@ -5,12 +5,12 @@ on:
 
 env:
   NEON_DATABASE_USERNAME: ${{ secrets.NEON_DATABASE_USERNAME }}
-  NEON_DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+  NEON_DATABASE_NAME: ${{ secrets.NEON_DATABASE_NAME }}
   NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-  DEPLOY_TAG: ${{ github.event.number }}-stage-shafa-hono
-  DEPLOY_ROUTE: https://${{ github.event.number }}-stage-shafa-hono.radicalplatforms.workers.dev
+  DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
+  DEPLOY_ROUTE: https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev
 
 jobs:
   format_checks:
@@ -111,7 +111,7 @@ jobs:
         os: [ ubuntu-latest ]
         node: [ 18 ]
         postgres: [ 16 ]
-        test: [functional, integration, system]
+        test: [unit, integration, preflight]
 
     steps:
       - uses: actions/setup-node@v4
@@ -138,7 +138,7 @@ jobs:
     name: Deploy Hono to Stage
     runs-on: ${{ matrix.os }}
     needs: test_matrix
-    
+
     strategy:
       matrix:
         os: [ ubuntu-latest ]

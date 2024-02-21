@@ -4,8 +4,12 @@ on:
   push:
     branches: main
 
+env:
+  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_NAME }}
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
 jobs:
-  cf_deploy_hono:
+  cf_deploy_hono_prod:
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -25,10 +29,18 @@ jobs:
         run: npm ci
         working-directory: hono
 
+      - name: Run Migrations
+        env:
+          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
+        run: npm run migrate
+        working-directory: hono
+
       - name: Deploy Hono
-        id: deploy
         uses: cloudflare/wrangler-action@v3
+        env:
+          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
         with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          command: deploy src/index.ts --env production
+          apiToken: ${{ env.CF_API_TOKEN }}
+          command: deploy --env production
           workingDirectory: hono
+          secrets: DATABASE_URL
