@@ -1,4 +1,4 @@
-name: Hono Integration/Deploy
+name: Hono Integration
 
 on:
   pull_request
@@ -133,8 +133,8 @@ jobs:
         working-directory: hono
 
 
-  cf_deploy_hono:
-    name: CF Deploy Hono
+  cf_deploy_hono_stage:
+    name: Deploy Hono to Stage
     runs-on: ${{ matrix.os }}
     needs: test_matrix
 
@@ -160,7 +160,7 @@ jobs:
         id: create-branch
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          branch: ${{ env.DEPLOY_TAG }}
+          branch_name: ${{ env.DEPLOY_TAG }}
           username: ${{ env.NEON_DATABASE_USERNAME }}
           api_key: ${{ env.NEON_API_TOKEN }}
 
