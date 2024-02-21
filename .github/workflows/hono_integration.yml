@@ -10,7 +10,7 @@ env:
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   DEPLOY_TAG: ${{ github.event.number }}-stage-shafa-hono
-  DEPLOY_ROUTE: ${{ github.event.number }}-stage.api.shafa.radison.workers.dev/*
+  DEPLOY_ROUTE: https://${{ env.DEPLOY_TAG }}.radicalplatforms.workers.dev
 
 jobs:
   format_checks:
@@ -183,12 +183,12 @@ jobs:
           command: deploy --name ${{ env.DEPLOY_TAG }}
           workingDirectory: hono
           packageManager: pnpm
-          postCommands: echo "${{ steps.create-branch.outputs.db_url }}?sslmode=require" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
+          postCommands: echo "${{ env.DATABASE_URL }}?sslmode=require" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
 
       - name: Comment on Pull Request
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            **Successfully Deployed to Stage Environment**
+            **Successfully Deployed to Staging Environment**
             Cloudflare Staging URL :rocket: : ${{ env.DEPLOY_ROUTE }}
             Neon Branch :elephant: : https://console.neon.tech/app/projects/${{ env.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}
