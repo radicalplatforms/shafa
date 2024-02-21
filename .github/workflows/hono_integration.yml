@@ -5,7 +5,7 @@ on:
 
 env:
   NEON_DATABASE_USERNAME: ${{ secrets.NEON_DATABASE_USERNAME }}
-  NEON_DATABASE_NAME: shafa-prod
+  NEON_DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
   NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -137,8 +137,8 @@ jobs:
   cf_deploy_hono_stage:
     name: Deploy Hono to Stage
     runs-on: ${{ matrix.os }}
-#    needs: test_matrix
-
+    needs: test_matrix
+    
     strategy:
       matrix:
         os: [ ubuntu-latest ]
@@ -192,5 +192,5 @@ jobs:
         with:
           message: |
             **Successfully Deployed to Staging Environment**
-            Cloudflare Staging URL :rocket: : ${{ env.DEPLOY_ROUTE }}
-            Neon Branch :elephant: : https://console.neon.tech/app/projects/${{ env.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}
+            Cloudflare Staging URL :rocket: ${{ env.DEPLOY_ROUTE }}
+            Neon Branch :elephant: https://console.neon.tech/app/projects/${{ env.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}
