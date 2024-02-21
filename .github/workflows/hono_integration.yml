@@ -168,6 +168,7 @@ jobs:
         env:
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
         run: npm run migrate
+        working-directory: hono
 
       - name: Deploy Hono
         uses: cloudflare/wrangler-action@v3
