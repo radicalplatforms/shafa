@@ -8,6 +8,7 @@ config({ path: '.dev.vars' })
 const main = async () => {
   const db = drizzle(postgres(process.env.DATABASE_URL!, { ssl: 'require', max: 1 }))
   await migrate(db, { migrationsFolder: './src/drizzle' })
+  process.exit(0)
 }
 
 main().then()
