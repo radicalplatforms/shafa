@@ -1,10 +1,7 @@
 name: Hono Deploy Stage
 
 on:
-  workflow_run:
-    workflows: ["Hono Integration Checks"]
-    types:
-      - completed
+  pull_request
 
 env:
   NEON_DATABASE_USERNAME: ${{ secrets.NEON_DATABASE_USERNAME }}
@@ -35,6 +32,13 @@ jobs:
       - name: Install Dependencies
         run: npm ci
         working-directory: hono
+
+      - name: Wait for Integration Checks
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Test Matrix'
+          wait-interval: 10
 
       - name: Create Neon Branch
         uses: neondatabase/create-branch-action@v4
