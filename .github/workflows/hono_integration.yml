@@ -178,7 +178,8 @@ jobs:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: deploy --name ${{ env.DEPLOY_TAG }}
           workingDirectory: hono
-          postCommands: echo "${{ steps.create-branch.outputs.db_url }}?sslmode=require" | wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
+          packageManager: pnpm
+          postCommands: echo "${{ steps.create-branch.outputs.db_url }}?sslmode=require" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
 
       - name: Comment on Pull Request
         uses: thollander/actions-comment-pull-request@v2
