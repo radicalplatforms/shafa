@@ -137,7 +137,7 @@ jobs:
   cf_deploy_hono_stage:
     name: Deploy Hono to Stage
     runs-on: ${{ matrix.os }}
-    needs: test_matrix
+#    needs: test_matrix
 
     strategy:
       matrix:
@@ -176,9 +176,9 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
-          command: deploy --name ${{ env.DEPLOY_TAG }} --route ${{ env.DEPLOY_ROUTE }} --env stage
+          command: deploy --name ${{ env.DEPLOY_TAG }} --route ${{ env.DEPLOY_ROUTE }}
           workingDirectory: hono
-          postCommands: ${{ steps.create-branch.outputs.db_url }}?sslmode=require | wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }} --env stage
+          postCommands: ${{ steps.create-branch.outputs.db_url }}?sslmode=require | wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
 
       - name: Comment on Pull Request
         uses: thollander/actions-comment-pull-request@v2
