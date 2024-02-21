@@ -176,11 +176,9 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
-          secrets: DATABASE_URL
           command: deploy --name ${{ env.DEPLOY_TAG }} --route ${{ env.DEPLOY_ROUTE }} --env stage
           workingDirectory: hono
-        env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
+          postCommands: ${{ steps.create-branch.outputs.db_url }}?sslmode=require | wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }} --env stage
 
       - name: Comment on Pull Request
         uses: thollander/actions-comment-pull-request@v2
