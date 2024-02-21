@@ -1,7 +1,7 @@
-import app from '../src/index'
+import { itemsTest } from './system.test'
 
 /**
- * System Tests (Source)
+ * System Tests (Neon)
  *
  * WARNING (HIGHER DB COSTS): These tests will be run against a fork of the
  * production database. Please be concise and frugal with database manipulations
@@ -19,11 +19,4 @@ import app from '../src/index'
  * would prevent a subsequent system test run from passing.
  */
 
-export const itemsTest = () => {
-  describe('[System] Items: GET /items', () => {
-    test('GET /items: should resolve', async () => {
-      const res = await app.request('/api/items')
-      expect(res.status).toBe(200)
-    })
-  })
-}
+itemsTest()

@@ -59,8 +59,9 @@ jobs:
         working-directory: hono
 
 
-  jest_unit_testing:
+  test_smoke:
     runs-on: ${{ matrix.os }}
+    needs: compilation_checks
 
     strategy:
       matrix:
@@ -79,10 +80,59 @@ jobs:
         run: npm ci
         working-directory: hono
 
-      - name: Migrate Test DB
-        run: npm run wrtest-migrate-local
-        working-directory: hono 
+      - name: Run Smoke Tests
+        run: npm run test:smoke
+        working-directory: hono
 
-      - name: Run Jest
-        run: npm run test
+
+  test_matrix:
+    runs-on: ${{ matrix.os }}
+    needs: test_smoke
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 18 ]
+        test: [functional, integration, system]
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
+      - name: Run Tests
+        run: npm run test:${{ matrix.test }}
+        working-directory: hono
+
+
+  test_system_neon:
+    runs-on: ${{ matrix.os }}
+    needs: test_matrix
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 18 ]
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
+      - name: Run System Tests
+        run: jest --silent neon.system.test.ts
         working-directory: hono
