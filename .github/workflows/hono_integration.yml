@@ -168,7 +168,7 @@ jobs:
 
       - name: Run Migrations
         env:
-          DATABASE_URL: postgres://${{ steps.create-branch.outputs.db_url }}?sslmode=require
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
         run: npm run migrate
         working-directory: hono
 
