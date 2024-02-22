@@ -5,7 +5,7 @@ on:
     branches: main
 
 env:
-  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_NAME }}
+  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
 jobs:
