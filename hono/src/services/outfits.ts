@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
 import { eq } from 'drizzle-orm'
-import { createInsertSchema } from 'drizzle-zod'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { itemsToOutfits, itemTypeEnum, outfits } from '../schema'
@@ -18,9 +18,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
     itemIdsTypes: z
       .array(
         z.object({
-          id: z.custom((val) => {
-            return typeof val === 'string' ? isCuid(val) : false
-          }),
+          id: z.string().refine((val) => isCuid(val)),
           itemType: z.enum(itemTypeEnum),
         })
       )
@@ -28,6 +26,10 @@ const insertOutfitSchema = createInsertSchema(outfits, {
       .max(8),
   })
   .omit({ id: true })
+
+const selectOutfitSchema = createSelectSchema(outfits, {
+  id: z.string().refine((val) => isCuid(val)),
+})
 
 app.get('/', injectDB, async (c) => {
   return c.json(
@@ -78,43 +80,54 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
   )
 })
 
-app.put('/:id', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
-  const id: string = c.req.param('id')
-  const body = c.req.valid('json')
+app.put(
+  '/:id',
+  zValidator('param', selectOutfitSchema.pick({ id: true })),
+  zValidator('json', insertOutfitSchema),
+  injectDB,
+  async (c) => {
+    const params = c.req.valid('param')
+    const body = c.req.valid('json')
 
-  return c.json(
-    await c.get('db').transaction(async (tx) => {
-      // Update outfit
-      const updatedOutfit = await tx
-        .update(outfits)
-        .set({
-          ...body,
-          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-        })
-        .where(eq(outfits.id, id))
-        .returning()
+    return c.json(
+      await c.get('db').transaction(async (tx) => {
+        // Update outfit
+        const updatedOutfit = await tx
+          .update(outfits)
+          .set({
+            ...body,
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+          })
+          .where(eq(outfits.id, params.id))
+          .returning()
 
-      // Delete all item to outfit relationships
-      await tx.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, id))
+        // Delete all item to outfit relationships
+        await tx.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, params.id))
 
-      // Insert item to outfit relationships
-      await tx.insert(itemsToOutfits).values(
-        body.itemIdsTypes.map((e) => ({
-          itemId: e.id,
-          outfitId: updatedOutfit[0].id,
-          itemType: e.itemType,
-        }))
-      )
+        // Insert item to outfit relationships
+        await tx.insert(itemsToOutfits).values(
+          body.itemIdsTypes.map((e) => ({
+            itemId: e.id,
+            outfitId: updatedOutfit[0].id,
+            itemType: e.itemType,
+          }))
+        )
 
-      return updatedOutfit
-    })
-  )
-})
+        return updatedOutfit
+      })
+    )
+  }
+)
 
-app.delete('/:id', injectDB, async (c) => {
-  const id: string = c.req.param('id')
+app.delete(
+  '/:id',
+  zValidator('param', selectOutfitSchema.pick({ id: true })),
+  injectDB,
+  async (c) => {
+    const params = c.req.valid('param')
 
-  return c.json(await c.get('db').delete(outfits).where(eq(outfits.id, id)).returning())
-})
+    return c.json(await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning())
+  }
+)
 
 export default app
