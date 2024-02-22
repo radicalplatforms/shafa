@@ -30,6 +30,10 @@ jobs:
         run: npm ci
         working-directory: hono
 
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
       - name: Run Migrations
         env:
           DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
@@ -44,4 +48,5 @@ jobs:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: deploy --env production
           workingDirectory: hono
-          secrets: DATABASE_URL
+          packageManager: pnpm
+          postCommands: echo "${{ env.DATABASE_URL }}" | pnpm wrangler secret put DATABASE_URL --env production
