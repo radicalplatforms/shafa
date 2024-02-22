@@ -4,8 +4,13 @@ on:
   push:
     branches: main
 
+env:
+  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_NAME }}
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
 jobs:
-  cf_deploy_hono:
+  cf_deploy_hono_prod:
+    name: Deploy Hono to Prod
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -25,26 +30,18 @@ jobs:
         run: npm ci
         working-directory: hono
 
-      - name: Migrate D1
-        id: migrate
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          command: d1 migrations apply prod-shafa-hono-db --env production
-          workingDirectory: hono
+      - name: Run Migrations
+        env:
+          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
+        run: npm run migrate
+        working-directory: hono
 
       - name: Deploy Hono
-        id: deploy
         uses: cloudflare/wrangler-action@v3
+        env:
+          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
         with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          command: deploy src/index.ts --env production
+          apiToken: ${{ env.CF_API_TOKEN }}
+          command: deploy --env production
           workingDirectory: hono
-
-#      - name: Rollback D1
-#        if: ${{ failure() && steps.migrate.conclusion == 'success' && steps.deploy.conclusion == 'failure' }}
-#        uses: cloudflare/wrangler-action@v3
-#        with:
-#          apiToken: ${{ secrets.CF_API_TOKEN }}
-#          command: d1 migrations # TODO NEED ROLLBACK FEATURE
-#          workingDirectory: hono
+          secrets: DATABASE_URL

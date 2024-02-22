@@ -1,10 +1,9 @@
 import { Hono } from 'hono'
-
 import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import { version } from '../package.json'
-import items from './service/items'
-import outfits from './service/outfits'
+import items from './services/items'
+import outfits from './services/outfits'
 
 const app = new Hono()
 

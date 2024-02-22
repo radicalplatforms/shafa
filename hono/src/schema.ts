@@ -1,37 +1,32 @@
-import { relations, sql } from 'drizzle-orm'
-import { integer, sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core'
+import { createId } from '@paralleldrive/cuid2'
+import { relations } from 'drizzle-orm'
+import { date, pgEnum, pgTable, primaryKey, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
 /**
- * An enumeration for item types.
- *
- * @enum {number}
- * @property {number} layer - corresponding to the layer item type.
- * @property {number} top - corresponding to the top item type.
- * @property {number} bottom - corresponding to the bottom item type.
- * @property {number} footwear - corresponding to the footwear item type.
- * @property {number} accessory - corresponding to the accessory item type.
+ * Item Type Enumeration
  */
-
-export enum itemTypeEnum {
+export const itemTypeEnum: [string, ...string[]] = [
   'layer',
   'top',
   'bottom',
   'footwear',
   'accessory',
-}
+]
+export const itemTypeEnumPg = pgEnum('itemType', itemTypeEnum)
 
 /**
  * Items
  */
-export const items = sqliteTable('items', {
-  id: integer('id').primaryKey(),
-  name: text('name'),
+export const items = pgTable('items', {
+  id: text('id')
+    .$defaultFn(() => createId())
+    .primaryKey(),
+  name: text('name').notNull(),
   brand: text('brand'),
-  photo: text('photo'),
-  type: integer('type').notNull(),
-  rating: integer('rating').default(2),
-  quality: integer('quality').default(2),
-  timestamp: text('timestamp').default(sql`CURRENT_TIMESTAMP`),
+  photoUrl: text('photo_url'),
+  type: itemTypeEnumPg('type').notNull(),
+  rating: smallint('rating').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   authorUsername: text('author_username').notNull(),
 })
 
@@ -42,10 +37,12 @@ export const itemsRelations = relations(items, ({ many }) => ({
 /**
  * Outfits
  */
-export const outfits = sqliteTable('outfits', {
-  id: integer('id').primaryKey(),
-  rating: integer('rating').default(2),
-  wearDate: text('wear_date').default(sql`CURRENT_DATE`),
+export const outfits = pgTable('outfits', {
+  id: text('id')
+    .$defaultFn(() => createId())
+    .primaryKey(),
+  rating: smallint('rating').notNull(),
+  wearDate: date('wear_date').notNull().defaultNow(),
   authorUsername: text('author_username').notNull(),
 })
 
@@ -56,20 +53,20 @@ export const outfitsRelations = relations(outfits, ({ many }) => ({
 /**
  * Items to Outfits
  */
-export const itemsToOutfits = sqliteTable(
+export const itemsToOutfits = pgTable(
   'items_to_outfits',
   {
-    itemId: integer('item_id')
+    itemId: text('item_id')
       .notNull()
       .references(() => items.id),
-    outfitId: integer('outfit_id')
+    outfitId: text('outfit_id')
       .notNull()
       .references(() => outfits.id),
-    type: integer('item_type').notNull(),
+    itemType: itemTypeEnumPg('item_type').notNull(),
   },
   (table) => {
     return {
-      pk: primaryKey(table.itemId, table.outfitId),
+      pk: primaryKey({ columns: [table.itemId, table.outfitId] }),
     }
   }
 )

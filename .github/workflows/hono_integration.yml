@@ -1,0 +1,196 @@
+name: Hono Integration
+
+on:
+  pull_request
+
+env:
+  NEON_DATABASE_USERNAME: ${{ secrets.NEON_DATABASE_USERNAME }}
+  NEON_DATABASE_NAME: ${{ secrets.NEON_DATABASE_NAME }}
+  NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+  NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
+  DEPLOY_ROUTE: https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev
+
+jobs:
+  format_checks:
+    name: Format Checks
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 18 ]
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
+      - name: Check Prettier
+        run: npm run check-prettier
+        working-directory: hono
+
+      - name: Check ESLint
+        run: npm run check-eslint
+        working-directory: hono
+
+
+  compilation_checks:
+    name: Compilation Checks
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 18 ]
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
+      - name: Check TS Compilation
+        run: npm run check-ts
+        working-directory: hono
+
+
+  test_smoke:
+    name: Test Smoke
+    runs-on: ${{ matrix.os }}
+    needs: [format_checks, compilation_checks]
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 18 ]
+        postgres: [ 16 ]
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: ankane/setup-postgres@v1
+        with:
+          postgres-version: ${{ matrix.postgres }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
+      - name: Run Smoke Tests
+        run: npm run test:smoke
+        working-directory: hono
+
+
+  test_matrix:
+    name: Test Matrix
+    runs-on: ${{ matrix.os }}
+    needs: test_smoke
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 18 ]
+        postgres: [ 16 ]
+        test: [unit, integration, preflight]
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: ankane/setup-postgres@v1
+        with:
+          postgres-version: ${{ matrix.postgres }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
+      - name: Run Tests
+        run: npm run test:${{ matrix.test }}
+        working-directory: hono
+
+
+  cf_deploy_hono_stage:
+    name: Deploy Hono to Stage
+    runs-on: ${{ matrix.os }}
+    needs: test_matrix
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 18 ]
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Create Neon Branch
+        uses: neondatabase/create-branch-action@v4
+        id: create-branch
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch_name: ${{ env.DEPLOY_TAG }}
+          database: ${{ env.NEON_DATABASE_NAME }}
+          username: ${{ env.NEON_DATABASE_USERNAME }}
+          api_key: ${{ env.NEON_API_TOKEN }}
+
+      - name: Run Migrations
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
+        run: npm run migrate
+        working-directory: hono
+
+      - name: Deploy Hono
+        uses: cloudflare/wrangler-action@v3
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}?sslmode=require
+        with:
+          apiToken: ${{ env.CF_API_TOKEN }}
+          command: deploy --name ${{ env.DEPLOY_TAG }}
+          workingDirectory: hono
+          packageManager: pnpm
+          postCommands: echo "${{ env.DATABASE_URL }}" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
+
+      - name: Comment on Pull Request
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            **Successfully Deployed to Staging Environment**
+            Cloudflare Staging URL :rocket: ${{ env.DEPLOY_ROUTE }}
+            Neon Branch :elephant: https://console.neon.tech/app/projects/${{ env.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}
