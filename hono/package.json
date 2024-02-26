@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231025.0",
+    "@faker-js/faker": "^8.4.1",
     "@shelf/postgres-local": "^1.0.6",
     "@types/jest": "^29.5.11",
     "@types/ws": "^8.5.10",
