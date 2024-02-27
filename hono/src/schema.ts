@@ -42,7 +42,7 @@ export const outfits = pgTable('outfits', {
     .$defaultFn(() => createId())
     .primaryKey(),
   rating: smallint('rating').notNull(),
-  wearDate: date('wear_date').notNull().defaultNow(),
+  wearDate: date('wear_date', { mode: 'date' }).notNull().defaultNow(),
   authorUsername: text('author_username').notNull(),
 })
 

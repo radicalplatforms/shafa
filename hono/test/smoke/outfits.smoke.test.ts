@@ -3,8 +3,12 @@ import type { Context } from 'hono'
 import postgres from 'postgres'
 import app from '../../src/index'
 import * as schema from '../../src/schema'
-import { clean, provision, seed } from '../utils/db'
-import { seededOutfitsSimple } from '../utils/factory/outfits'
+import { clean, provision } from '../utils/db'
+import type { ItemFactory } from '../utils/factory/items'
+import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
+import type { OutfitFactory } from '../utils/factory/outfits'
+import { PartialOutfitFactory } from '../utils/factory/outfits'
+import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
 /**
  * Outfits Smoke Tests
@@ -19,6 +23,7 @@ import { seededOutfitsSimple } from '../utils/factory/outfits'
  */
 
 const DB_NAME = 'outfits_smoke_test'
+const DB_URL = `postgres://localhost:5555/${DB_NAME}`
 
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
@@ -29,7 +34,7 @@ jest.mock('../../src/utils/inject-db', () => {
     __esModule: true,
     ...originalModule,
     default: async (c: Context, next: Function) => {
-      c.set('db', drizzle(postgres(`postgres://localhost:5555/${DB_NAME}`), { schema }))
+      c.set('db', drizzle(postgres(DB_URL), { schema }))
       await next()
     },
   }
@@ -51,9 +56,13 @@ describe('[Smoke] Outfits: No Seeding', () => {
   })
 })
 
-describe('[Smoke] Outfits: Seeded [items-simple, outfits-simple]', () => {
+describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
+  let seededItems: ItemFactory[]
+  let seededOutfits: OutfitFactory[]
+  let seededItemsToOutfits: ItemToOutfitFactory[]
+
   beforeAll(async () => {
-    await seed(DB_NAME, ['items-simple.sql', 'outfits-simple.sql'])
+    ;[seededItems, seededOutfits, seededItemsToOutfits] = await basicSmallSeed(DB_URL)
   })
 
   afterAll(async () => {
@@ -63,6 +72,22 @@ describe('[Smoke] Outfits: Seeded [items-simple, outfits-simple]', () => {
   test('GET /outfits: should return 1 seeded outfit with items', async () => {
     const res = await app.request('/api/outfits')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual(seededOutfitsSimple())
+    expect(await res.json()).toEqual(
+      seededOutfits.map((outfit) => ({
+        ...outfit,
+        wearDate: outfit.wearDate.toISOString(),
+        itemsToOutfits: seededItemsToOutfits
+          .filter((itemToOutfit) => itemToOutfit.outfitId === outfit.id)
+          .map((itemToOutfit) => ({
+            itemType: itemToOutfit.itemType,
+            item: seededItems
+              .filter((item) => itemToOutfit.itemId === item.id)
+              .map((item) => ({
+                ...item,
+                createdAt: item.createdAt.toISOString(),
+              }))[0],
+          })),
+      }))
+    )
   })
 })

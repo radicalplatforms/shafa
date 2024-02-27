@@ -29,13 +29,13 @@ export default async function (
     await outfits[i].push(db_url)
     // Add 5 items to outfit
     for (let j = 0; j < items.length; j++) {
-      items_to_outfits.push(
-        new ItemToOutfitFactory({
-          itemId: items[j].id,
-          outfitId: outfits[i].id,
-          itemType: itemTypeEnum[j % 5] as ItemType,
-        })
-      )
+      const newItemToOutfit = new ItemToOutfitFactory({
+        itemId: items[j].id,
+        outfitId: outfits[i].id,
+        itemType: itemTypeEnum[j % 5] as ItemType,
+      })
+      await newItemToOutfit.push(db_url)
+      items_to_outfits.push(newItemToOutfit)
     }
   }
 

@@ -12,6 +12,7 @@ const app = new Hono<{ Variables: Variables }>()
 
 const insertOutfitSchema = createInsertSchema(outfits, {
   rating: z.number().min(0).max(4).default(2),
+  wearDate: z.coerce.date(),
   authorUsername: z.string().default(''),
 })
   .extend({

@@ -6,7 +6,7 @@
     "dev": "wrangler dev",
     "migrate": "tsx migrate.ts",
     "generate": "drizzle-kit generate:pg",
-    "test": "jest --silent --detectOpenHandles --testPathIgnorePatterns='neon.preflight' --testPathIgnorePatterns='remote.preflight' --testPathIgnorePatterns='/preflight'",
+    "test": "jest --detectOpenHandles --testPathIgnorePatterns='neon.preflight' --testPathIgnorePatterns='remote.preflight' --testPathIgnorePatterns='/preflight'",
     "test:smoke": "jest --silent --testPathPattern=smoke.test.ts$",
     "test:unit": "jest --silent --testPathPattern=unit.test.ts$",
     "test:integration": "jest --silent --testPathPattern=integration.test.ts$",

@@ -26,7 +26,7 @@ export class ItemFactory implements Item {
     this.photoUrl = options?.photoUrl || faker.image.urlLoremFlickr({ category: 'fashion' })
     this.type = options?.type || (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
     this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
-    this.createdAt = options?.createdAt || faker.date.past()
+    this.createdAt = options?.createdAt || new Date(faker.date.past().toISOString().split('T')[0])
     this.authorUsername = options?.authorUsername || faker.internet.userName()
   }
 

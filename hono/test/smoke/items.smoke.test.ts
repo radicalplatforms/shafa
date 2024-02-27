@@ -4,11 +4,9 @@ import postgres from 'postgres'
 import app from '../../src/index'
 import type { items } from '../../src/schema'
 import * as schema from '../../src/schema'
-import { clean, provision, seed } from '../utils/db'
+import { clean, provision } from '../utils/db'
 import type { ItemFactory } from '../utils/factory/items'
 import { PartialItemFactory } from '../utils/factory/items'
-import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
-import type { OutfitFactory } from '../utils/factory/outfits'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
 /**
@@ -35,7 +33,7 @@ jest.mock('../../src/utils/inject-db', () => {
     __esModule: true,
     ...originalModule,
     default: async (c: Context, next: Function) => {
-      c.set('db', drizzle(postgres(`postgres://localhost:5555/${DB_NAME}`), { schema }))
+      c.set('db', drizzle(postgres(DB_URL), { schema }))
       await next()
     },
   }
@@ -97,11 +95,9 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
 
 describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
   let seededItems: ItemFactory[]
-  let seededOutfits: OutfitFactory[]
-  let seededItemToOutfits: ItemToOutfitFactory[]
 
   beforeAll(async () => {
-    ;[seededItems, seededOutfits, seededItemToOutfits] = await basicSmallSeed(DB_URL)
+    ;[seededItems] = await basicSmallSeed(DB_URL)
   })
 
   afterAll(async () => {
@@ -111,6 +107,11 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
   test('GET /items: should return 5 seeded items', async () => {
     const res = await app.request('/api/items')
     expect(res.status).toBe(200)
-    // expect(await res.json()).toMatchObject(seededItems)
+    expect(await res.json()).toEqual(
+      seededItems.map((item) => ({
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+      }))
+    )
   })
 })

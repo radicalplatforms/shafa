@@ -7,7 +7,7 @@ import { outfits } from '../../../src/schema'
 export interface Outfit {
   id: string
   rating: number
-  wearDate: string
+  wearDate: Date
   authorUsername: string
 }
 
@@ -16,7 +16,7 @@ export class OutfitFactory implements Outfit {
     faker.seed(seed ?? undefined)
     this.id = options?.id || faker.string.alphanumeric(24)
     this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
-    this.wearDate = options?.wearDate || faker.date.past().toISOString().split('T')[0]
+    this.wearDate = options?.wearDate || new Date(faker.date.past().toISOString().split('T')[0])
     this.authorUsername = options?.authorUsername || faker.internet.userName()
   }
 
@@ -35,22 +35,22 @@ export class OutfitFactory implements Outfit {
 
   id: string
   rating: number
-  wearDate: string
+  wearDate: Date
   authorUsername: string
 }
 
 export interface PartialOutfit {
   rating: number
-  wearDate: string
+  wearDate: Date
 }
 
 export class PartialOutfitFactory implements PartialOutfit {
   constructor(seed?: number, options?: Partial<PartialOutfit>) {
     faker.seed(seed ?? undefined)
     this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
-    this.wearDate = options?.wearDate || faker.date.past().toISOString().split('T')[0]
+    this.wearDate = options?.wearDate || new Date(faker.date.past().toISOString().split('T')[0])
   }
 
   rating: number
-  wearDate: string
+  wearDate: Date
 }
