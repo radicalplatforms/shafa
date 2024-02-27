@@ -1,0 +1,35 @@
+name: Hono Teardown
+
+on:
+  pull_request:
+    types: [closed]
+
+env:
+  NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+  NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
+
+jobs:
+  neon_delete_branch:
+    name: Delete Neon Branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neondatabase/delete-branch-action@v3.1.4
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: ${{ env.DEPLOY_TAG }}
+          api_key: ${{ env.NEON_API_TOKEN }}
+
+  cf_teardown_hono:
+    name: Teardown Hono
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ env.CF_API_TOKEN }}
+          command: delete --name ${{ env.DEPLOY_TAG }}
+          workingDirectory: hono

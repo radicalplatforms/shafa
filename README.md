@@ -31,27 +31,27 @@ Get started using the documentation below for each respective stack.
 ```mermaid
 erDiagram
     items {
-        Int id
+        String id
         String name
         String brand
         String photo
-        Int type
+        Enum type
         Int rating
-        String timestamp
-        Int author_username
+        String created_at
+        String author_username
     }
 
     outfits {
-        Int id
+        String id
         Int rating
-        String wearDate
+        String wear_date
         String author_username
     }
 
     items_to_outfits {
-        Int item_id
-        Int outfit_id
-        Int item_type
+        String item_id
+        String outfit_id
+        Enum item_type
     }
 
     items ||--|{ items_to_outfits : "has outfits"
@@ -68,47 +68,94 @@ cd shafa/hono
 npm i
 ```
 
-In order to run the backend, you'll need to get your [Cloudflare D1](https://developers.cloudflare.com/d1/) database setup locally (unless you have creds to access the remote D1 db).
-To migrate/setup your local db, run the following and accept the prompts:
+#### Running a Live Development Backend
+
+In order to run the backend, you'll need to get a [Neon](https://neon.tech) database setup (it's free, for what we'll
+need). If you don't have an account already, follow the [sign up instructions](https://neon.tech/docs/get-started-with-neon/signing-up). Make sure the Postgres version is 16, the project and database name can be whatever you'd like.
+
+Now, head back over to this repo on your local machine and copy the `.dev.vars.example` file. Paste and rename as
+`.dev.vars`. Open the `.dev.vars` file using a text editor/IDE. Copy the full connection string (no pooling) in the Neon Console and paste it as the value for `DATABASE_URL=` (should look something like `DATABASE_URL=postgresql://rak3rman:<PASSWORD>@<HOST>.aws.neon.tech/<DB-NAME>?sslmode=require`). This new `.dev.vars` file is considered a secret — make sure this file is never included in a commit. We're done with the Neon Console for the time being.
+
+Now we have to migrate the Neon Postgres database. To migrate/setup Neon, run the following:
 
 ```
-npm run wrdev-migrate-local
+npm run migrate
 ```
 
 NOTE: You'll also have to run this command each time a migration file is added to the backend database.
 
-To run the project locally using `miniflare` (a local, simplified version of Cloudflare Workers), run the following:
+We're ready to run the backend! To run the project locally using `wrangler` (a local, simplified version of Cloudflare Workers), run the following on the command line:
 
 ```
-npm run wrdev
+npm run dev
 ```
 
 You should now be able to interface with the backend!
-Check out the [wrangler docs](https://developers.cloudflare.com/workers/wrangler/commands/#d1) for additional information on how to view/manipulate the D1 database.
+Check out the [wrangler docs](https://developers.cloudflare.com/workers/wrangler/commands/#d1) for additional
+information.
 
-#### Running with a Remote D1 Database
-
-Accessing the remote D1 database requires special admin credentials that can be provided by @rak3rman, the repo owner.
-Only individuals responsible for *deployment-related activites* will be given creds, as the entire backend can be simulated locally with miniflare.
-If you have such creds, what follows are additional commands that you can run:
+A few other useful backend commands available in `package.json`:
 
 ```
-wrangler login               // logs you into Cloudflare, you may have to run
-                             // `npm i -g wrangler` to install wrangler globally
-
-npm run wrstage              // deploys the current local build to the stage environment
-npm run wrprod               // deploys the current local build to the production environment
-
-npm run wrdev-migrate        // migrates the local and remote development databases
-npm run wrdev-migrate-remote // ONLY migrates the remote development database
-npm run wrstage-migrate      // migrates the remote stage database
-npm run wrprod-migrate       // migrates the remote production database
+npm run generate  # creates a new database migration automatically based on the defined schema
+npm run format    # attempts to fix formatting errors, throws eslint warns/errors
 ```
 
-In `npm run wrdev`, you can also access/manipulate the remote database instance by pressing `l`.
-Be careful when manipulating and migrating the remote database instance — reserve this for when your local db isn't working properly or you'd like to share a database with others who also have creds.
-Be particularly careful with the `wrstage*` and `wrprod*` commands, they are potentially destructive actions and will not ask you to confirm your deployment/migration changes.
-On this same token, consider the dev remote database instance volatile, and the stage and production instances stable.
+#### Running Tests
+
+In order to run tests locally using `npm run test`, you'll need to have a v16 [Postgres](https://www.postgresql.org)
+database installed on your machine. [Neon](https://neon.tech) (the serverless v16 Postgres database we use in
+production) is billed per query, so running test cases against Neon (which may contain 100's of queries) can get
+expensive really fast. Instead, we leverage a local instance of Postgres which acts in a nearly identical manner to
+Neon.
+
+Installing a v16 instance of Postgres *should* be trivial:
+
+On Mac:
+```
+brew install postgresql@16
+```
+You might also have to add `export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"` to your `~/.zshrc` to resolve
+paths.
+
+On Ubuntu:
+```
+# Add Postgres 16 Repository
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+# Import Signing Key
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+# Update and Install
+sudo apt update
+sudo apt install postgresql@16
+```
+
+If you are using a different OS or running into issues, a bit of digging on Google may be needed to install v16
+Postgres. If the install is faulty, you'll run into errors when running the test script below. Inspect the errors
+and open a discussion in this repo if needed. A good resource to consult is the `hono/test/utils/db.ts` script.
+
+Now that Postgres is (hopefully) ready to go, give the test script a shot:
+
+```
+npm run test
+```
+
+This script will run all test cases that can be run in a local testing environment.
+
+A few other useful testing commands available in `package.json`:
+
+```
+npm run test:smoke        # runs smoke tests only
+npm run test:unit         # runs unit tests only
+npm run test:integration  # runs integration tests only
+npm run test:preflight    # runs preflight tests only
+
+npm run check-ts          # checks that hono can build all ts files
+npm run check-prettier    # checks prettier formatting constraints (no fix)
+npm run check-eslint      # checks eslint formatting constraints (no fix)
+```
+
+Custom sets of test cases are run manually as apart of the continious integration / continous deployment (CI/CD)
+pipeline. These configurations can be seen in `.github/workflows/hono*`.
 
 ## Team
 

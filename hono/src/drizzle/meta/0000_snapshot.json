@@ -1,70 +1,61 @@
 {
-  "version": "5",
-  "dialect": "sqlite",
-  "id": "1f94821e-e930-43d0-a90b-fd2153d6658a",
+  "id": "575244e2-446c-44a4-911c-bd2161725f51",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "5",
+  "dialect": "pg",
   "tables": {
     "items": {
       "name": "items",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "brand": {
           "name": "brand",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "photo": {
-          "name": "photo",
+        "photo_url": {
+          "name": "photo_url",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "type": {
           "name": "type",
-          "type": "integer",
+          "type": "itemType",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "rating": {
           "name": "rating",
-          "type": "integer",
+          "type": "smallint",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": 2
+          "notNull": true
         },
-        "quality": {
-          "name": "quality",
-          "type": "integer",
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": 2
+          "notNull": true,
+          "default": "now()"
         },
-        "timestamp": {
-          "name": "timestamp",
+        "author_username": {
+          "name": "author_username",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "notNull": true
         }
       },
       "indexes": {},
@@ -74,27 +65,25 @@
     },
     "items_to_outfits": {
       "name": "items_to_outfits",
+      "schema": "",
       "columns": {
         "item_id": {
           "name": "item_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "outfit_id": {
           "name": "outfit_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "item_type": {
           "name": "item_type",
-          "type": "integer",
+          "type": "itemType",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -120,6 +109,7 @@
       },
       "compositePrimaryKeys": {
         "items_to_outfits_item_id_outfit_id_pk": {
+          "name": "items_to_outfits_item_id_outfit_id_pk",
           "columns": ["item_id", "outfit_id"]
         }
       },
@@ -127,29 +117,32 @@
     },
     "outfits": {
       "name": "outfits",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "rating": {
           "name": "rating",
-          "type": "integer",
+          "type": "smallint",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": 2
+          "notNull": true
         },
         "wear_date": {
           "name": "wear_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "author_username": {
+          "name": "author_username",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "CURRENT_DATE"
+          "notNull": true
         }
       },
       "indexes": {},
@@ -158,10 +151,22 @@
       "uniqueConstraints": {}
     }
   },
-  "enums": {},
+  "enums": {
+    "itemType": {
+      "name": "itemType",
+      "values": {
+        "layer": "layer",
+        "top": "top",
+        "bottom": "bottom",
+        "footwear": "footwear",
+        "accessory": "accessory"
+      }
+    }
+  },
+  "schemas": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
+    "tables": {}
   }
 }
