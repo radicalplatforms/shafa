@@ -78,14 +78,14 @@ erDiagram
         String photo
         Enum type
         Int rating
-        String created_at
+        Timestamp created_at
         String author_username
     }
 
     outfits {
         String id
         Int rating
-        String wear_date
+        Date wear_date
         String author_username
     }
 
