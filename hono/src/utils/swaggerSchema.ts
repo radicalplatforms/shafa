@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import * as yaml from 'yaml';
 import * as fs from 'fs';
-import OpenApiGeneratorV3 from "../../src";
-import OpenAPIRegistry from "../../src";
-import extendZodWithOpenApi from "../../src";
+import {
+  OpenAPIRegistry,
+  OpenApiGeneratorV3,
+  extendZodWithOpenApi,
+} from '@asteasolutions/zod-to-openapi';
 
 extendZodWithOpenApi(z);
 
@@ -43,9 +45,10 @@ function createZodSchemas() {
 function registerSchemasWithOpenAPI() {
   const { itemsSchema, outfitsSchema, itemsToOutfitsSchema } = createZodSchemas();
 
-  registry.registerSchema('Item', itemsSchema.openapi({}));
-  registry.registerSchema('Outfit', outfitsSchema.openapi({}));
-  registry.registerSchema('ItemsToOutfits', itemsToOutfitsSchema.openapi({}));
+  // Hypothetical registration for parameters
+  registry.registerParameter('Item', itemsSchema);
+  registry.registerParameter('Outfit', outfitsSchema);
+  registry.registerParameter('ItemsToOutfits', itemsToOutfitsSchema);
 }
 
 function getOpenApiDocumentation() {
@@ -62,12 +65,15 @@ function getOpenApiDocumentation() {
 }
 
 export default async function writeDocumentation() {
-  // const registry = new OpenAPIRegistry();
-  registerSchemasWithOpenAPI(registry);
-  const docs = getOpenApiDocumentation(registry);
+  console.log('Start writing documentation');
+  registerSchemasWithOpenAPI();
+  const docs = getOpenApiDocumentation();
   const fileContent = yaml.stringify(docs);
-  await fs.writeFileSync(`../../docs/swagger.yml`, fileContent, 'utf8');
-  console.log('Documentation written to openapi-docs.yml');
+  console.log('File Content:', fileContent);
+  try {
+    await fs.promises.writeFile(`../../docs/swagger.yml`, fileContent, 'utf8');
+    console.log('Documentation written to swagger.yml');
+  } catch (error) {
+    console.error('Error writing documentation:', error);
+  }
 }
-
-writeDocumentation();
