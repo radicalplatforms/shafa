@@ -21,8 +21,8 @@ const DB_NAME = 'items_unit_test'
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
 //       because of this function decomposition is not possible without overhead
-jest.mock('../../src/utils/injectDB', () => {
-  const originalModule = jest.requireActual('../../src/utils/injectDB')
+jest.mock('../../src/utils/inject-db', () => {
+  const originalModule = jest.requireActual('../../src/utils/inject-db')
   return {
     __esModule: true,
     ...originalModule,
