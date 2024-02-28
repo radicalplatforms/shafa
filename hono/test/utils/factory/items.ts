@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../../../src/schema'
-import { itemTypeEnum, items } from '../../../src/schema'
+import { items, itemTypeEnum } from '../../../src/schema'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
 

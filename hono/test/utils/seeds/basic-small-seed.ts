@@ -1,5 +1,5 @@
 import { itemTypeEnum } from '../../../src/schema'
-import { type ItemType, ItemFactory } from '../factory/items'
+import { ItemFactory, type ItemType } from '../factory/items'
 import { ItemToOutfitFactory } from '../factory/items-outfits'
 import { OutfitFactory } from '../factory/outfits'
 
