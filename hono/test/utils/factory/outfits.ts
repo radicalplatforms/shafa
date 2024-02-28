@@ -14,7 +14,9 @@ export interface Outfit {
 export class OutfitFactory implements Outfit {
   constructor(seed?: number, options?: Partial<Outfit> | typeof outfits) {
     faker.seed(seed ?? undefined)
-    this.id = options?.id ? (options.id as string) : faker.string.alphanumeric(24)
+    this.id = options?.id
+      ? (options.id as string)
+      : faker.string.alphanumeric({ length: 24, casing: 'lower' })
     this.rating = options?.rating
       ? (options.rating as number)
       : faker.number.int({ min: 0, max: 4 })
@@ -64,6 +66,13 @@ export class PartialOutfitFactory implements PartialOutfit {
     faker.seed(seed ?? undefined)
     this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
     this.wearDate = options?.wearDate || new Date(faker.date.past().toISOString().split('T')[0])
+  }
+
+  formatAPI() {
+    return {
+      rating: this.rating,
+      wearDate: this.wearDate.toISOString(),
+    }
   }
 
   rating: number

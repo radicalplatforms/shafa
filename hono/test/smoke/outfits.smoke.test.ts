@@ -2,11 +2,13 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Context } from 'hono'
 import postgres from 'postgres'
 import app from '../../src/index'
+import type { outfits } from '../../src/schema'
 import * as schema from '../../src/schema'
+import { itemTypeEnum } from '../../src/schema'
 import { clean, provision } from '../utils/db'
 import type { ItemFactory } from '../utils/factory/items'
 import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
-import type { OutfitFactory } from '../utils/factory/outfits'
+import { OutfitFactory } from '../utils/factory/outfits'
 import { PartialOutfitFactory } from '../utils/factory/outfits'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
@@ -83,5 +85,53 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
           })),
       }))
     )
+  })
+
+  test('POST /outfits: should create another outfit with the same items', async () => {
+    const testOutfit1 = new PartialOutfitFactory(1)
+    const res = await app.request('/api/outfits', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...testOutfit1,
+        itemIdsTypes: seededItems.map((item, i) => ({
+          id: item.id,
+          itemType: itemTypeEnum[(i + 1) % 5],
+        })),
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as (typeof outfits)[]
+    expect(json).toMatchObject([testOutfit1.formatAPI()])
+    seededOutfits.push(new OutfitFactory(undefined, json[0]))
+  })
+
+  test('PUT /outfits: should update newly created item', async () => {
+    const testOutfit2 = new PartialOutfitFactory(2)
+    const res = await app.request(`/api/outfits/${seededOutfits[1].id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...testOutfit2,
+        itemIdsTypes: seededItems.map((item, i) => ({
+          id: item.id,
+          itemType: itemTypeEnum[(i + 2) % 5],
+        })),
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as (typeof outfits)[]
+    expect(json).toMatchObject([testOutfit2.formatAPI()])
+    seededOutfits[1] = new OutfitFactory(undefined, json[0])
+  })
+
+  test('DELETE /outfits: should delete seeded outfit', async () => {
+    const res = await app.request(`/api/outfits/${seededOutfits[0].id}`, {
+      method: 'DELETE',
+    })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as (typeof outfits)[]
+    expect(json).toMatchObject([seededOutfits[0].formatAPI()])
+    seededOutfits.shift()
   })
 })

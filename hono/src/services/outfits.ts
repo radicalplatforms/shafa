@@ -88,7 +88,7 @@ app.put(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
-    const body = c.req.valid('json')
+    const { itemIdsTypes, ...body } = c.req.valid('json')
 
     return c.json(
       await c.get('db').transaction(async (tx) => {
@@ -107,7 +107,7 @@ app.put(
 
         // Insert item to outfit relationships
         await tx.insert(itemsToOutfits).values(
-          body.itemIdsTypes.map((e) => ({
+          itemIdsTypes.map((e) => ({
             itemId: e.id,
             outfitId: updatedOutfit[0].id,
             itemType: e.itemType,
