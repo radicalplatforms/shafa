@@ -58,20 +58,22 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
   return c.json(
     await c.get('db').transaction(async (tx) => {
       // Create outfit
-      const newOutfit = await tx
-        .insert(outfits)
-        .values({
-          ...body,
-          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-        })
-        .onConflictDoNothing()
-        .returning()
+      const newOutfit = (
+        await tx
+          .insert(outfits)
+          .values({
+            ...body,
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+          })
+          .onConflictDoNothing()
+          .returning()
+      )[0]
 
       // Insert item to outfit relationships
       await tx.insert(itemsToOutfits).values(
         body.itemIdsTypes.map((e) => ({
           itemId: e.id,
-          outfitId: newOutfit[0].id,
+          outfitId: newOutfit.id,
           itemType: e.itemType,
         }))
       )
@@ -93,14 +95,16 @@ app.put(
     return c.json(
       await c.get('db').transaction(async (tx) => {
         // Update outfit
-        const updatedOutfit = await tx
-          .update(outfits)
-          .set({
-            ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-          })
-          .where(eq(outfits.id, params.id))
-          .returning()
+        const updatedOutfit = (
+          await tx
+            .update(outfits)
+            .set({
+              ...body,
+              authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+            })
+            .where(eq(outfits.id, params.id))
+            .returning()
+        )[0]
 
         // Delete all item to outfit relationships
         await tx.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, params.id))
@@ -109,7 +113,7 @@ app.put(
         await tx.insert(itemsToOutfits).values(
           itemIdsTypes.map((e) => ({
             itemId: e.id,
-            outfitId: updatedOutfit[0].id,
+            outfitId: updatedOutfit.id,
             itemType: e.itemType,
           }))
         )
@@ -127,7 +131,9 @@ app.delete(
   async (c) => {
     const params = c.req.valid('param')
 
-    return c.json(await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning())
+    return c.json(
+      (await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning())[0]
+    )
   }
 )
 

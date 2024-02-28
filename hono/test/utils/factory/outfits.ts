@@ -11,8 +11,15 @@ export interface Outfit {
   authorUsername: string
 }
 
+export interface OutfitAPI {
+  id: string
+  rating: number
+  wearDate: string
+  authorUsername: string
+}
+
 export class OutfitFactory implements Outfit {
-  constructor(seed?: number, options?: Partial<Outfit> | typeof outfits) {
+  constructor(seed?: number, options?: Partial<Outfit> | OutfitAPI) {
     faker.seed(seed ?? undefined)
     this.id = options?.id
       ? (options.id as string)
@@ -41,7 +48,7 @@ export class OutfitFactory implements Outfit {
       .onConflictDoNothing()
   }
 
-  formatAPI() {
+  formatAPI(): OutfitAPI {
     return {
       id: this.id,
       rating: this.rating,
@@ -61,6 +68,11 @@ export interface PartialOutfit {
   wearDate: Date
 }
 
+export interface PartialOutfitAPI {
+  rating: number
+  wearDate: string
+}
+
 export class PartialOutfitFactory implements PartialOutfit {
   constructor(seed?: number, options?: Partial<PartialOutfit>) {
     faker.seed(seed ?? undefined)
@@ -68,7 +80,7 @@ export class PartialOutfitFactory implements PartialOutfit {
     this.wearDate = options?.wearDate || new Date(faker.date.past().toISOString().split('T')[0])
   }
 
-  formatAPI() {
+  formatAPI(): PartialOutfitAPI {
     return {
       rating: this.rating,
       wearDate: this.wearDate.toISOString(),

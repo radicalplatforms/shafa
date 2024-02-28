@@ -17,8 +17,19 @@ export interface Item {
   authorUsername: string
 }
 
+export interface ItemAPI {
+  id: string
+  name: string
+  brand: string
+  photoUrl: string
+  type: ItemType
+  rating: number
+  createdAt: string
+  authorUsername: string
+}
+
 export class ItemFactory implements Item {
-  constructor(seed?: number, options?: Partial<Item> | typeof items) {
+  constructor(seed?: number, options?: Partial<Item> | ItemAPI) {
     faker.seed(seed ?? undefined)
     this.id = options?.id
       ? (options.id as string)
@@ -59,7 +70,7 @@ export class ItemFactory implements Item {
       .onConflictDoNothing()
   }
 
-  formatAPI() {
+  formatAPI(): ItemAPI {
     return {
       id: this.id,
       name: this.name,
@@ -98,6 +109,16 @@ export class PartialItemFactory implements PartialItem {
     this.photoUrl = options?.photoUrl || faker.image.urlLoremFlickr({ category: 'fashion' })
     this.type = options?.type || (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
     this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
+  }
+
+  formatAPI(): PartialItem {
+    return {
+      name: this.name,
+      brand: this.brand,
+      photoUrl: this.photoUrl,
+      type: this.type,
+      rating: this.rating,
+    }
   }
 
   name: string
