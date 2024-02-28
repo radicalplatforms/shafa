@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import * as yaml from 'yaml';
-import { writeFile } from 'fs/promises'; // Adjusted for modern Node.js ES module syntax
-import {
-  OpenApiGeneratorV3,
-  OpenAPIRegistry,
-  extendZodWithOpenApi,
-} from '../../src'; // Adjust this import path based on your project structure
+import * as fs from 'fs';
+import OpenApiGeneratorV3 from "../../src";
+import OpenAPIRegistry from "../../src";
+import extendZodWithOpenApi from "../../src";
 
 extendZodWithOpenApi(z);
+
+const registry = new OpenAPIRegistry();
 
 function createZodSchemas() {
   const itemTypeEnumSchema = z.enum(['layer', 'top', 'bottom', 'footwear', 'accessory']);
@@ -40,7 +40,7 @@ function createZodSchemas() {
   return { itemsSchema, outfitsSchema, itemsToOutfitsSchema };
 }
 
-function registerSchemasWithOpenAPI(registry: OpenAPIRegistry) {
+function registerSchemasWithOpenAPI() {
   const { itemsSchema, outfitsSchema, itemsToOutfitsSchema } = createZodSchemas();
 
   registry.registerSchema('Item', itemsSchema.openapi({}));
@@ -48,7 +48,7 @@ function registerSchemasWithOpenAPI(registry: OpenAPIRegistry) {
   registry.registerSchema('ItemsToOutfits', itemsToOutfitsSchema.openapi({}));
 }
 
-function getOpenApiDocumentation(registry: OpenAPIRegistry) {
+function getOpenApiDocumentation() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
   return generator.generateDocument({
     openapi: '3.0.0',
@@ -61,12 +61,12 @@ function getOpenApiDocumentation(registry: OpenAPIRegistry) {
   });
 }
 
-async function writeDocumentation() {
-  const registry = new OpenAPIRegistry();
+export default async function writeDocumentation() {
+  // const registry = new OpenAPIRegistry();
   registerSchemasWithOpenAPI(registry);
   const docs = getOpenApiDocumentation(registry);
   const fileContent = yaml.stringify(docs);
-  await writeFile(`../../docs/swagger.yml`, fileContent, 'utf8');
+  await fs.writeFileSync(`../../docs/swagger.yml`, fileContent, 'utf8');
   console.log('Documentation written to openapi-docs.yml');
 }
 
