@@ -17,7 +17,7 @@ export default async function (
       type: itemTypeEnum[i % 5] as ItemType,
       authorUsername: 'jdoe',
     })
-    await items[i].push(db_url)
+    await items[i].store(db_url)
   }
 
   // Create outfits and map items
@@ -26,10 +26,10 @@ export default async function (
     outfits[i] = new OutfitFactory(i, {
       authorUsername: 'jdoe',
     })
-    await outfits[i].push(db_url)
+    await outfits[i].store(db_url)
     // Add 5 items to outfit
     for (let j = 0; j < items.length; j++) {
-      const newItemToOutfit = new ItemToOutfitFactory({
+      const newItemToOutfit = new ItemToOutfitFactory(undefined, {
         itemId: items[j].id,
         outfitId: outfits[i].id,
         itemType: itemTypeEnum[j % 5] as ItemType,

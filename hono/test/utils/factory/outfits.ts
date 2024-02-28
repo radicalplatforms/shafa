@@ -12,15 +12,21 @@ export interface Outfit {
 }
 
 export class OutfitFactory implements Outfit {
-  constructor(seed?: number, options?: Partial<Outfit>) {
+  constructor(seed?: number, options?: Partial<Outfit> | typeof outfits) {
     faker.seed(seed ?? undefined)
-    this.id = options?.id || faker.string.alphanumeric(24)
-    this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
-    this.wearDate = options?.wearDate || new Date(faker.date.past().toISOString().split('T')[0])
-    this.authorUsername = options?.authorUsername || faker.internet.userName()
+    this.id = options?.id ? (options.id as string) : faker.string.alphanumeric(24)
+    this.rating = options?.rating
+      ? (options.rating as number)
+      : faker.number.int({ min: 0, max: 4 })
+    this.wearDate = options?.wearDate
+      ? new Date(options.wearDate as Date)
+      : new Date(faker.date.past().toISOString().split('T')[0])
+    this.authorUsername = options?.authorUsername
+      ? (options.authorUsername as string)
+      : faker.internet.userName()
   }
 
-  async push(db_url: string) {
+  async store(db_url: string) {
     const db = drizzle(postgres(db_url), { schema })
     await db
       .insert(outfits)
@@ -31,6 +37,15 @@ export class OutfitFactory implements Outfit {
         authorUsername: this.authorUsername,
       })
       .onConflictDoNothing()
+  }
+
+  formatAPI() {
+    return {
+      id: this.id,
+      rating: this.rating,
+      wearDate: this.wearDate.toISOString(),
+      authorUsername: this.authorUsername,
+    }
   }
 
   id: string

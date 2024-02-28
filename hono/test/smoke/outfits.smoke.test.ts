@@ -74,18 +74,12 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual(
       seededOutfits.map((outfit) => ({
-        ...outfit,
-        wearDate: outfit.wearDate.toISOString(),
+        ...outfit.formatAPI(),
         itemsToOutfits: seededItemsToOutfits
           .filter((itemToOutfit) => itemToOutfit.outfitId === outfit.id)
           .map((itemToOutfit) => ({
             itemType: itemToOutfit.itemType,
-            item: seededItems
-              .filter((item) => itemToOutfit.itemId === item.id)
-              .map((item) => ({
-                ...item,
-                createdAt: item.createdAt.toISOString(),
-              }))[0],
+            item: seededItems.find((item) => itemToOutfit.itemId === item.id)?.formatAPI(),
           })),
       }))
     )

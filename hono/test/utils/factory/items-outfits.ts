@@ -12,8 +12,8 @@ export interface ItemToOutfit {
 }
 
 export class ItemToOutfitFactory implements ItemToOutfit {
-  constructor(options: ItemToOutfit | Omit<ItemToOutfit, 'itemType'>, seed?: number) {
-    faker.seed(seed ?? undefined)
+  constructor(seed: number | undefined, options: ItemToOutfit | Omit<ItemToOutfit, 'itemType'>) {
+    faker.seed(seed)
     this.itemId = options.itemId
     this.outfitId = options.outfitId
     this.itemType =

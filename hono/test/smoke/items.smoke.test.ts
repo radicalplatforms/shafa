@@ -5,8 +5,7 @@ import app from '../../src/index'
 import type { items } from '../../src/schema'
 import * as schema from '../../src/schema'
 import { clean, provision } from '../utils/db'
-import type { ItemFactory } from '../utils/factory/items'
-import { PartialItemFactory } from '../utils/factory/items'
+import { ItemFactory, PartialItemFactory } from '../utils/factory/items'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
 /**
@@ -104,14 +103,53 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     await clean(DB_NAME)
   })
 
-  test('GET /items: should return 5 seeded items', async () => {
+  async function validateItemsGetter() {
     const res = await app.request('/api/items')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual(
-      seededItems.map((item) => ({
-        ...item,
-        createdAt: item.createdAt.toISOString(),
-      }))
-    )
+    expect(await res.json()).toEqual(seededItems.map((item) => item.formatAPI()))
+  }
+
+  test('GET /items: should return 5 seeded items', validateItemsGetter)
+
+  test('DELETE /items: should delete existing seeded item', async () => {
+    const res = await app.request(`/api/items/${seededItems[0].id}`, {
+      method: 'DELETE',
+    })
+    const json = (await res.json()) as (typeof items)[]
+    expect(res.status).toBe(200)
+    expect(json).toMatchObject([seededItems[0].formatAPI()])
+    seededItems.shift()
   })
+
+  test('GET /items: should return 4 seeded items', validateItemsGetter)
+
+  test('POST /items: should create and return one item', async () => {
+    const testItem1 = new PartialItemFactory(1)
+    const res = await app.request('/api/items', {
+      method: 'POST',
+      body: JSON.stringify(testItem1),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const json = (await res.json()) as (typeof items)[]
+    expect(res.status).toBe(200)
+    expect(json).toMatchObject([testItem1])
+    seededItems.push(new ItemFactory(undefined, json[0]))
+  })
+
+  test('GET /items: should return 5 seeded/inserted items', validateItemsGetter)
+
+  test('PUT /items: should update existing item', async () => {
+    const testItem2 = new PartialItemFactory(2)
+    const res = await app.request(`/api/items/${seededItems[4].id}`, {
+      method: 'PUT',
+      body: JSON.stringify(testItem2),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const json = (await res.json()) as (typeof items)[]
+    expect(res.status).toBe(200)
+    expect(json).toMatchObject([testItem2])
+    seededItems[4] = new ItemFactory(undefined, json[0])
+  })
+
+  test('GET /items: should return 5 seeded/inserted/updated items', validateItemsGetter)
 })
