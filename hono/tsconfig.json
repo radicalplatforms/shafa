@@ -6,11 +6,16 @@
     "esModuleInterop": true,
     "strict": true,
     "lib": ["esnext"],
-    "types": ["jest", "@cloudflare/workers-types"],
+    "types": ["jest", "@cloudflare/workers-types", "node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "resolveJsonModule": true,
     "skipLibCheck": true,
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
   },
   "include": ["src/**/*", "test/**/*", ".eslintrc.js", "jest.config.js", "migrate.ts"],
 }

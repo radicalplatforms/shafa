@@ -1,79 +1,95 @@
-import { z } from 'zod';
-import * as yaml from 'yaml';
-import * as fs from 'fs';
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
 } from '@asteasolutions/zod-to-openapi';
+import { z } from 'zod';
+import * as yaml from 'yaml';
+import * as fs from 'fs';
 
 extendZodWithOpenApi(z);
 
 const registry = new OpenAPIRegistry();
 
-function createZodSchemas() {
-  const itemTypeEnumSchema = z.enum(['layer', 'top', 'bottom', 'footwear', 'accessory']);
+const UserIdSchema = registry.registerParameter(
+  'UserId',
+  z.string().openapi({
+    param: {
+      name: 'id',
+      in: 'path',
+    },
+    example: '1212121',
+  })
+);
+const UserSchema = z
+  .object({
+    id: z.string().openapi({
+      example: '1212121',
+    }),
+    name: z.string().openapi({
+      example: 'John Doe',
+    }),
+    age: z.number().openapi({
+      example: 42,
+    }),
+  })
+  .openapi('User');
 
-  const itemsSchema = z.object({
-    id: z.number(),
-    name: z.string(),
-    brand: z.string(),
-    photo: z.string(),
-    type: itemTypeEnumSchema,
-    rating: z.number().default(2),
-    quality: z.number().default(2),
-    timestamp: z.string(),
-    authorUsername: z.string(),
-  });
+const bearerAuth = registry.registerComponent('securitySchemes', 'bearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+});
 
-  const outfitsSchema = z.object({
-    id: z.number(),
-    rating: z.number().default(2),
-    wearDate: z.string(),
-    authorUsername: z.string(),
-  });
+registry.registerPath({
+  method: 'get',
+  path: '/users/{id}',
+  description: 'Get user data by its id',
+  summary: 'Get a single user',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: UserIdSchema }),
+  },
+  responses: {
+    200: {
+      description: 'Object with user data.',
+      content: {
+        'application/json': {
+          schema: UserSchema,
+        },
+      },
+    },
+    204: {
+      description: 'No content - successful operation',
+    },
+  },
+});
 
-  const itemsToOutfitsSchema = z.object({
-    itemId: z.number(),
-    outfitId: z.number(),
-    type: z.number(),
-  });
-
-  return { itemsSchema, outfitsSchema, itemsToOutfitsSchema };
-}
-
-function registerSchemasWithOpenAPI() {
-  const { itemsSchema, outfitsSchema, itemsToOutfitsSchema } = createZodSchemas();
-
-  // Hypothetical registration for parameters
-  registry.registerParameter('Item', itemsSchema);
-  registry.registerParameter('Outfit', outfitsSchema);
-  registry.registerParameter('ItemsToOutfits', itemsToOutfitsSchema);
-}
-
-function getOpenApiDocumentation() {
+async function getOpenApiDocumentation() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
-  return generator.generateDocument({
+
+  return await generator.generateDocument({
     openapi: '3.0.0',
     info: {
       version: '1.0.0',
-      title: 'Your API Title',
-      description: 'API description here.',
+      title: 'My API',
+      description: 'This is the API',
     },
-    servers: [{ url: '/api/v1' }],
+    servers: [{ url: 'http://127.0.0.1:8787/api/v1' }],
   });
 }
 
 export default async function writeDocumentation() {
-  console.log('Start writing documentation');
-  registerSchemasWithOpenAPI();
-  const docs = getOpenApiDocumentation();
+  const docs = await getOpenApiDocumentation();
   const fileContent = yaml.stringify(docs);
-  console.log('File Content:', fileContent);
   try {
-    await fs.promises.writeFile(`../../docs/swagger.yml`, fileContent, 'utf8');
-    console.log('Documentation written to swagger.yml');
-  } catch (error) {
-    console.error('Error writing documentation:', error);
-  }
+      fs.writeFileSync('docs/swagger.yml', fileContent, {
+          encoding: 'utf-8',
+        });
+      console.log('Documentation written to swagger.yml');
+    } catch (error) {
+      console.error('Error writing documentation:', error);
+    }
 }
+
+writeDocumentation()
