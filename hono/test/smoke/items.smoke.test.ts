@@ -64,7 +64,7 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
     expect(resJSON).toMatchObject(testPartialItem1.formatAPI())
-    testItems.push(new ItemFactory(undefined, resJSON))
+    testItems[0] = new ItemFactory(undefined, resJSON)
   })
 
   test('PUT /items: should update existing item', async () => {
@@ -87,7 +87,7 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
     expect(resJSON).toMatchObject(testItems[0].formatAPI())
-    testItems.shift()
+    testItems.splice(0, 1)
   })
 })
 
@@ -117,7 +117,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
     expect(resJSON).toMatchObject(testItems[0].formatAPI())
-    testItems.shift()
+    testItems.splice(0, 1)
   })
 
   test('GET /items: should return 4 seeded items', validateItemsGetter)
@@ -132,7 +132,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
     expect(resJSON).toMatchObject(testPartialItem1.formatAPI())
-    testItems.push(new ItemFactory(undefined, resJSON))
+    testItems[4] = new ItemFactory(undefined, resJSON)
   })
 
   test('GET /items: should return 5 seeded/inserted items', validateItemsGetter)

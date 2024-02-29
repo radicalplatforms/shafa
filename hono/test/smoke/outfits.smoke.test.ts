@@ -104,7 +104,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as OutfitAPI
     expect(resJSON).toMatchObject(testOutfit1.formatAPI())
-    testOutfits.push(new OutfitFactory(undefined, resJSON))
+    testOutfits[1] = new OutfitFactory(undefined, resJSON)
   })
 
   test('PUT /outfits: should update newly created item', async () => {
@@ -133,6 +133,6 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as OutfitAPI
     expect(resJSON).toMatchObject(testOutfits[0].formatAPI())
-    testOutfits.shift()
+    testOutfits.splice(0, 1)
   })
 })
