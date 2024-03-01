@@ -2,11 +2,10 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Context } from 'hono'
 import postgres from 'postgres'
 import app from '../../src/index'
-import type { items } from '../../src/schema'
 import * as schema from '../../src/schema'
-import { clean, provision, seed } from '../utils/db'
-import { validItem } from '../utils/factory/items'
-import { seededItemsSimple } from '../utils/factory/items'
+import { clean, provision } from '../utils/db'
+import { type ItemAPI, ItemFactory, PartialItemFactory } from '../utils/factory/items'
+import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
 /**
  * Items Smoke Tests
@@ -21,6 +20,8 @@ import { seededItemsSimple } from '../utils/factory/items'
  */
 
 const DB_NAME = 'items_smoke_test'
+const DB_PORT = 5555
+const DB_URL = `postgres://localhost:${DB_PORT}/${DB_NAME}`
 
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
@@ -31,7 +32,7 @@ jest.mock('../../src/utils/inject-db', () => {
     __esModule: true,
     ...originalModule,
     default: async (c: Context, next: Function) => {
-      c.set('db', drizzle(postgres(`postgres://localhost:5555/${DB_NAME}`), { schema }))
+      c.set('db', drizzle(postgres(DB_URL), { schema }))
       await next()
     },
   }
@@ -42,11 +43,11 @@ beforeAll(async () => {
 })
 
 describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
+  const testItems: ItemFactory[] = []
+
   afterAll(async () => {
     await clean(DB_NAME)
   })
-
-  let item1: typeof items
 
   test('GET /items: should return no items', async () => {
     const res = await app.request('/api/items')
@@ -55,50 +56,100 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
   })
 
   test('POST /items: should create and return one item', async () => {
+    const testPartialItem1 = new PartialItemFactory(1)
     const res = await app.request('/api/items', {
       method: 'POST',
-      body: JSON.stringify(validItem()),
+      body: JSON.stringify(testPartialItem1),
       headers: { 'Content-Type': 'application/json' },
     })
-    const json = (await res.json()) as (typeof items)[]
     expect(res.status).toBe(200)
-    expect(json).toMatchObject([validItem()])
-    item1 = json[0]
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testPartialItem1.formatAPI())
+    testItems[0] = new ItemFactory(undefined, resJSON)
   })
 
   test('PUT /items: should update existing item', async () => {
-    const res = await app.request(`/api/items/${item1.id}`, {
+    const testPartialItem2 = new PartialItemFactory(2)
+    const res = await app.request(`/api/items/${testItems[0].id}`, {
       method: 'PUT',
-      body: JSON.stringify(validItem()),
+      body: JSON.stringify(testPartialItem2),
       headers: { 'Content-Type': 'application/json' },
     })
-    const json = (await res.json()) as (typeof items)[]
     expect(res.status).toBe(200)
-    expect(json).toMatchObject([validItem()])
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testPartialItem2.formatAPI())
+    testItems[0] = new ItemFactory(undefined, resJSON)
   })
 
   test('DELETE /items: should delete existing item', async () => {
-    const res = await app.request(`/api/items/${item1.id}`, {
+    const res = await app.request(`/api/items/${testItems[0].id}`, {
       method: 'DELETE',
     })
-    const json = (await res.json()) as (typeof items)[]
     expect(res.status).toBe(200)
-    expect(json).toMatchObject([validItem()])
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testItems[0].formatAPI())
+    testItems.splice(0, 1)
   })
 })
 
-describe('[Smoke] Items: simple test, seeded [items-simple]', () => {
+describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
+  let testItems: ItemFactory[] = []
+
   beforeAll(async () => {
-    await seed(DB_NAME, ['items-simple.sql'])
+    ;[testItems] = await basicSmallSeed(DB_NAME, DB_PORT)
   })
 
   afterAll(async () => {
     await clean(DB_NAME)
   })
 
-  test('GET /items: should return 5 seeded items', async () => {
+  async function validateItemsGetter() {
     const res = await app.request('/api/items')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual(seededItemsSimple())
+    expect(await res.json()).toEqual(testItems.map((item) => item.formatAPI()))
+  }
+
+  test('GET /items: should return 5 seeded items', validateItemsGetter)
+
+  test('DELETE /items: should delete existing seeded item', async () => {
+    const res = await app.request(`/api/items/${testItems[0].id}`, {
+      method: 'DELETE',
+    })
+    expect(res.status).toBe(200)
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testItems[0].formatAPI())
+    testItems.splice(0, 1)
   })
+
+  test('GET /items: should return 4 seeded items', validateItemsGetter)
+
+  test('POST /items: should create and return one item', async () => {
+    const testPartialItem1 = new PartialItemFactory(1)
+    const res = await app.request('/api/items', {
+      method: 'POST',
+      body: JSON.stringify(testPartialItem1),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(res.status).toBe(200)
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testPartialItem1.formatAPI())
+    testItems[4] = new ItemFactory(undefined, resJSON)
+  })
+
+  test('GET /items: should return 5 seeded/inserted items', validateItemsGetter)
+
+  test('PUT /items: should update existing item', async () => {
+    const testPartialItem2 = new PartialItemFactory(2)
+    const res = await app.request(`/api/items/${testItems[4].id}`, {
+      method: 'PUT',
+      body: JSON.stringify(testPartialItem2),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(res.status).toBe(200)
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testPartialItem2.formatAPI())
+    testItems[4] = new ItemFactory(undefined, resJSON)
+  })
+
+  test('GET /items: should return 5 seeded/inserted/updated items', validateItemsGetter)
 })

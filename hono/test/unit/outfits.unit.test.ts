@@ -17,6 +17,7 @@ import { clean, provision } from '../utils/db'
  */
 
 const DB_NAME = 'outfits_unit_test'
+const DB_URL = `postgres://localhost:5555/${DB_NAME}`
 
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
@@ -27,7 +28,7 @@ jest.mock('../../src/utils/inject-db', () => {
     __esModule: true,
     ...originalModule,
     default: async (c: Context, next: Function) => {
-      c.set('db', drizzle(postgres(`postgres://localhost:5555/${DB_NAME}`), { schema }))
+      c.set('db', drizzle(postgres(DB_URL), { schema }))
       await next()
     },
   }
