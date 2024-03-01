@@ -4,7 +4,8 @@ import { ItemToOutfitFactory } from '../factory/items-outfits'
 import { OutfitFactory } from '../factory/outfits'
 
 export default async function (
-  db_url: string
+  db_name: string,
+  db_port: number
 ): Promise<[ItemFactory[], OutfitFactory[], ItemToOutfitFactory[]]> {
   const items: ItemFactory[] = []
   const outfits: OutfitFactory[] = []
@@ -17,7 +18,7 @@ export default async function (
       type: itemTypeEnum[i % 5] as ItemType,
       authorUsername: 'jdoe',
     })
-    await items[i].store(db_url)
+    await items[i].store(db_name, db_port)
   }
 
   // Create outfits and map items
@@ -26,7 +27,7 @@ export default async function (
     outfits[i] = new OutfitFactory(i, {
       authorUsername: 'jdoe',
     })
-    await outfits[i].store(db_url)
+    await outfits[i].store(db_name, db_port)
     // Add 5 items to outfit
     for (let j = 0; j < items.length; j++) {
       const newItemToOutfit = new ItemToOutfitFactory(undefined, {
@@ -34,7 +35,7 @@ export default async function (
         outfitId: outfits[i].id,
         itemType: itemTypeEnum[j % 5] as ItemType,
       })
-      await newItemToOutfit.push(db_url)
+      await newItemToOutfit.store(db_name, db_port)
       items_to_outfits.push(newItemToOutfit)
     }
   }

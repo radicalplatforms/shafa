@@ -23,7 +23,8 @@ import basicSmallSeed from '../utils/seeds/basic-small-seed'
  */
 
 const DB_NAME = 'outfits_smoke_test'
-const DB_URL = `postgres://localhost:5555/${DB_NAME}`
+const DB_PORT = 5555
+const DB_URL = `postgres://localhost:${DB_PORT}/${DB_NAME}`
 
 // NOTE: Beware of jest hoisting!
 //       .mock() will be automatically hoisted to the top of the code block,
@@ -65,7 +66,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
   let testItemsToOutfits: ItemToOutfitFactory[]
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits] = await basicSmallSeed(DB_URL)
+    ;[testItems, testOutfits, testItemsToOutfits] = await basicSmallSeed(DB_NAME, DB_PORT)
   })
 
   afterAll(async () => {

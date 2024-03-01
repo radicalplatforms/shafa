@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
+import * as schema from '../../src/schema'
 
 const TEMP_ROOT = `tmp-postgres-local`
 
@@ -36,12 +37,15 @@ export async function provision(name: string, port: number = 5555, version: numb
   }
 }
 
-export async function clean(name: string, port: number = 5555, version: number = 16) {
+export function instance(name: string, port: number = 5555) {
   const url = `postgres://localhost:${port}/${name}`
+  const client = postgres(url)
+  return drizzle(client, { schema })
+}
 
+export async function clean(name: string, port: number = 5555, version: number = 16) {
   try {
-    const client = postgres(url)
-    const db = drizzle(client)
+    const db = instance(name, port)
 
     const sqlString = fs.readFileSync('test/utils/clean-db.sql', 'utf8')
     await db.execute(sql.raw(sqlString))
@@ -57,11 +61,8 @@ export async function seed(
   port: number = 5555,
   version: number = 16
 ) {
-  const url = `postgres://localhost:${port}/${name}`
-
   try {
-    const client = postgres(url)
-    const db = drizzle(client)
+    const db = instance(name, port)
 
     for (const seed of seeds) {
       const sqlString = fs.readFileSync('test/utils/seeds/' + seed, 'utf8')

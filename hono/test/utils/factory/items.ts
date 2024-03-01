@@ -1,8 +1,6 @@
 import { faker } from '@faker-js/faker'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from '../../../src/schema'
 import { items, itemTypeEnum } from '../../../src/schema'
+import { instance } from '../db'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
 
@@ -53,33 +51,15 @@ export class ItemFactory implements Item {
       : faker.internet.userName()
   }
 
-  async store(db_url: string) {
-    const db = drizzle(postgres(db_url), { schema })
-    await db
-      .insert(items)
-      .values({
-        id: this.id,
-        name: this.name,
-        brand: this.brand,
-        photoUrl: this.photoUrl,
-        type: this.type,
-        rating: this.rating,
-        createdAt: this.createdAt,
-        authorUsername: this.authorUsername,
-      })
-      .onConflictDoNothing()
+  async store(name: string, port: number) {
+    const db = instance(name, port)
+    await db.insert(items).values(this).onConflictDoNothing()
   }
 
   formatAPI(): ItemAPI {
     return {
-      id: this.id,
-      name: this.name,
-      brand: this.brand,
-      photoUrl: this.photoUrl,
-      type: this.type,
-      rating: this.rating,
+      ...this,
       createdAt: this.createdAt.toISOString(),
-      authorUsername: this.authorUsername,
     }
   }
 
@@ -113,11 +93,7 @@ export class PartialItemFactory implements PartialItem {
 
   formatAPI(): PartialItem {
     return {
-      name: this.name,
-      brand: this.brand,
-      photoUrl: this.photoUrl,
-      type: this.type,
-      rating: this.rating,
+      ...this,
     }
   }
 

@@ -1,8 +1,6 @@
 import { faker } from '@faker-js/faker'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from '../../../src/schema'
 import { outfits } from '../../../src/schema'
+import { instance } from '../db'
 
 export interface Outfit {
   id: string
@@ -35,25 +33,15 @@ export class OutfitFactory implements Outfit {
       : faker.internet.userName()
   }
 
-  async store(db_url: string) {
-    const db = drizzle(postgres(db_url), { schema })
-    await db
-      .insert(outfits)
-      .values({
-        id: this.id,
-        rating: this.rating,
-        wearDate: this.wearDate,
-        authorUsername: this.authorUsername,
-      })
-      .onConflictDoNothing()
+  async store(name: string, port: number) {
+    const db = instance(name, port)
+    await db.insert(outfits).values(this).onConflictDoNothing()
   }
 
   formatAPI(): OutfitAPI {
     return {
-      id: this.id,
-      rating: this.rating,
+      ...this,
       wearDate: this.wearDate.toISOString(),
-      authorUsername: this.authorUsername,
     }
   }
 
@@ -82,7 +70,7 @@ export class PartialOutfitFactory implements PartialOutfit {
 
   formatAPI(): PartialOutfitAPI {
     return {
-      rating: this.rating,
+      ...this,
       wearDate: this.wearDate.toISOString(),
     }
   }

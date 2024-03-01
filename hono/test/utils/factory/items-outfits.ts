@@ -1,8 +1,6 @@
 import { faker } from '@faker-js/faker'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from '../../../src/schema'
 import { itemTypeEnum, itemsToOutfits } from '../../../src/schema'
+import { instance } from '../db'
 import type { ItemType } from './items'
 
 export interface ItemToOutfit {
@@ -22,16 +20,9 @@ export class ItemToOutfitFactory implements ItemToOutfit {
         : (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
   }
 
-  async push(db_url: string) {
-    const db = drizzle(postgres(db_url), { schema })
-    await db
-      .insert(itemsToOutfits)
-      .values({
-        itemId: this.itemId,
-        outfitId: this.outfitId,
-        itemType: this.itemType,
-      })
-      .onConflictDoNothing()
+  async store(name: string, port: number) {
+    const db = instance(name, port)
+    await db.insert(itemsToOutfits).values(this).onConflictDoNothing()
   }
 
   itemId: string
