@@ -4,9 +4,10 @@ import { eq, inArray } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { items, itemsToOutfits, itemTypeEnum, outfits } from '../schema'
+import { items, itemsToOutfits, itemTypeEnum, itemsExtended, outfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
+// import itemsView from '../view'
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -23,8 +24,13 @@ const selectItemSchema = createSelectSchema(items, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
+// app.get('/', injectDB, async (c) => {
+//   return c.json(await c.get('db').query.items.findMany())
+// })
+
 app.get('/', injectDB, async (c) => {
-  return c.json(await c.get('db').query.items.findMany())
+  await c.get('db').refreshMaterializedView(itemsExtended);
+  return c.json(await c.get('db').query(itemsExtended).select('*').execute())
 })
 
 app.post(
