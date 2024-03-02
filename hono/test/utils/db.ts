@@ -32,7 +32,7 @@ export async function provision(name: string, port: number = 5555, version: numb
       max: 1,
     })
     const db = drizzle(client)
-    await migrate(drizzle(client), { migrationsFolder: './src/drizzle' })
+    await migrate(db, { migrationsFolder: './src/drizzle' })
     await db.refreshMaterializedView(itemsExtended)
   } catch (e) {
     stop(port, version)
