@@ -14,6 +14,8 @@ jobs:
   neon_delete_branch:
     name: Delete Neon Branch
     runs-on: ubuntu-latest
+    environment: staging
+
     steps:
       - uses: neondatabase/delete-branch-action@v3.1.4
         with:
@@ -24,6 +26,8 @@ jobs:
   cf_teardown_hono:
     name: Teardown Hono
     runs-on: ubuntu-latest
+    environment: staging
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
