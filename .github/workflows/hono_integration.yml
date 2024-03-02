@@ -140,7 +140,7 @@ jobs:
     needs: test_matrix
 
     environment:
-      name: staging
+      name: ${{ env.DEPLOY_TAG }}
       url: ${{ env.DEPLOY_ROUTE }}
 
     steps:
@@ -150,7 +150,7 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Install Dependencies
         run: npm ci
         working-directory: hono
@@ -185,11 +185,4 @@ jobs:
           workingDirectory: hono
           packageManager: pnpm
           postCommands: echo "${{ env.DATABASE_URL }}" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
-
-      - name: Comment on Pull Request
-        uses: thollander/actions-comment-pull-request@v2
-        with:
-          message: |
-            **Successfully Deployed to Staging Environment**
-            Cloudflare Staging URL :rocket: ${{ env.DEPLOY_ROUTE }}
-            Neon Branch :elephant: https://console.neon.tech/app/projects/${{ env.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}
+ 

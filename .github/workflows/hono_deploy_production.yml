@@ -5,7 +5,7 @@ on:
     branches: main
 
 env:
-  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+  PROD_NEON_DATABASE_URL: ${{ secrets.PROD_NEON_DATABASE_URL }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
 jobs:
@@ -35,14 +35,14 @@ jobs:
 
       - name: Run Migrations
         env:
-          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
+          DATABASE_URL: ${{ env.PROD_NEON_DATABASE_URL }}
         run: npm run migrate
         working-directory: hono
 
       - name: Deploy Hono
         uses: cloudflare/wrangler-action@v3
         env:
-          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
+          DATABASE_URL: ${{ env.PROD_NEON_DATABASE_URL }}
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: deploy --env production
