@@ -8,6 +8,13 @@
       "when": 1708411216642,
       "tag": "0000_illegal_mister_fear",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1709336508259,
+      "tag": "0001_military_karnak",
+      "breakpoints": true
     }
   ]
 }

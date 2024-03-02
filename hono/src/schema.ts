@@ -82,6 +82,4 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
   }),
 }))
 
-export const itemsExtended = pgMaterializedView("items_extended").as(sql`select * from ${items}`);
-export const outfitsExtended = pgMaterializedView("outfits_extended").as((qb) => qb.select().from(outfits));
-export const itemsToOutfitsExtended = pgMaterializedView("items_extended").as((qb) => qb.select().from(itemsToOutfits));
+export const itemsExtended = pgMaterializedView('items_extended').as((qb) => qb.select().from(items));

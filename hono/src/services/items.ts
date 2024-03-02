@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -30,7 +30,7 @@ const selectItemSchema = createSelectSchema(items, {
 
 app.get('/', injectDB, async (c) => {
   await c.get('db').refreshMaterializedView(itemsExtended);
-  return c.json(await c.get('db').query(itemsExtended).select('*').execute())
+  return c.json((await c.get('db').execute(sql`select * from ${itemsExtended}`)).rows)
 })
 
 app.post(
