@@ -15,17 +15,14 @@ env:
 jobs:
   format_checks:
     name: Format Checks
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        node: [ 18 ]
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: hono/package-lock.json
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,17 +42,14 @@ jobs:
 
   compilation_checks:
     name: Compilation Checks
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        node: [ 18 ]
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: hono/package-lock.json
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,23 +65,19 @@ jobs:
 
   test_smoke:
     name: Test Smoke
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     needs: [format_checks, compilation_checks]
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        node: [ 18 ]
-        postgres: [ 16 ]
 
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: hono/package-lock.json
 
       - uses: ankane/setup-postgres@v1
         with:
-          postgres-version: ${{ matrix.postgres }}
+          postgres-version: 16
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -103,24 +93,23 @@ jobs:
 
   test_matrix:
     name: Test Matrix
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     needs: test_smoke
 
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
-        node: [ 18 ]
-        postgres: [ 16 ]
         test: [ unit, integration, preflight ]
 
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: hono/package-lock.json
 
       - uses: ankane/setup-postgres@v1
         with:
-          postgres-version: ${{ matrix.postgres }}
+          postgres-version: 16
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -147,6 +136,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
+          cache-dependency-path: hono/package-lock.json
 
       - name: Checkout
         uses: actions/checkout@v4
