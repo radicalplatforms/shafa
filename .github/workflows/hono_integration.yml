@@ -140,7 +140,7 @@ jobs:
     needs: test_matrix
 
     environment:
-      name: shafa-hono-stage-${{ github.event.number }}
+      name: ${{ env.DEPLOY_TAG }}
       url: ${{ env.DEPLOY_ROUTE }}
 
     steps:
