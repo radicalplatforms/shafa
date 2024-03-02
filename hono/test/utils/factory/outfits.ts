@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import { outfits } from '../../../src/schema'
+import { itemsExtended, outfits } from '../../../src/schema'
 import { instance } from '../db'
 
 export interface Outfit {
@@ -36,6 +36,7 @@ export class OutfitFactory implements Outfit {
   async store(name: string, port: number) {
     const db = instance(name, port)
     await db.insert(outfits).values(this).onConflictDoNothing()
+    await db.refreshMaterializedView(itemsExtended)
   }
 
   formatAPI(): OutfitAPI {
