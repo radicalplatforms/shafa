@@ -1,12 +1,8 @@
 name: Hono Teardown
 
-#on:
-#  pull_request:
-#    types: [closed]
-
-# TODO NEEDS TO BE REMOVED
 on:
-  pull_request
+  pull_request:
+    types: [closed]
 
 env:
   NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
