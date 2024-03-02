@@ -14,7 +14,6 @@ env:
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   GH_ENV_APP_ID: ${{ secrets.GH_ENV_APP_ID }}
   GH_ENV_APP_PRIVATE_KEY: ${{ secrets.GH_ENV_APP_PRIVATE_KEY }}
-  DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
 
 jobs:
   neon_delete_branch:
@@ -60,4 +59,4 @@ jobs:
         uses: strumwolf/delete-deployment-environment@v3
         with:
           token: ${{ steps.get-token.outputs.token }}
-          environment: ${{ env.DEPLOY_TAG }}
+          environment: hono-stage-${{ github.event.number }}

@@ -140,7 +140,7 @@ jobs:
     needs: test_matrix
 
     environment:
-      name: ${{ env.DEPLOY_TAG }}
+      name: hono-stage-${{ github.event.number }}
       url: ${{ env.DEPLOY_ROUTE }}
 
     steps:
