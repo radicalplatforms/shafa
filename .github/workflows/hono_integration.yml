@@ -18,14 +18,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'npm'
           cache-dependency-path: hono/package-lock.json
-
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: npm ci
@@ -45,14 +45,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'npm'
           cache-dependency-path: hono/package-lock.json
-
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: npm ci
@@ -69,6 +69,9 @@ jobs:
     needs: [format_checks, compilation_checks]
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -78,9 +81,6 @@ jobs:
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: 16
-
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: npm ci
@@ -101,6 +101,9 @@ jobs:
         test: [ unit, integration, preflight ]
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -110,9 +113,6 @@ jobs:
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: 16
-
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: npm ci
@@ -133,14 +133,14 @@ jobs:
       url: ${{ env.DEPLOY_ROUTE }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'npm'
           cache-dependency-path: hono/package-lock.json
-
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: npm ci
