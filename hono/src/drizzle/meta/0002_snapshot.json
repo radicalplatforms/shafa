@@ -91,26 +91,18 @@
         "items_to_outfits_item_id_items_id_fk": {
           "name": "items_to_outfits_item_id_items_id_fk",
           "tableFrom": "items_to_outfits",
-          "columnsFrom": [
-            "item_id"
-          ],
+          "columnsFrom": ["item_id"],
           "tableTo": "items",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "items_to_outfits_outfit_id_outfits_id_fk": {
           "name": "items_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "items_to_outfits",
-          "columnsFrom": [
-            "outfit_id"
-          ],
+          "columnsFrom": ["outfit_id"],
           "tableTo": "outfits",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -118,10 +110,7 @@
       "compositePrimaryKeys": {
         "items_to_outfits_item_id_outfit_id_pk": {
           "name": "items_to_outfits_item_id_outfit_id_pk",
-          "columns": [
-            "item_id",
-            "outfit_id"
-          ]
+          "columns": ["item_id", "outfit_id"]
         }
       },
       "uniqueConstraints": {}

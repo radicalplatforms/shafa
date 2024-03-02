@@ -7,7 +7,6 @@ import { z } from 'zod'
 import { items, itemsToOutfits, itemTypeEnum, itemsExtended, outfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
-// import itemsView from '../view'
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -24,13 +23,9 @@ const selectItemSchema = createSelectSchema(items, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
-// app.get('/', injectDB, async (c) => {
-//   return c.json(await c.get('db').query.items.findMany())
-// })
-
 app.get('/', injectDB, async (c) => {
-  await c.get('db').refreshMaterializedView(itemsExtended);
-  return c.json((await c.get('db').execute(sql`select * from ${itemsExtended}`)).rows)
+  await c.get('db').refreshMaterializedView(itemsExtended)
+  return c.json(await c.get('db').select().from(itemsExtended))
 })
 
 app.post(
@@ -46,20 +41,19 @@ app.post(
   injectDB,
   async (c) => {
     const body = c.req.valid('json')
-
-    return c.json(
-      (
-        await c
-          .get('db')
-          .insert(items)
-          .values({
-            ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-          })
-          .onConflictDoNothing()
-          .returning()
-      )[0]
-    )
+    const response = (
+      await c
+        .get('db')
+        .insert(items)
+        .values({
+          ...body,
+          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+        })
+        .onConflictDoNothing()
+        .returning()
+    )[0]
+    await c.get('db').refreshMaterializedView(itemsExtended)
+    return c.json(response)
   }
 )
 
@@ -71,20 +65,19 @@ app.put(
   async (c) => {
     const params = c.req.valid('param')
     const body = c.req.valid('json')
-
-    return c.json(
-      (
-        await c
-          .get('db')
-          .update(items)
-          .set({
-            ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-          })
-          .where(eq(items.id, params.id))
-          .returning()
-      )[0]
-    )
+    const response = (
+      await c
+        .get('db')
+        .update(items)
+        .set({
+          ...body,
+          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+        })
+        .where(eq(items.id, params.id))
+        .returning()
+    )[0]
+    await c.get('db').refreshMaterializedView(itemsExtended)
+    return c.json(response)
   }
 )
 
@@ -94,29 +87,28 @@ app.delete(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
+    const response = await c.get('db').transaction(async (tx) => {
+      // Get the ids of outfits that have the item being deleted
+      const outfitsToDelete = await tx
+        .select({ outfitId: itemsToOutfits.outfitId })
+        .from(itemsToOutfits)
+        .where(eq(itemsToOutfits.itemId, params.id))
 
-    return c.json(
-      await c.get('db').transaction(async (tx) => {
-        // Get the ids of outfits that have the item being deleted
-        const outfitsToDelete = await tx
-          .select({ outfitId: itemsToOutfits.outfitId })
-          .from(itemsToOutfits)
-          .where(eq(itemsToOutfits.itemId, params.id))
-
-        // Delete outfits by ids
-        if (outfitsToDelete.length) {
-          await tx.delete(outfits).where(
-            inArray(
-              outfits.id,
-              outfitsToDelete.map((e: { outfitId: string }) => e.outfitId)
-            )
+      // Delete outfits by ids
+      if (outfitsToDelete.length) {
+        await tx.delete(outfits).where(
+          inArray(
+            outfits.id,
+            outfitsToDelete.map((e: { outfitId: string }) => e.outfitId)
           )
-        }
+        )
+      }
 
-        // Delete the specified item
-        return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
-      })
-    )
+      // Delete the specified item
+      return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
+    })
+    await c.get('db').refreshMaterializedView(itemsExtended)
+    return c.json(response)
   }
 )
 

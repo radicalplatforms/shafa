@@ -1,6 +1,15 @@
 import { createId } from '@paralleldrive/cuid2'
 import { relations } from 'drizzle-orm'
-import { date, pgEnum, pgMaterializedView, pgTable, primaryKey, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+import {
+  date,
+  pgEnum,
+  pgMaterializedView,
+  pgTable,
+  primaryKey,
+  smallint,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
 
 /**
  * Item Type Enumeration
@@ -82,4 +91,6 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
   }),
 }))
 
-export const itemsExtended = pgMaterializedView('items_extended').as((qb) => qb.select().from(items));
+export const itemsExtended = pgMaterializedView('items_extended').as((qb) =>
+  qb.select().from(items)
+)
