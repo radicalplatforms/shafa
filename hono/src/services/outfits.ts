@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { itemsToOutfits, itemTypeEnum, outfits } from '../schema'
+import { itemsExtended, itemsToOutfits, itemTypeEnum, outfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
@@ -33,54 +33,53 @@ const selectOutfitSchema = createSelectSchema(outfits, {
 })
 
 app.get('/', injectDB, async (c) => {
-  return c.json(
-    await c.get('db').query.outfits.findMany({
-      with: {
-        itemsToOutfits: {
-          columns: {
-            itemId: false,
-            outfitId: false,
-          },
-          with: {
-            item: true,
-          },
-          orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
+  const response = await c.get('db').query.outfits.findMany({
+    with: {
+      itemsToOutfits: {
+        columns: {
+          itemId: false,
+          outfitId: false,
         },
+        with: {
+          item: true,
+        },
+        orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
       },
-      orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
-    })
-  )
+    },
+    orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+  })
+  await c.get('db').refreshMaterializedView(itemsExtended)
+  return c.json(response)
 })
 
 app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
   const body = c.req.valid('json')
+  const response = await c.get('db').transaction(async (tx) => {
+    // Create outfit
+    const newOutfit = (
+      await tx
+        .insert(outfits)
+        .values({
+          ...body,
+          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+        })
+        .onConflictDoNothing()
+        .returning()
+    )[0]
 
-  return c.json(
-    await c.get('db').transaction(async (tx) => {
-      // Create outfit
-      const newOutfit = (
-        await tx
-          .insert(outfits)
-          .values({
-            ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-          })
-          .onConflictDoNothing()
-          .returning()
-      )[0]
+    // Insert item to outfit relationships
+    await tx.insert(itemsToOutfits).values(
+      body.itemIdsTypes.map((e) => ({
+        itemId: e.id,
+        outfitId: newOutfit.id,
+        itemType: e.itemType,
+      }))
+    )
 
-      // Insert item to outfit relationships
-      await tx.insert(itemsToOutfits).values(
-        body.itemIdsTypes.map((e) => ({
-          itemId: e.id,
-          outfitId: newOutfit.id,
-          itemType: e.itemType,
-        }))
-      )
-
-      return newOutfit
-    })
-  )
+    return newOutfit
+  })
+  await c.get('db').refreshMaterializedView(itemsExtended)
+  return c.json(response)
 })
 
 app.put(
@@ -91,36 +90,35 @@ app.put(
   async (c) => {
     const params = c.req.valid('param')
     const { itemIdsTypes, ...body } = c.req.valid('json')
+    const response = await c.get('db').transaction(async (tx) => {
+      // Update outfit
+      const updatedOutfit = (
+        await tx
+          .update(outfits)
+          .set({
+            ...body,
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+          })
+          .where(eq(outfits.id, params.id))
+          .returning()
+      )[0]
 
-    return c.json(
-      await c.get('db').transaction(async (tx) => {
-        // Update outfit
-        const updatedOutfit = (
-          await tx
-            .update(outfits)
-            .set({
-              ...body,
-              authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-            })
-            .where(eq(outfits.id, params.id))
-            .returning()
-        )[0]
+      // Delete all item to outfit relationships
+      await tx.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, params.id))
 
-        // Delete all item to outfit relationships
-        await tx.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, params.id))
+      // Insert item to outfit relationships
+      await tx.insert(itemsToOutfits).values(
+        itemIdsTypes.map((e) => ({
+          itemId: e.id,
+          outfitId: updatedOutfit.id,
+          itemType: e.itemType,
+        }))
+      )
 
-        // Insert item to outfit relationships
-        await tx.insert(itemsToOutfits).values(
-          itemIdsTypes.map((e) => ({
-            itemId: e.id,
-            outfitId: updatedOutfit.id,
-            itemType: e.itemType,
-          }))
-        )
-
-        return updatedOutfit
-      })
-    )
+      return updatedOutfit
+    })
+    await c.get('db').refreshMaterializedView(itemsExtended)
+    return c.json(response)
   }
 )
 
@@ -130,10 +128,11 @@ app.delete(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
-
-    return c.json(
-      (await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning())[0]
-    )
+    const response = (
+      await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning()
+    )[0]
+    await c.get('db').refreshMaterializedView(itemsExtended)
+    return c.json(response)
   }
 )
 
