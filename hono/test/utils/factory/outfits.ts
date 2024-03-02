@@ -1,77 +1,80 @@
-export function seededOutfitsSimple() {
-  return [
-    {
-      id: 't4e0hrfov19l9jalh1qh1aw8',
-      rating: 2,
-      wearDate: '2024-02-19T00:00:00.000Z',
-      authorUsername: 'rak3rman',
-      itemsToOutfits: [
-        {
-          item: {
-            id: 'uqdeqlkvf9wmtym7wodqa0d2',
-            name: 'Black Jacket',
-            brand: 'Acme Inc',
-            photoUrl: 'https://image-dne.com/black-jacket',
-            type: 'layer',
-            rating: 2,
-            createdAt: '2024-02-19T19:02:42.948Z',
-            authorUsername: 'rak3rman',
-          },
-          itemType: 'layer',
-        },
-        {
-          item: {
-            id: 'z99dejpm0avjstswxe0ljwu9',
-            name: 'Black T-shirt',
-            brand: 'Radical Clothing',
-            photoUrl: 'https://image-dne.com/black-t-shirt',
-            type: 'top',
-            rating: 3,
-            createdAt: '2024-02-19T19:02:43.000Z',
-            authorUsername: 'rak3rman',
-          },
-          itemType: 'top',
-        },
-        {
-          item: {
-            id: 'p992tbvvn3ypq81x8w4q6xtm',
-            name: 'Black Jeans',
-            brand: 'Joe',
-            photoUrl: 'https://image-dne.com/black-jeans',
-            type: 'bottom',
-            rating: 1,
-            createdAt: '2024-02-19T19:02:44.020Z',
-            authorUsername: 'rak3rman',
-          },
-          itemType: 'bottom',
-        },
-        {
-          item: {
-            id: 'x8g5k2ilqcvtvxrs2muvrs9f',
-            name: 'Black Shoes',
-            brand: 'Saint Laurent',
-            photoUrl: 'https://image-dne.com/black-shoes',
-            type: 'footwear',
-            rating: 4,
-            createdAt: '2024-02-19T19:02:44.100Z',
-            authorUsername: 'rak3rman',
-          },
-          itemType: 'footwear',
-        },
-        {
-          item: {
-            id: 'n4sagidnddcpggwxy9ss4wqs',
-            name: 'Silver Necklace',
-            brand: 'Silver Dudes',
-            photoUrl: 'https://image-dne.com/silver-necklace',
-            type: 'accessory',
-            rating: 2,
-            createdAt: '2024-02-19T19:02:45.010Z',
-            authorUsername: 'rak3rman',
-          },
-          itemType: 'accessory',
-        },
-      ],
-    },
-  ]
+import { faker } from '@faker-js/faker'
+import { outfits } from '../../../src/schema'
+import { instance } from '../db'
+
+export interface Outfit {
+  id: string
+  rating: number
+  wearDate: Date
+  authorUsername: string
+}
+
+export interface OutfitAPI {
+  id: string
+  rating: number
+  wearDate: string
+  authorUsername: string
+}
+
+export class OutfitFactory implements Outfit {
+  constructor(seed?: number, options?: Partial<Outfit> | OutfitAPI) {
+    faker.seed(seed ?? undefined)
+    this.id = options?.id
+      ? (options.id as string)
+      : faker.string.alphanumeric({ length: 24, casing: 'lower' })
+    this.rating = options?.rating
+      ? (options.rating as number)
+      : faker.number.int({ min: 0, max: 4 })
+    this.wearDate = options?.wearDate
+      ? new Date(options.wearDate as Date)
+      : new Date(faker.date.past().toISOString().split('T')[0])
+    this.authorUsername = options?.authorUsername
+      ? (options.authorUsername as string)
+      : faker.internet.userName()
+  }
+
+  async store(name: string, port: number) {
+    const db = instance(name, port)
+    await db.insert(outfits).values(this).onConflictDoNothing()
+  }
+
+  formatAPI(): OutfitAPI {
+    return {
+      ...this,
+      wearDate: this.wearDate.toISOString(),
+    }
+  }
+
+  id: string
+  rating: number
+  wearDate: Date
+  authorUsername: string
+}
+
+export interface PartialOutfit {
+  rating: number
+  wearDate: Date
+}
+
+export interface PartialOutfitAPI {
+  rating: number
+  wearDate: string
+}
+
+export class PartialOutfitFactory implements PartialOutfit {
+  constructor(seed?: number, options?: Partial<PartialOutfit>) {
+    faker.seed(seed ?? undefined)
+    this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
+    this.wearDate = options?.wearDate || new Date(faker.date.past().toISOString().split('T')[0])
+  }
+
+  formatAPI(): PartialOutfitAPI {
+    return {
+      ...this,
+      wearDate: this.wearDate.toISOString(),
+    }
+  }
+
+  rating: number
+  wearDate: Date
 }

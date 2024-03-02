@@ -6,9 +6,50 @@ A wardrobe logging, composition, and organization app
 
 ## Purpose
 
-Shafa makes wardrobe logging, composition, and organization easy.
+**Simply Powerful**
 
-We built Shafa on the following principles:
+Shafa makes wardrobe logging, composition, and organization easy.
+In Shafa, it all starts with a simple task that takes only a few minutes: log what outfit you are wearing for the day.
+Over time as you import more of your wardrobe and log more outfits, Shafa starts to intelligently suggest what outfits to wear next.
+Fashion choices in the past get reconciled down to seconds in the present so you can focus on what matters today.
+
+**Actionable Insights**
+
+Shafa presents data about your wearing habits in a truely elegant and actionable form.
+Save money by identifing what clothes you *actually* wear.
+Cut the outfit composition process down to sub 5 minutes by leveraging prior preferences.
+Cycle through your clothes faster and prevent duplicate outfits over a short period of time.
+Understand your wardrobe at-large and find "holes" easily.
+
+**Sharp Design**
+
+Shafa sports a truely timeless design.
+Not just how it looks — but also how it works, and how it *feels*.
+Working with items and outfits are frictionless.
+Data presentation is thoughtful and structured.
+Metrics are incredibly clear and powerful.
+
+**Useful Outfit Suggestions**
+
+Shafa puts you in control, and doesn't doubt you for a second.
+The outfit suggestion algorithm prioritizes what you've worn in the past.
+You're the one who knows what you like (and don't like).
+We throw in a few not-so-secret ingredients (AI models, item wear frequency, day-of-the-week shifting, weather forecasting, color and pattern theory, etc.) that you can customize to make the algorithm your own.
+
+**Frictionless Import**
+
+Adding a new wardrobe item to Shafa is wicked fast.
+Shafa tries to infer as much as it can about the item and only requests details that can help *you* identify it.
+In fact, Shafa only explicitly requests 3 pieces of data per item: name, type, and rating.
+That's it.
+Gone are the days of tedious item creation forms that ask for 10 data points, never to see any actionable insight from said data.
+
+**It Gets Better**
+
+Our team is driven to make Shafa the best wardrobe logging and composition app out there, and we are only getting started.
+We're hard at work implementing exciting new features like Dark Mode, Friend Outfit Voting, native iOS and Android support, Keyboard Shortcuts, new Outfit Generation Algorithms, and so much more.
+
+## Principles
 
 - Deciding what to wear throughout the day should be frictionless
 - Simplicity is key, remove the need for extra bells and whistles
@@ -37,14 +78,14 @@ erDiagram
         String photo
         Enum type
         Int rating
-        String created_at
+        Timestamp created_at
         String author_username
     }
 
     outfits {
         String id
         Int rating
-        String wear_date
+        Date wear_date
         String author_username
     }
 

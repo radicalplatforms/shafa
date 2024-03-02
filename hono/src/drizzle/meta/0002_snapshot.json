@@ -1,6 +1,6 @@
 {
-  "id": "5e852cd0-bae5-413a-ac8a-81bc404f3c23",
-  "prevId": "575244e2-446c-44a4-911c-bd2161725f51",
+  "id": "cbbdc7d3-7666-4c70-9c28-a6bb6d5da668",
+  "prevId": "5e852cd0-bae5-413a-ac8a-81bc404f3c23",
   "version": "5",
   "dialect": "pg",
   "tables": {
@@ -91,26 +91,37 @@
         "items_to_outfits_item_id_items_id_fk": {
           "name": "items_to_outfits_item_id_items_id_fk",
           "tableFrom": "items_to_outfits",
+          "columnsFrom": [
+            "item_id"
+          ],
           "tableTo": "items",
-          "columnsFrom": ["item_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "items_to_outfits_outfit_id_outfits_id_fk": {
           "name": "items_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "items_to_outfits",
+          "columnsFrom": [
+            "outfit_id"
+          ],
           "tableTo": "outfits",
-          "columnsFrom": ["outfit_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {
         "items_to_outfits_item_id_outfit_id_pk": {
           "name": "items_to_outfits_item_id_outfit_id_pk",
-          "columns": ["item_id", "outfit_id"]
+          "columns": [
+            "item_id",
+            "outfit_id"
+          ]
         }
       },
       "uniqueConstraints": {}
