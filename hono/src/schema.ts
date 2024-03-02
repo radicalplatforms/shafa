@@ -91,6 +91,9 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
   }),
 }))
 
+/**
+ * Materialized View for Items
+ */
 export const itemsExtended = pgMaterializedView('items_extended').as((qb) =>
   qb.select().from(items)
 )

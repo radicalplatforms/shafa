@@ -24,8 +24,8 @@ const selectItemSchema = createSelectSchema(items, {
 })
 
 app.get('/', injectDB, async (c) => {
-  await c.get('db').refreshMaterializedView(itemsExtended)
-  return c.json(await c.get('db').select().from(itemsExtended))
+  const res = await c.get('db').select().from(itemsExtended)
+  return c.json(res)
 })
 
 app.post(
@@ -41,7 +41,7 @@ app.post(
   injectDB,
   async (c) => {
     const body = c.req.valid('json')
-    const response = (
+    const res = (
       await c
         .get('db')
         .insert(items)
@@ -53,7 +53,7 @@ app.post(
         .returning()
     )[0]
     await c.get('db').refreshMaterializedView(itemsExtended)
-    return c.json(response)
+    return c.json(res)
   }
 )
 
@@ -65,7 +65,7 @@ app.put(
   async (c) => {
     const params = c.req.valid('param')
     const body = c.req.valid('json')
-    const response = (
+    const res = (
       await c
         .get('db')
         .update(items)
@@ -77,7 +77,7 @@ app.put(
         .returning()
     )[0]
     await c.get('db').refreshMaterializedView(itemsExtended)
-    return c.json(response)
+    return c.json(res)
   }
 )
 
@@ -87,7 +87,7 @@ app.delete(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
-    const response = await c.get('db').transaction(async (tx) => {
+    const res = await c.get('db').transaction(async (tx) => {
       // Get the ids of outfits that have the item being deleted
       const outfitsToDelete = await tx
         .select({ outfitId: itemsToOutfits.outfitId })
@@ -108,7 +108,7 @@ app.delete(
       return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
     })
     await c.get('db').refreshMaterializedView(itemsExtended)
-    return c.json(response)
+    return c.json(res)
   }
 )
 

@@ -33,7 +33,7 @@ const selectOutfitSchema = createSelectSchema(outfits, {
 })
 
 app.get('/', injectDB, async (c) => {
-  const response = await c.get('db').query.outfits.findMany({
+  const res = await c.get('db').query.outfits.findMany({
     with: {
       itemsToOutfits: {
         columns: {
@@ -48,13 +48,12 @@ app.get('/', injectDB, async (c) => {
     },
     orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
   })
-  await c.get('db').refreshMaterializedView(itemsExtended)
-  return c.json(response)
+  return c.json(res)
 })
 
 app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
   const body = c.req.valid('json')
-  const response = await c.get('db').transaction(async (tx) => {
+  const res = await c.get('db').transaction(async (tx) => {
     // Create outfit
     const newOutfit = (
       await tx
@@ -79,7 +78,7 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
     return newOutfit
   })
   await c.get('db').refreshMaterializedView(itemsExtended)
-  return c.json(response)
+  return c.json(res)
 })
 
 app.put(
@@ -90,7 +89,7 @@ app.put(
   async (c) => {
     const params = c.req.valid('param')
     const { itemIdsTypes, ...body } = c.req.valid('json')
-    const response = await c.get('db').transaction(async (tx) => {
+    const res = await c.get('db').transaction(async (tx) => {
       // Update outfit
       const updatedOutfit = (
         await tx
@@ -118,7 +117,7 @@ app.put(
       return updatedOutfit
     })
     await c.get('db').refreshMaterializedView(itemsExtended)
-    return c.json(response)
+    return c.json(res)
   }
 )
 
@@ -128,11 +127,9 @@ app.delete(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
-    const response = (
-      await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning()
-    )[0]
+    const res = (await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning())[0]
     await c.get('db').refreshMaterializedView(itemsExtended)
-    return c.json(response)
+    return c.json(res)
   }
 )
 
