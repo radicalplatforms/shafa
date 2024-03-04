@@ -12,8 +12,15 @@ app.onError((err, c) => {
   return c.text('Internal Service Error', 500)
 })
 
-app.use('*', logger())
-app.use('*', prettyJSON())
+app.use('*', logger(), async (c, next) => {
+  c.header('X-Logger-Middleware', 'Executed');
+  await next()
+})
+
+app.use('*', prettyJSON(), async (c, next) => {
+  c.header('X-PrettyJson-Middleware', 'Executed');
+  await next()
+})
 
 app.get('/', async (c) => {
   return c.text(`Shafa API v${version}`)

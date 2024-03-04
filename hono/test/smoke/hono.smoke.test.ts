@@ -20,9 +20,11 @@ describe('[Smoke] Hono: ensure hono is functioning as expected', () => {
     expect(await res.text()).toEqual('404 Not Found')
   })
 
-  test('GET /: should return api version', async () => {
+  test('GET /: should return api version with correct headers', async () => {
     const res = await app.request('/')
     expect(res.status).toBe(200)
+    expect(res.headers.get('X-Logger-Middleware')).toEqual('Executed');
+    expect(res.headers.get('X-PrettyJSON-Middleware')).toEqual('Executed');
     expect(await res.text()).toEqual(`Shafa API v${version}`)
   })
 })
