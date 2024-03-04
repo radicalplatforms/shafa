@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import { itemTypeEnum, itemsToOutfits } from '../../../src/schema'
+import { itemTypeEnum, itemsExtended, itemsToOutfits } from '../../../src/schema'
 import { instance } from '../db'
 import type { ItemType } from './items'
 
@@ -23,6 +23,7 @@ export class ItemToOutfitFactory implements ItemToOutfit {
   async store(name: string, port: number) {
     const db = instance(name, port)
     await db.insert(itemsToOutfits).values(this).onConflictDoNothing()
+    await db.refreshMaterializedView(itemsExtended)
   }
 
   itemId: string
