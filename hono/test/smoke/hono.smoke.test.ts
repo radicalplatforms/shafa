@@ -13,7 +13,13 @@ import app from '../../src/index'
  * output, this is a trivial test.
  */
 
-describe('[Smoke] Hono: ensure hono is functioning', () => {
+describe('[Smoke] Hono: ensure hono is functioning as expected', () => {
+  test('GET /: should be invalid request', async () => {
+    const res = await app.request('')
+    expect(res.status).toBe(500)
+    expect(await res.text()).toEqual('Internal Service Error')
+  })
+
   test('GET /: should return api version', async () => {
     const res = await app.request('/')
     expect(res.status).toBe(200)
