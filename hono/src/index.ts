@@ -13,12 +13,12 @@ app.onError((err, c) => {
 })
 
 app.use('*', logger(), async (c, next) => {
-  c.header('X-Logger-Middleware', 'Executed');
+  c.header('X-Logger-Middleware', 'Executed')
   await next()
 })
 
 app.use('*', prettyJSON(), async (c, next) => {
-  c.header('X-PrettyJson-Middleware', 'Executed');
+  c.header('X-PrettyJson-Middleware', 'Executed')
   await next()
 })
 
