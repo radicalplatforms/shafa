@@ -1,0 +1,23 @@
+name: PR Smart Comments
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  write_smart_comments:
+    name: Write Smart Comments
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+             **Pull Request Smart Comments**
+             *Assignee(s): Mark tasks as they are completed. Code Reviewer(s): Ensure all tasks are complete and follow best standards before approving.*
+             - [ ] Assigned at least one (1+) experienced code reviewer and notified them requesting a review
+             - [ ] Assigned all contributors as assignees
+             - [ ] Assigned relevant labels that are a subset or related to the parent issue's labels
+             - [ ] Checked that PR description contains a quick summary of work accomplished and uses issue [closing words](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
+             - [ ] Checked that completed tasks in related issue(s) are marked accordingly
+             - [ ] Checked that PR title is descriptive and follows [commit message semantics](https://gist.github.com/rak3rman/ddea632f1b006efff0ec613e55d59756)
