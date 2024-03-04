@@ -15,9 +15,9 @@ import app from '../../src/index'
 
 describe('[Smoke] Hono: ensure hono is functioning as expected', () => {
   test('GET /: should be invalid request', async () => {
-    const res = await app.request('')
-    expect(res.status).toBe(500)
-    expect(await res.text()).toEqual('Internal Service Error')
+    const res = await app.request('//')
+    expect(res.status).toBe(404)
+    expect(await res.text()).toEqual('404 Not Found')
   })
 
   test('GET /: should return api version', async () => {
