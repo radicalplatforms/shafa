@@ -48,7 +48,7 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
     .get('db')
     .select()
     .from(items)
-    .where(eq(items.authorUsername, 'rak3rman'))
+    // .where(eq(items.authorUsername, 'rak3rman')) TODO: replace with actual authorUsername
     .prepare('p1')
 
   const res = (await p1.execute()).slice(pageNumber, pageNumber + pageSize)
