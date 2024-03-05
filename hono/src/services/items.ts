@@ -44,7 +44,20 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
   const pageNumber: number = page ? +page : 0
   const pageSize: number = size ? +size : 25
 
-  return c.json(await c.get('db').select().from(items).limit(pageSize).offset(pageNumber))
+  const p1 = c
+    .get('db')
+    .select()
+    .from(items)
+    .where(eq(items.authorUsername, 'rak3rman'))
+    .prepare('p1')
+
+  const res = (await p1.execute()).slice(pageNumber, pageNumber + pageSize)
+  const total = (await p1.execute()).length
+
+  return c.json({
+    res,
+    total,
+  })
 })
 
 app.post(
