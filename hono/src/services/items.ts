@@ -1,4 +1,5 @@
 import { zValidator } from '@hono/zod-validator'
+import type { QueryResult } from '@neondatabase/serverless'
 import { isCuid } from '@paralleldrive/cuid2'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
@@ -63,7 +64,7 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
           FROM ${items}
           WHERE ${items.authorUsername} = 'jdoe'
         );
-    `)) as Record<string, any>
+    `)) as unknown as Record<number, QueryResult>
 
   return c.json({
     items: itemsData,
