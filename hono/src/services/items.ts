@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, inArray } from 'drizzle-orm'
+import { count, eq, inArray } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -27,13 +27,13 @@ const paginationValidation = z.object({
   page: z
     .string()
     .refine((val) => !isNaN(+val) && +val >= 0, {
-      message: 'Page must be a non-negative number',
+      message: 'Page number must be a non-negative number',
     })
     .optional(),
   size: z
     .string()
     .refine((val) => !isNaN(+val) && +val > 0, {
-      message: 'Size must be a positive number',
+      message: 'Page size must be a positive number',
     })
     .optional(),
 })
@@ -44,16 +44,25 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
   const pageNumber: number = page ? +page : 0
   const pageSize: number = size ? +size : 25
 
-  const p1 = c
+  const res = await c
     .get('db')
     .select()
     .from(items)
-    // .where(eq(items.authorUsername, 'rak3rman')) TODO: replace with actual authorUsername
-    .prepare('p1')
+    .where(eq(items.authorUsername, 'rak3rman'))
+    .limit(pageSize)
+    .offset(pageNumber)
+
+  const total = (
+    await c
+      .get('db')
+      .select({ total: count() })
+      .from(items)
+      .where(eq(items.authorUsername, 'rak3rman'))
+  )[0].total
 
   return c.json({
-    items: (await p1.execute()).slice(pageNumber, pageNumber + pageSize),
-    total: (await p1.execute()).length,
+    res,
+    total,
   })
 })
 
@@ -103,7 +112,7 @@ app.put(
           .update(items)
           .set({
             ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+            authorUsername: 'jdoe', // TODO: remove and replace with author integration
           })
           .where(eq(items.id, params.id))
           .returning()
