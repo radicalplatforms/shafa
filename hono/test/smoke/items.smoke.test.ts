@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Context } from 'hono'
+import type { JSONArray } from 'hono/utils/types'
 import postgres from 'postgres'
 import app from '../../src/index'
 import * as schema from '../../src/schema'
@@ -105,7 +106,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
 
   async function validateItemsGetter() {
     const res = await app.request('/api/items')
-    const responseBody = (await res.json()) as { items: Array<JSON>; total: number }
+    const responseBody = (await res.json()) as { items: JSONArray; total: number }
     expect(res.status).toBe(200)
     expect(responseBody.items).toEqual(testItems.map((item) => item.formatAPI()))
   }

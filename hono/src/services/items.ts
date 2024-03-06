@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { count, eq, inArray } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -48,17 +48,22 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
     .get('db')
     .select()
     .from(items)
-    .where(eq(items.authorUsername, 'rak3rman'))
+    .where(eq(items.authorUsername, 'jdoe'))
     .limit(pageSize)
     .offset(pageNumber)
 
-  const total = (
-    await c
-      .get('db')
-      .select({ total: count() })
-      .from(items)
-      .where(eq(items.authorUsername, 'rak3rman'))
-  )[0].total
+  const total = await c.get('db').execute(sql`
+      ANALYZE items;
+      
+      SELECT reltuples AS estimate
+      FROM pg_class
+      WHERE relname = 'items'
+        AND EXISTS (
+          SELECT 1 
+          FROM ${items}
+          WHERE ${items.authorUsername} = 'jdoe'
+        );
+    `)
 
   return c.json({
     res,
@@ -87,7 +92,7 @@ app.post(
           .insert(items)
           .values({
             ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+            authorUsername: 'jdoe', // TODO: remove and replace with author integration
           })
           .onConflictDoNothing()
           .returning()
