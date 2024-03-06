@@ -69,7 +69,7 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
 
   return c.json({
     items: itemsData,
-    total: estimate?.rows.length > 0 ? estimate.rows[0].estimate : 0,
+    total: estimate?.rows?.[0]?.estimate !== undefined ? estimate.rows[0].estimate : 0,
   })
 })
 
