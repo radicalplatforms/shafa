@@ -44,7 +44,7 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
   const pageNumber: number = page ? +page : 0
   const pageSize: number = size ? +size : 25
 
-  const res = await c
+  const itemsData = await c
     .get('db')
     .select()
     .from(items)
@@ -52,7 +52,7 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
     .limit(pageSize)
     .offset(pageNumber)
 
-  const estimate = await c.get('db').execute(sql`
+  const estimate = (await c.get('db').execute(sql`
       ANALYZE items;
       
       SELECT reltuples AS estimate
@@ -63,13 +63,11 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
           FROM ${items}
           WHERE ${items.authorUsername} = 'jdoe'
         );
-    `)
-
-  const total = estimate[1].rows[0].estimate
+    `)) as Record<string, any>
 
   return c.json({
-    res,
-    total,
+    items: itemsData,
+    total: estimate[1].rows[0].estimate,
   })
 })
 
