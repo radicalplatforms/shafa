@@ -52,7 +52,7 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
     .limit(pageSize)
     .offset(pageNumber)
 
-  const total = await c.get('db').execute(sql`
+  const estimate = await c.get('db').execute(sql`
       ANALYZE items;
       
       SELECT reltuples AS estimate
@@ -64,6 +64,8 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
           WHERE ${items.authorUsername} = 'jdoe'
         );
     `)
+
+  const total = estimate[1].rows[0].estimate
 
   return c.json({
     res,

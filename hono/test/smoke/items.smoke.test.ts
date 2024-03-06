@@ -106,7 +106,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
 
   async function validateItemsGetter() {
     const res = await app.request('/api/items')
-    const responseBody = (await res.json()) as { items: JSONArray; total: number }
+    const responseBody = (await res.json()) as { items: Array<any>; total: number }
     expect(res.status).toBe(200)
     expect(responseBody.items).toEqual(testItems.map((item) => item.formatAPI()))
   }
