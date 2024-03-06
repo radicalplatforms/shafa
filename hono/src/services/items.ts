@@ -1,5 +1,4 @@
 import { zValidator } from '@hono/zod-validator'
-import type { QueryResult } from '@neondatabase/serverless'
 import { isCuid } from '@paralleldrive/cuid2'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
@@ -53,9 +52,11 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
     .limit(pageSize)
     .offset(pageNumber)
 
-  const estimate = (await c.get('db').execute(sql`
+  await c.get('db').execute(sql`
       ANALYZE items;
-      
+    `)
+
+  const estimate = await c.get('db').execute(sql`
       SELECT reltuples AS estimate
       FROM pg_class
       WHERE relname = 'items'
@@ -64,11 +65,11 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
           FROM ${items}
           WHERE ${items.authorUsername} = 'jdoe'
         );
-    `)) as unknown as Record<number, QueryResult>
+    `)
 
   return c.json({
     items: itemsData,
-    total: estimate[1].rows[0].estimate,
+    total: estimate.rows[0].estimate || 0,
   })
 })
 
