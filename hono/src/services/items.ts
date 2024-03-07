@@ -52,10 +52,6 @@ app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
     .limit(pageSize)
     .offset(pageNumber)
 
-  await c.get('db').execute(sql`
-      ANALYZE items;
-    `)
-
   const estimate = await c.get('db').execute(sql`
       SELECT reltuples AS estimate
       FROM pg_class
