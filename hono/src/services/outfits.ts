@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -32,24 +32,60 @@ const selectOutfitSchema = createSelectSchema(outfits, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
-app.get('/', injectDB, async (c) => {
-  return c.json(
-    await c.get('db').query.outfits.findMany({
-      with: {
-        itemsToOutfits: {
-          columns: {
-            itemId: false,
-            outfitId: false,
-          },
-          with: {
-            item: true,
-          },
-          orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
-        },
-      },
-      orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+const paginationValidationOutfits = z.object({
+  page: z
+    .string()
+    .refine((val) => !isNaN(+val) && +val >= 0, {
+      message: 'Page number must be a non-negative number',
     })
-  )
+    .optional(),
+  size: z
+    .string()
+    .refine((val) => !isNaN(+val) && +val > 0, {
+      message: 'Page size must be a positive number',
+    })
+    .optional(),
+})
+
+app.get('/', zValidator('query', paginationValidationOutfits), injectDB, async (c) => {
+  const { page, size } = c.req.query()
+
+  const pageNumber: number = page ? +page : 0
+  const pageSize: number = size ? +size : 25
+
+  const outfitsData = await c.get('db').query.outfits.findMany({
+    with: {
+      itemsToOutfits: {
+        columns: {
+          itemId: false,
+          outfitId: false,
+        },
+        with: {
+          item: true,
+        },
+        orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
+      },
+    },
+    orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+    offset: pageNumber,
+    limit: pageSize,
+  })
+
+  const estimate = await c.get('db').execute(sql`
+      SELECT reltuples AS estimate
+      FROM pg_class
+      WHERE relname = 'outfits'
+        AND EXISTS (
+          SELECT 1 
+          FROM ${outfits}
+          WHERE ${outfits.authorUsername} = 'jdoe'
+        );
+    `)
+
+  return c.json({
+    outfits: outfitsData,
+    total: estimate?.rows?.[0]?.estimate !== undefined ? estimate.rows[0].estimate : 0,
+  })
 })
 
 app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
