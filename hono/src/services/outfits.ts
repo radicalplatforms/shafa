@@ -36,13 +36,13 @@ const paginationValidationOutfits = z.object({
   page: z
     .string()
     .refine((val) => !isNaN(+val) && +val >= 0, {
-      message: 'Page number must be a non-negative number',
+      message: 'Outfits page number must be a non-negative number',
     })
     .optional(),
   size: z
     .string()
     .refine((val) => !isNaN(+val) && +val > 0, {
-      message: 'Page size must be a positive number',
+      message: 'Outfits page size must be a positive number',
     })
     .optional(),
 })
@@ -51,7 +51,7 @@ app.get('/', zValidator('query', paginationValidationOutfits), injectDB, async (
   const { page, size } = c.req.query()
 
   const pageNumber: number = page ? +page : 0
-  const pageSize: number = size ? +size : 25
+  const pageSize: number = size ? +size : 10
 
   const outfitsData = await c.get('db').query.outfits.findMany({
     with: {

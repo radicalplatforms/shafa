@@ -53,7 +53,7 @@ describe('[Smoke] Outfits: No Seeding', () => {
   test('GET /outfits: should return no outfits', async () => {
     const res = await app.request('/api/outfits')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual([])
+    expect(await res.json()).toEqual({ outfits: [], total: 0 })
   })
 
   // NOTE: No additional testing here since POST /api/outfits requires items
@@ -76,7 +76,8 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
   test('GET /outfits: should return 1 seeded outfit with items', async () => {
     const res = await app.request('/api/outfits')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual(
+    const resJSON = (await res.json()) as { outfits: OutfitAPI[]; total: number }
+    expect(resJSON.outfits).toEqual(
       testOutfits.map((outfit) => ({
         ...outfit.formatAPI(),
         itemsToOutfits: testItemsToOutfits
