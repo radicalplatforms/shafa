@@ -23,22 +23,22 @@ const selectItemSchema = createSelectSchema(items, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
-const paginationValidation = z.object({
+const paginationValidationItems = z.object({
   page: z
     .string()
     .refine((val) => !isNaN(+val) && +val >= 0, {
-      message: 'Page number must be a non-negative number',
+      message: 'Items page number must be a non-negative number',
     })
     .optional(),
   size: z
     .string()
     .refine((val) => !isNaN(+val) && +val > 0, {
-      message: 'Page size must be a positive number',
+      message: 'Items page size must be a positive number',
     })
     .optional(),
 })
 
-app.get('/', zValidator('query', paginationValidation), injectDB, async (c) => {
+app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c) => {
   const { page, size } = c.req.query()
 
   const pageNumber: number = page ? +page : 0
