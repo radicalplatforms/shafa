@@ -1,135 +1,228 @@
 {
   "openapi": "3.0.0",
-  "info": {
-    "title": "Fashion App API",
-    "version": "1.0.0",
-    "description": "API for managing fashion items and outfits"
-  },
-  "servers": [
-    {
-      "url": "http://localhost:3000",
-      "description": "Local development server"
+  "info": { "version": "1.0.0", "title": "My API", "description": "This is the API" },
+  "servers": [{ "url": "http://127.0.0.1:8787/api/v1" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": { "ItemId": { "type": "string", "example": "1212121" } },
+    "parameters": {
+      "ItemId": {
+        "schema": { "$ref": "#/components/schemas/ItemId" },
+        "required": true,
+        "name": "id",
+        "in": "path"
+      }
     }
-  ],
+  },
   "paths": {
     "/items": {
       "get": {
-        "summary": "List all items",
+        "description": "return all items",
+        "summary": "get items",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "A list of items",
+            "description": "Object with user data.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Item"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
                 }
               }
             }
-          }
+          },
+          "204": { "description": "No content - successful operation" }
         }
       },
       "post": {
-        "summary": "Create a new item",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Item"
+        "description": "post all items",
+        "summary": "post items",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Object with user data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
+                }
               }
             }
-          }
-        },
+          },
+          "204": { "description": "No content - successful operation" }
+        }
+      },
+      "put": {
+        "description": "put all items",
+        "summary": "put items",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/ItemId" }],
         "responses": {
-          "201": {
-            "description": "Item created"
-          }
+          "200": {
+            "description": "Object with user data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
+                }
+              }
+            }
+          },
+          "204": { "description": "No content - successful operation" }
+        }
+      },
+      "delete": {
+        "description": "delete all items",
+        "summary": "delete items",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/ItemId" }],
+        "responses": {
+          "200": {
+            "description": "Object with user data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
+                }
+              }
+            }
+          },
+          "204": { "description": "No content - successful operation" }
         }
       }
     },
     "/outfits": {
       "get": {
-        "summary": "List all outfits",
+        "description": "return all outfits",
+        "summary": "get outfits",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "A list of outfits",
+            "description": "Object with user data.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Outfit"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
                 }
               }
             }
-          }
+          },
+          "204": { "description": "No content - successful operation" }
         }
       },
       "post": {
-        "summary": "Create a new outfit",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Outfit"
+        "description": "post all outfits",
+        "summary": "get items",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Object with user data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
+                }
               }
             }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Outfit created"
-          }
+          },
+          "204": { "description": "No content - successful operation" }
         }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "Item": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          }
-        },
-        "required": ["name", "type"]
       },
-      "Outfit": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "itemIds": {
-            "type": "array",
-            "items": {
-              "type": "integer"
+      "put": {
+        "description": "put all items",
+        "summary": "put items",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/ItemId" }],
+        "responses": {
+          "200": {
+            "description": "Object with user data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
+                }
+              }
             }
           },
-          "rating": {
-            "type": "integer",
-            "format": "int32"
+          "204": { "description": "No content - successful operation" }
+        }
+      },
+      "delete": {
+        "description": "delete all items",
+        "summary": "delete items",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/ItemId" }],
+        "responses": {
+          "200": {
+            "description": "Object with user data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["name", "type"]
+                }
+              }
+            }
           },
-          "authorUsername": {
-            "type": "string"
-          }
-        },
-        "required": ["itemIds", "authorUsername"]
+          "204": { "description": "No content - successful operation" }
+        }
       }
     }
   }

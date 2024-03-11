@@ -4,7 +4,6 @@ import {
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
 } from '@asteasolutions/zod-to-openapi'
-import * as yaml from 'yaml'
 import { z } from 'zod'
 
 extendZodWithOpenApi(z)
@@ -20,7 +19,7 @@ const ItemIdSchema = registry.registerParameter(
     },
     example: '1212121',
   })
-);
+)
 
 const ItemIdSchemaDel = registry.registerParameter(
   'ItemId',
@@ -31,7 +30,7 @@ const ItemIdSchemaDel = registry.registerParameter(
     },
     example: '1212121',
   })
-);
+)
 
 const OutfitIdSchema = registry.registerParameter(
   'ItemId',
@@ -42,7 +41,7 @@ const OutfitIdSchema = registry.registerParameter(
     },
     example: '1212121',
   })
-);
+)
 
 const OutfitIdSchemaDel = registry.registerParameter(
   'ItemId',
@@ -53,8 +52,7 @@ const OutfitIdSchemaDel = registry.registerParameter(
     },
     example: '1212121',
   })
-);
-
+)
 
 // Correcting schema definitions and registrations:
 const ItemSchema = z.object({
@@ -62,15 +60,14 @@ const ItemSchema = z.object({
   name: z.string(),
   type: z.string(),
   description: z.string().optional(),
-});
+})
 
 const OutfitSchema = z.object({
   id: z.number().int().optional(), // Making ID optional for creation
   itemIds: z.array(z.number().int()),
   rating: z.number().int().optional(),
   authorUsername: z.string(),
-});
-
+})
 
 const bearerAuth = registry.registerComponent('securitySchemes', 'bearerAuth', {
   type: 'http',
@@ -189,7 +186,7 @@ registry.registerPath({
       description: 'Object with user data.',
       content: {
         'application/json': {
-          schema: ItemSchema,
+          schema: OutfitSchema,
         },
       },
     },
@@ -215,7 +212,7 @@ registry.registerPath({
       description: 'Object with user data.',
       content: {
         'application/json': {
-          schema: ItemSchema,
+          schema: OutfitSchema,
         },
       },
     },
@@ -239,7 +236,7 @@ registry.registerPath({
       description: 'Object with user data.',
       content: {
         'application/json': {
-          schema: ItemSchema,
+          schema: OutfitSchema,
         },
       },
     },
@@ -263,7 +260,7 @@ registry.registerPath({
       description: 'Object with user data.',
       content: {
         'application/json': {
-          schema: ItemSchema,
+          schema: OutfitSchema,
         },
       },
     },
@@ -291,10 +288,10 @@ export default async function writeDocumentation() {
   const docs = await getOpenApiDocumentation()
   const fileContent = JSON.stringify(docs)
   try {
-    fs.writeFileSync('docs/swagger1.json', fileContent, {
+    fs.writeFileSync('docs/swagger.json', fileContent, {
       encoding: 'utf-8',
     })
-    console.log('Documentation written to swagger1.json')
+    console.log('Documentation written to swagger.json')
   } catch (error) {
     console.error('Error writing documentation:', error)
   }
