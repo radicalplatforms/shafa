@@ -5,26 +5,25 @@ on:
     branches: main
 
 env:
-  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+  PROD_NEON_DATABASE_URL: ${{ secrets.PROD_NEON_DATABASE_URL }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
 jobs:
   cf_deploy_hono_prod:
     name: Deploy Hono to Prod
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        node: [ 18 ]
+    environment:
+      name: production
+      url: https://api.shafa.app
 
     steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
       - name: Install Dependencies
         run: npm ci
@@ -36,14 +35,14 @@ jobs:
 
       - name: Run Migrations
         env:
-          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
+          DATABASE_URL: ${{ env.PROD_NEON_DATABASE_URL }}
         run: npm run migrate
         working-directory: hono
 
       - name: Deploy Hono
         uses: cloudflare/wrangler-action@v3
         env:
-          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
+          DATABASE_URL: ${{ env.PROD_NEON_DATABASE_URL }}
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: deploy --env production

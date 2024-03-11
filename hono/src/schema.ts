@@ -42,7 +42,7 @@ export const outfits = pgTable('outfits', {
     .$defaultFn(() => createId())
     .primaryKey(),
   rating: smallint('rating').notNull(),
-  wearDate: date('wear_date').notNull().defaultNow(),
+  wearDate: date('wear_date', { mode: 'date' }).notNull().defaultNow(),
   authorUsername: text('author_username').notNull(),
 })
 
@@ -58,10 +58,10 @@ export const itemsToOutfits = pgTable(
   {
     itemId: text('item_id')
       .notNull()
-      .references(() => items.id),
+      .references(() => items.id, { onDelete: 'cascade' }),
     outfitId: text('outfit_id')
       .notNull()
-      .references(() => outfits.id),
+      .references(() => outfits.id, { onDelete: 'cascade' }),
     itemType: itemTypeEnumPg('item_type').notNull(),
   },
   (table) => {

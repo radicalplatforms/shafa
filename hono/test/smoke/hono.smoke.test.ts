@@ -13,10 +13,18 @@ import app from '../../src/index'
  * output, this is a trivial test.
  */
 
-describe('[Smoke] Hono: ensure hono is functioning', () => {
-  test('GET /: should return api version', async () => {
+describe('[Smoke] Hono: ensure hono is functioning as expected', () => {
+  test('GET /: should be invalid request', async () => {
+    const res = await app.request('//')
+    expect(res.status).toBe(404)
+    expect(await res.text()).toEqual('404 Not Found')
+  })
+
+  test('GET /: should return api version with correct headers', async () => {
     const res = await app.request('/')
     expect(res.status).toBe(200)
+    expect(res.headers.get('X-Logger-Middleware')).toEqual('Executed')
+    expect(res.headers.get('X-PrettyJSON-Middleware')).toEqual('Executed')
     expect(await res.text()).toEqual(`Shafa API v${version}`)
   })
 })
