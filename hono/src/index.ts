@@ -5,7 +5,6 @@ import { version } from '../package.json'
 import items from './services/items'
 import outfits from './services/outfits'
 import swagger from './services/swagger'
-import writeDocumentation from './utils/swaggerSchema'
 
 const app = new Hono()
 
@@ -16,8 +15,6 @@ app.onError((err, c) => {
 
 app.use('*', logger())
 app.use('*', prettyJSON())
-// app.use('*', writeDocumentation())
-await writeDocumentation()
 
 app.get('/', async (c) => {
   return c.text(`Shafa API v${version}`)
