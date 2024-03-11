@@ -1,9 +1,9 @@
 import { SwaggerUI } from '@hono/swagger-ui'
 import { Hono } from 'hono'
 import swaggerJson from '../../docs/swagger.json'
-import type { Bindings, Variables } from '../utils/injectDB'
+import type { Variables } from '../utils/inject-db'
 
-const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+const app = new Hono<{ Variables: Variables }>()
 
 app.get('/doc', (c) => {
   return c.json(swaggerJson)
