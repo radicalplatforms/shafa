@@ -42,15 +42,17 @@ app.post(
     const body = c.req.valid('json')
 
     return c.json(
-      await c
-        .get('db')
-        .insert(items)
-        .values({
-          ...body,
-          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-        })
-        .onConflictDoNothing()
-        .returning()
+      (
+        await c
+          .get('db')
+          .insert(items)
+          .values({
+            ...body,
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+          })
+          .onConflictDoNothing()
+          .returning()
+      )[0]
     )
   }
 )
@@ -65,15 +67,17 @@ app.put(
     const body = c.req.valid('json')
 
     return c.json(
-      await c
-        .get('db')
-        .update(items)
-        .set({
-          ...body,
-          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-        })
-        .where(eq(items.id, params.id))
-        .returning()
+      (
+        await c
+          .get('db')
+          .update(items)
+          .set({
+            ...body,
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+          })
+          .where(eq(items.id, params.id))
+          .returning()
+      )[0]
     )
   }
 )
@@ -104,7 +108,7 @@ app.delete(
         }
 
         // Delete the specified item
-        return tx.delete(items).where(eq(items.id, params.id)).returning()
+        return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
       })
     )
   }
