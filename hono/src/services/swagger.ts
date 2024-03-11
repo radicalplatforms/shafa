@@ -1,14 +1,13 @@
-import { SwaggerUI } from '@hono/swagger-ui';
-import { Hono } from 'hono';
+import { SwaggerUI } from '@hono/swagger-ui'
+import { Hono } from 'hono'
 import type { Bindings, Variables } from '../utils/injectDB'
-import swaggerJson from '../../docs/swagger.json'
-
+import swaggerJson from '../../docs/swagger1.json'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 app.get('/doc', (c) => {
-  return c.json(swaggerJson);
-});
+  return c.json(swaggerJson)
+})
 
 app.get('/', (c) => {
   return c.html(`
@@ -26,10 +25,10 @@ app.get('/', (c) => {
         </style>
       </head>
       <body>
-        ${SwaggerUI({ spec: swaggerJson, url: '/doc'})}
+        ${SwaggerUI({ spec: swaggerJson, url: '/doc' })}
       </body>
     </html>
-  `);
-});
+  `)
+})
 
-export default app;
+export default app

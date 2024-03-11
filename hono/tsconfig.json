@@ -14,8 +14,8 @@
   },
   "ts-node": {
     "compilerOptions": {
-      "module": "commonjs"
-    }
+      "module": "commonjs",
+    },
   },
   "include": ["src/**/*", "test/**/*", ".eslintrc.js", "jest.config.js", "migrate.ts"],
 }
