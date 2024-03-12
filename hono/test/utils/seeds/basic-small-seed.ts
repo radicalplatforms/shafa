@@ -11,12 +11,12 @@ export default async function (
   const outfits: OutfitFactory[] = []
   const items_to_outfits: ItemToOutfitFactory[] = []
 
-  // Insert 5 items for user jdoe
+  // Insert 5 items for user rak3rman
   for (let i = 0; i < 5; i++) {
     // Create item and push to db
     items[i] = new ItemFactory(i, {
       type: itemTypeEnum[i % 5] as ItemType,
-      authorUsername: 'jdoe',
+      authorUsername: 'rak3rman',
     })
     await items[i].store(db_name, db_port)
   }
@@ -25,7 +25,7 @@ export default async function (
   for (let i = 0; i < 1; i++) {
     // Create outfit and push to db
     outfits[i] = new OutfitFactory(i, {
-      authorUsername: 'jdoe',
+      authorUsername: 'rak3rman',
     })
     await outfits[i].store(db_name, db_port)
     // Add 5 items to outfit

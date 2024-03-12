@@ -48,7 +48,7 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     .get('db')
     .select()
     .from(items)
-    .where(eq(items.authorUsername, 'jdoe'))
+    .where(eq(items.authorUsername, 'rak3rman'))
     .limit(pageSize)
     .offset(pageNumber)
 
@@ -59,7 +59,7 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
         AND EXISTS (
           SELECT 1 
           FROM ${items}
-          WHERE ${items.authorUsername} = 'jdoe'
+          WHERE ${items.authorUsername} = 'rak3rman'
         );
     `)
 
@@ -90,7 +90,7 @@ app.post(
           .insert(items)
           .values({
             ...body,
-            authorUsername: 'jdoe', // TODO: remove and replace with author integration
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
           })
           .onConflictDoNothing()
           .returning()
@@ -115,7 +115,7 @@ app.put(
           .update(items)
           .set({
             ...body,
-            authorUsername: 'jdoe', // TODO: remove and replace with author integration
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
           })
           .where(eq(items.id, params.id))
           .returning()

@@ -63,7 +63,7 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
           .insert(outfits)
           .values({
             ...body,
-            authorUsername: 'jdoe', // TODO: remove and replace with author integration
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
           })
           .onConflictDoNothing()
           .returning()
@@ -100,7 +100,7 @@ app.put(
             .update(outfits)
             .set({
               ...body,
-              authorUsername: 'jdoe', // TODO: remove and replace with author integration
+              authorUsername: 'rak3rman', // TODO: remove and replace with author integration
             })
             .where(eq(outfits.id, params.id))
             .returning()
