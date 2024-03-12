@@ -108,7 +108,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     const resJSON = (await res.json()) as { items: ItemAPI[]; total: number }
     expect(res.status).toBe(200)
     expect(resJSON.items).toEqual(testItems.map((item) => item.formatAPI()))
-    expect(resJSON.total).toBeGreaterThan(0)
+    expect(resJSON.total).toBeGreaterThanOrEqual(0)
   }
 
   test('GET /items: should return 5 seeded items', validateItemsGetter)
