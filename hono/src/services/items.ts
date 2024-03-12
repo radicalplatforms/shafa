@@ -82,20 +82,23 @@ app.post(
   injectDB,
   async (c) => {
     const body = c.req.valid('json')
+    const res = (
+      await c
+        .get('db')
+        .insert(items)
+        .values({
+          ...body,
+          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+        })
+        .onConflictDoNothing()
+        .returning()
+    )[0]
 
-    return c.json(
-      (
-        await c
-          .get('db')
-          .insert(items)
-          .values({
-            ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-          })
-          .onConflictDoNothing()
-          .returning()
-      )[0]
-    )
+    await c.get('db').execute(sql`
+      ANALYZE items;
+    `)
+
+    return c.json(res)
   }
 )
 
@@ -130,29 +133,32 @@ app.delete(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
+    const res = await c.get('db').transaction(async (tx) => {
+      // Get the ids of outfits that have the item being deleted
+      const outfitsToDelete = await tx
+        .select({ outfitId: itemsToOutfits.outfitId })
+        .from(itemsToOutfits)
+        .where(eq(itemsToOutfits.itemId, params.id))
 
-    return c.json(
-      await c.get('db').transaction(async (tx) => {
-        // Get the ids of outfits that have the item being deleted
-        const outfitsToDelete = await tx
-          .select({ outfitId: itemsToOutfits.outfitId })
-          .from(itemsToOutfits)
-          .where(eq(itemsToOutfits.itemId, params.id))
-
-        // Delete outfits by ids
-        if (outfitsToDelete.length) {
-          await tx.delete(outfits).where(
-            inArray(
-              outfits.id,
-              outfitsToDelete.map((e: { outfitId: string }) => e.outfitId)
-            )
+      // Delete outfits by ids
+      if (outfitsToDelete.length) {
+        await tx.delete(outfits).where(
+          inArray(
+            outfits.id,
+            outfitsToDelete.map((e: { outfitId: string }) => e.outfitId)
           )
-        }
+        )
+      }
 
-        // Delete the specified item
-        return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
-      })
-    )
+      // Delete the specified item
+      return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
+    })
+
+    await c.get('db').execute(sql`
+      ANALYZE items;
+    `)
+
+    return c.json(res)
   }
 )
 
