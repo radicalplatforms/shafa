@@ -105,7 +105,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
 
   async function validateItemsGetter() {
     const res = await app.request('/api/items')
-    const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: true }
+    const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: boolean }
     expect(res.status).toBe(200)
     expect(resJSON.items).toEqual(testItems.map((item) => item.formatAPI()))
     expect(resJSON.last_page).toEqual(true)

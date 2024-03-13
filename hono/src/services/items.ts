@@ -50,7 +50,7 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     .from(items)
     .where(eq(items.authorUsername, 'rak3rman'))
     .limit(pageSize + 1)
-    .offset(pageNumber)
+    .offset(pageNumber * pageSize)
 
   const last_page = !(itemsData.length > pageSize)
   if (!last_page) itemsData.pop()
