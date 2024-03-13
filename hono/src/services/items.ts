@@ -122,7 +122,7 @@ app.delete(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
-    
+
     return c.json(
       await c.get('db').transaction(async (tx) => {
         // Get the ids of outfits that have the item being deleted
