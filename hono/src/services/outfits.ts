@@ -32,24 +32,52 @@ const selectOutfitSchema = createSelectSchema(outfits, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
-app.get('/', injectDB, async (c) => {
-  return c.json(
-    await c.get('db').query.outfits.findMany({
-      with: {
-        itemsToOutfits: {
-          columns: {
-            itemId: false,
-            outfitId: false,
-          },
-          with: {
-            item: true,
-          },
-          orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
-        },
-      },
-      orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+const paginationValidationOutfits = z.object({
+  page: z
+    .string()
+    .refine((val) => !isNaN(+val) && +val >= 0, {
+      message: 'Outfits page number must be a non-negative number',
     })
-  )
+    .optional(),
+  size: z
+    .string()
+    .refine((val) => !isNaN(+val) && +val > 0 && +val <= 100, {
+      message: 'Outfits page size must be a positive number and less than or equal to 100',
+    })
+    .optional(),
+})
+
+app.get('/', zValidator('query', paginationValidationOutfits), injectDB, async (c) => {
+  const { page, size } = c.req.query()
+
+  const pageNumber: number = page ? +page : 0
+  const pageSize: number = size ? +size : 10
+
+  const outfitsData = await c.get('db').query.outfits.findMany({
+    with: {
+      itemsToOutfits: {
+        columns: {
+          itemId: false,
+          outfitId: false,
+        },
+        with: {
+          item: true,
+        },
+        orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
+      },
+    },
+    orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+    offset: pageNumber * pageSize,
+    limit: pageSize + 1,
+  })
+
+  const last_page = !(outfitsData.length > pageSize)
+  if (!last_page) outfitsData.pop()
+
+  return c.json({
+    outfits: outfitsData,
+    last_page: last_page,
+  })
 })
 
 app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
