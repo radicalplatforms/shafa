@@ -41,8 +41,8 @@ const paginationValidationOutfits = z.object({
     .optional(),
   size: z
     .string()
-    .refine((val) => !isNaN(+val) && +val > 0, {
-      message: 'Outfits page size must be a positive number',
+    .refine((val) => !isNaN(+val) && +val > 0 && +val < 100, {
+      message: 'Outfits page size must be a positive number and less than 100',
     })
     .optional(),
 })
@@ -68,23 +68,15 @@ app.get('/', zValidator('query', paginationValidationOutfits), injectDB, async (
     },
     orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
     offset: pageNumber,
-    limit: pageSize,
+    limit: pageSize + 1,
   })
 
-  const estimate = await c.get('db').execute(sql`
-      SELECT reltuples AS estimate
-      FROM pg_class
-      WHERE relname = 'outfits'
-        AND EXISTS (
-          SELECT 1 
-          FROM ${outfits}
-          WHERE ${outfits.authorUsername} = 'jdoe'
-        );
-    `)
+  const last_page = !(outfitsData.length > pageSize)
+  if (!last_page) outfitsData.pop()
 
   return c.json({
     outfits: outfitsData,
-    total: estimate?.rows?.[0]?.estimate !== undefined ? estimate.rows[0].estimate : 0,
+    last_page: last_page,
   })
 })
 
