@@ -67,7 +67,7 @@ app.get('/', zValidator('query', paginationValidationOutfits), injectDB, async (
       },
     },
     orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
-    offset: pageNumber,
+    offset: pageNumber * pageSize,
     limit: pageSize + 1,
   })
 
