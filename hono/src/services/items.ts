@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, inArray, sql } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -32,7 +32,7 @@ const paginationValidationItems = z.object({
     .optional(),
   size: z
     .string()
-    .refine((val) => !isNaN(+val) && +val > 0, {
+    .refine((val) => !isNaN(+val) && +val > 0 && +val, {
       message: 'Items page size must be a positive number',
     })
     .optional(),
@@ -49,23 +49,15 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     .select()
     .from(items)
     .where(eq(items.authorUsername, 'rak3rman'))
-    .limit(pageSize)
+    .limit(pageSize + 1)
     .offset(pageNumber)
 
-  const estimate = await c.get('db').execute(sql`
-      SELECT reltuples AS estimate
-      FROM pg_class
-      WHERE relname = 'items'
-        AND EXISTS (
-          SELECT 1 
-          FROM ${items}
-          WHERE ${items.authorUsername} = 'rak3rman'
-        );
-    `)
+  const last_page = !(itemsData.length > pageSize)
+  if (!last_page) itemsData.pop()
 
   return c.json({
     items: itemsData,
-    total: estimate?.rows?.[0]?.estimate !== undefined ? estimate.rows[0].estimate : 0,
+    last_page: last_page,
   })
 })
 
@@ -82,23 +74,20 @@ app.post(
   injectDB,
   async (c) => {
     const body = c.req.valid('json')
-    const res = (
-      await c
-        .get('db')
-        .insert(items)
-        .values({
-          ...body,
-          authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-        })
-        .onConflictDoNothing()
-        .returning()
-    )[0]
 
-    await c.get('db').execute(sql`
-      ANALYZE items;
-    `)
-
-    return c.json(res)
+    return c.json(
+      (
+        await c
+          .get('db')
+          .insert(items)
+          .values({
+            ...body,
+            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+          })
+          .onConflictDoNothing()
+          .returning()
+      )[0]
+    )
   }
 )
 
@@ -133,32 +122,28 @@ app.delete(
   injectDB,
   async (c) => {
     const params = c.req.valid('param')
-    const res = await c.get('db').transaction(async (tx) => {
-      // Get the ids of outfits that have the item being deleted
-      const outfitsToDelete = await tx
-        .select({ outfitId: itemsToOutfits.outfitId })
-        .from(itemsToOutfits)
-        .where(eq(itemsToOutfits.itemId, params.id))
+    return c.json(
+      await c.get('db').transaction(async (tx) => {
+        // Get the ids of outfits that have the item being deleted
+        const outfitsToDelete = await tx
+          .select({ outfitId: itemsToOutfits.outfitId })
+          .from(itemsToOutfits)
+          .where(eq(itemsToOutfits.itemId, params.id))
 
-      // Delete outfits by ids
-      if (outfitsToDelete.length) {
-        await tx.delete(outfits).where(
-          inArray(
-            outfits.id,
-            outfitsToDelete.map((e: { outfitId: string }) => e.outfitId)
+        // Delete outfits by ids
+        if (outfitsToDelete.length) {
+          await tx.delete(outfits).where(
+            inArray(
+              outfits.id,
+              outfitsToDelete.map((e: { outfitId: string }) => e.outfitId)
+            )
           )
-        )
-      }
+        }
 
-      // Delete the specified item
-      return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
-    })
-
-    await c.get('db').execute(sql`
-      ANALYZE items;
-    `)
-
-    return c.json(res)
+        // Delete the specified item
+        return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
+      })
+    )
   }
 )
 
