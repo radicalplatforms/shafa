@@ -32,8 +32,8 @@ const paginationValidationItems = z.object({
     .optional(),
   size: z
     .string()
-    .refine((val) => !isNaN(+val) && +val > 0 && +val < 1000, {
-      message: 'Items page size must be a positive number and less than 1000',
+    .refine((val) => !isNaN(+val) && +val > 0 && +val <= 1000, {
+      message: 'Items page size must be a positive number and less than or equal to 1000',
     })
     .optional(),
 })
