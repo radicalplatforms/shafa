@@ -52,7 +52,7 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
   test('GET /items: should return no items', async () => {
     const res = await app.request('/api/items')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual([])
+    expect(await res.json()).toEqual({ items: [], last_page: true })
   })
 
   test('POST /items: should create and return one item', async () => {
@@ -105,8 +105,10 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
 
   async function validateItemsGetter() {
     const res = await app.request('/api/items')
+    const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: boolean }
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual(testItems.map((item) => item.formatAPI()))
+    expect(resJSON.items).toEqual(testItems.map((item) => item.formatAPI()))
+    expect(resJSON.last_page).toEqual(true)
   }
 
   test('GET /items: should return 5 seeded items', validateItemsGetter)
