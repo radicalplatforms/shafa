@@ -20,17 +20,36 @@ import app from '../../src/index'
  */
 
 export default async function preflightTest() {
-  describe('[Preflight] Items: GET /items', () => {
-    test('GET /items: should resolve', async () => {
-      const res = await app.request('/api/items')
-      expect(res.status).toBe(200)
+  describe('[Preflight] User Alpha', () => {
+    // TODO [#61]: Build Alpha Preflight Test
+
+    describe('Items: GET /items', () => {
+      test('GET /items: should resolve', async () => {
+        const res = await app.request('/api/items')
+        expect(res.status).toBe(200)
+      })
     })
   })
 
-  describe('[Preflight] Outfits: GET /outfits', () => {
-    test('GET /outfits: should resolve', async () => {
-      const res = await app.request('/api/outfits')
-      expect(res.status).toBe(200)
+  describe('[Preflight] User Beta', () => {
+    // TODO [#62]: Build Beta Preflight Test
+
+    describe('Items: GET /items', () => {
+      test('GET /items: should resolve', async () => {
+        const res = await app.request('/api/items')
+        expect(res.status).toBe(200)
+      })
+    })
+  })
+
+  describe('[Preflight] User Gamma', () => {
+    // TODO [#63]: Build Gamma Preflight Test
+
+    describe('Items: GET /items', () => {
+      test('GET /items: should resolve', async () => {
+        const res = await app.request('/api/items')
+        expect(res.status).toBe(200)
+      })
     })
   })
 }
