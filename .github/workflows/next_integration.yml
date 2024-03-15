@@ -1,0 +1,67 @@
+name: Next Integration
+
+on:
+  pull_request
+
+env:
+  CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
+  DEPLOY_ROUTE: https://shafa-next-stage-${{ github.event.number }}.radicalplatforms.workers.dev
+
+jobs:
+  format_checks:
+    name: Format Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: next/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: next 
+
+      - name: Check Prettier
+        run: npm run check-prettier
+        working-directory: next 
+
+      - name: Check ESLint
+        run: npm run check-eslint
+        working-directory: next 
+
+  cf_deploy_next_stage:
+    name: Deploy Hono to Stage
+    runs-on: ubuntu-latest
+    needs: format_checks
+
+    environment:
+      name: next-stage-${{ github.event.number }}
+      url: ${{ env.DEPLOY_ROUTE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: next/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: next
+
+      - name: Deploy Next
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ env.CF_API_TOKEN }}
+          command: deploy --name ${{ env.DEPLOY_TAG }}
+          workingDirectory: next
+ 

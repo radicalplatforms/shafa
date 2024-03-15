@@ -1,4 +1,4 @@
-name: Hono Teardown
+name: Staging Teardown
 
 on:
   pull_request:
@@ -10,7 +10,8 @@ env:
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   GH_ENV_APP_ID: ${{ secrets.GH_ENV_APP_ID }}
   GH_ENV_APP_PRIVATE_KEY: ${{ secrets.GH_ENV_APP_PRIVATE_KEY }}
-  DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
+  HONO_DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
+  NEXT_DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
 
 jobs:
   neon_delete_branch:
@@ -22,11 +23,11 @@ jobs:
         uses: neondatabase/delete-branch-action@v3.1.4
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          branch: ${{ env.DEPLOY_TAG }}
+          branch: ${{ env.HONO_DEPLOY_TAG }}
           api_key: ${{ env.NEON_API_TOKEN }}
 
-  cf_teardown_hono:
-    name: Teardown Staging Cloudflare Workers
+  cf_teardown:
+    name: Delete Staging Cloudflare Workers
     runs-on: ubuntu-latest
 
     steps:
@@ -37,8 +38,15 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
-          command: delete --name ${{ env.DEPLOY_TAG }}
+          command: delete --name ${{ env.HONO_DEPLOY_TAG }}
           workingDirectory: hono
+
+      - name: Teardown Next
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ env.CF_API_TOKEN }}
+          command: delete --name ${{ env.NEXT_DEPLOY_TAG }}
+          workingDirectory: next
 
   gh_delete_deploy_env:
     name: Delete Github Deploy Environment

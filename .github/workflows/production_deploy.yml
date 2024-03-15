@@ -1,4 +1,4 @@
-name: Hono Deploy Production
+name: Production Deploy
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
 
 jobs:
   cf_deploy_hono_prod:
-    name: Deploy Hono to Prod
+    name: Deploy Hono to Production
     runs-on: ubuntu-latest
 
     environment:
