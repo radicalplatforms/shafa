@@ -6,6 +6,7 @@
     "dev": "wrangler dev",
     "migrate": "tsx migrate.ts",
     "generate": "drizzle-kit generate:pg",
+    "docs": "npx ts-node src/utils/swaggerSchema.ts",
     "test": "jest --detectOpenHandles --testPathIgnorePatterns='neon.preflight' --testPathIgnorePatterns='remote.preflight' --testPathIgnorePatterns='/preflight'",
     "test:smoke": "jest --testPathPattern=smoke.test.ts$",
     "test:unit": "jest --testPathPattern=unit.test.ts$",
@@ -17,20 +18,25 @@
     "check-eslint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^6.3.1",
     "@hono/eslint-config": "^0.0.4",
+    "@hono/swagger-ui": "^0.2.1",
     "@hono/zod-validator": "^0.1.11",
     "@neondatabase/serverless": "^0.8.1",
     "@paralleldrive/cuid2": "^2.2.2",
     "drizzle-orm": "^0.29.3",
     "drizzle-zod": "^0.5.1",
     "hono": "^3.12.3",
-    "zod": "^3.22.4"
+    "yaml": "^2.4.0",
+    "zod": "^3.22.4",
+    "zod-to-json-schema": "^3.22.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20231025.0",
     "@faker-js/faker": "^8.4.1",
     "@shelf/postgres-local": "^1.0.6",
     "@types/jest": "^29.5.11",
+    "@types/node": "^20.11.24",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
