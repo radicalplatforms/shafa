@@ -5,8 +5,9 @@ on:
 
 env:
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  PAGES_PROJECT_NAME: shafa-next
   DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
-  DEPLOY_ROUTE: https://shafa-next-stage-${{ github.event.number }}.radicalplatforms.workers.dev
+  DEPLOY_ROUTE: https://shafa-next-stage-${{ github.event.number }}.shafa-next.pages.dev
 
 jobs:
   format_checks:
@@ -27,12 +28,8 @@ jobs:
         run: npm ci
         working-directory: next 
 
-      - name: Check Prettier
-        run: npm run check-prettier
-        working-directory: next 
-
-      - name: Check ESLint
-        run: npm run check-eslint
+      - name: Check Next Lint
+        run: npm run check-lint
         working-directory: next 
 
   cf_deploy_next_stage:
@@ -58,10 +55,14 @@ jobs:
         run: npm ci
         working-directory: next
 
+      - name: Build Cloudflare Next on Pages
+        run: npm run pages:build
+        working-directory: next
+
       - name: Deploy Next
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
-          command: deploy --name ${{ env.DEPLOY_TAG }}
+          command: pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} 
           workingDirectory: next
  

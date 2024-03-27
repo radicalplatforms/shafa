@@ -27,7 +27,7 @@ jobs:
           api_key: ${{ env.NEON_API_TOKEN }}
 
   cf_teardown:
-    name: Delete Staging Cloudflare Workers
+    name: Delete Staging Cloudflare Workers & Pages
     runs-on: ubuntu-latest
 
     steps:
@@ -60,8 +60,14 @@ jobs:
           app-id: ${{ env.GH_ENV_APP_ID }}
           private-key: ${{ env.GH_ENV_APP_PRIVATE_KEY }}
 
-      - name: Delete Github Deploy Environment
+      - name: Delete Hono Github Deploy Environment
         uses: strumwolf/delete-deployment-environment@v3
         with:
           token: ${{ steps.get-token.outputs.token }}
           environment: hono-stage-${{ github.event.number }}
+
+      - name: Delete Next Github Deploy Environment
+        uses: strumwolf/delete-deployment-environment@v3
+        with:
+          token: ${{ steps.get-token.outputs.token }}
+          environment: next-stage-${{ github.event.number }}
