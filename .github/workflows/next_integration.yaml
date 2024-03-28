@@ -33,7 +33,7 @@ jobs:
         working-directory: next 
 
   cf_deploy_next_stage:
-    name: Deploy Hono to Stage
+    name: Deploy Next to Stage
     runs-on: ubuntu-latest
     needs: format_checks
 

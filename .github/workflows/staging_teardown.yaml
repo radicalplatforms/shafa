@@ -1,8 +1,7 @@
 name: Staging Teardown
 
 on:
-  pull_request:
-    types: [closed]
+  pull_request
 
 env:
   NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
