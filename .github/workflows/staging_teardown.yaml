@@ -8,8 +8,10 @@ env:
   NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  CF_ACCOUNT_ID: 287572e2291030d8c5e360fcc593a16b
   GH_ENV_APP_ID: ${{ secrets.GH_ENV_APP_ID }}
   GH_ENV_APP_PRIVATE_KEY: ${{ secrets.GH_ENV_APP_PRIVATE_KEY }}
+  NEXT_PAGES_PROJECT_NAME: shafa-next
   HONO_DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
   NEXT_DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
 
@@ -42,11 +44,8 @@ jobs:
           workingDirectory: hono
 
       - name: Teardown Next
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ env.CF_API_TOKEN }}
-          command: delete --name ${{ env.NEXT_DEPLOY_TAG }}
-          workingDirectory: next
+        run: ./pages_teardown ${{ env.NEXT_PAGES_PROJECT_NAME }} ${{ env.NEXT_DEPLOY_TAG }} ${{ env.CF_ACCOUNT_ID }} ${{ env.CF_API_TOKEN }}
+        working-directory: ./.github/workflows/utils
 
   gh_delete_deploy_env:
     name: Delete Github Deploy Environment
