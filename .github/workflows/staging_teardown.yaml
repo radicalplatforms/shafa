@@ -42,12 +42,8 @@ jobs:
           command: delete --name ${{ env.HONO_DEPLOY_TAG }}
           workingDirectory: hono
 
-      - name: TEST
-        run: ls -al
-        working-directory: .github/workflows/utils
-
       - name: Teardown Next
-        run: bash pages_teardown ${{ env.NEXT_PAGES_PROJECT_NAME }} ${{ env.NEXT_DEPLOY_TAG }} ${{ env.CF_ACCOUNT_ID }} ${{ env.CF_API_TOKEN }}
+        run: bash pages_teardown.sh ${{ env.NEXT_PAGES_PROJECT_NAME }} ${{ env.NEXT_DEPLOY_TAG }} ${{ env.CF_ACCOUNT_ID }} ${{ env.CF_API_TOKEN }}
         working-directory: .github/workflows/utils
 
   gh_delete_deploy_env:
