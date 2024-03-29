@@ -12,7 +12,7 @@ CF_ACCOUNT_ID=$3
 CF_API_TOKEN=$4
 
 # Hit Cloudflare GET Deployments Route
-echo "Getting deployments..."
+echo "Fetching deployments..."
 res=$(
   curl --request GET \
     --url https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PAGES_PROJECT_NAME/deployments \
@@ -23,7 +23,7 @@ res=$(
 deployments_length=$(echo "${res}" | jq '.result | length')
 
 # Loop over each deployment
-echo "Looping over deployments..."
+echo "Fetched deployments. Looping over ${deployments_length} results..."
 for ((i=0; i<$deployments_length; i++)); do
 
   deployment_branch=$(echo "${res}" | jq -c ".result[$i].deployment_trigger.metadata.branch")
