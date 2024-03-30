@@ -1,11 +1,12 @@
 {
   "name": "next",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "npx playwright test",
     "lint": "next lint --fix",
     "check-lint": "next lint --max-warnings 0",
     "pages:build": "npx @cloudflare/next-on-pages",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.11.0",
     "@cloudflare/workers-types": "^4.20240320.1",
+    "@playwright/test": "^1.42.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

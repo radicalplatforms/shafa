@@ -38,3 +38,9 @@ next-env.d.ts
 # wrangler files
 .wrangler
 .dev.vars
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
