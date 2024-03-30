@@ -95,7 +95,15 @@ function getInstallationScript(
       `
     }
     case 'win32': {
-      throw new Error('Unsupported OS, try to run on Mac or Linux')
+      const installation = includeInstallation ? `choco install postgresql${version} --force;` : ''
+
+      return `
+        ${installation}
+        mkdir ${TEMP_ROOT}/data /p;
+        initdb -D ${TEMP_ROOT}/data;
+        pg_ctl -D ${TEMP_ROOT}/data -o "-F -p ${port}" -l ${TEMP_ROOT}/logfile start;
+      `
+      // pg_ctl start -D ${TEMP_ROOT}/data -o "-F -p ${port}" -l ${TEMP_ROOT}/logfile;
     }
     default: {
       const installation = includeInstallation
@@ -125,6 +133,12 @@ function getStopScript(port: number, version: number): string {
       return `
          pg_ctl stop -D ${TEMP_ROOT}/data
          rm -rf ${TEMP_ROOT}
+      `
+    }
+    case 'win32': {
+      return `
+        pg_ctl -D ${TEMP_ROOT}/data stop
+        rd /s /q ${TEMP_ROOT}
       `
     }
     default: {
