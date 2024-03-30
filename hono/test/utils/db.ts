@@ -99,7 +99,7 @@ function getInstallationScript(
 
       return `
         ${installation}
-        mkdir ${TEMP_ROOT}/data /p;
+        mkdir -p ${TEMP_ROOT}/data;
         initdb -D ${TEMP_ROOT}/data;
         pg_ctl -D ${TEMP_ROOT}/data -o "-F -p ${port}" -l ${TEMP_ROOT}/logfile start;
       `
