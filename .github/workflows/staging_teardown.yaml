@@ -1,4 +1,4 @@
-name: Hono Teardown
+name: Staging Teardown
 
 on:
   pull_request:
@@ -8,9 +8,12 @@ env:
   NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  CF_ACCOUNT_ID: 287572e2291030d8c5e360fcc593a16b
   GH_ENV_APP_ID: ${{ secrets.GH_ENV_APP_ID }}
   GH_ENV_APP_PRIVATE_KEY: ${{ secrets.GH_ENV_APP_PRIVATE_KEY }}
-  DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
+  NEXT_PAGES_PROJECT_NAME: shafa-next
+  HONO_DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
+  NEXT_DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
 
 jobs:
   neon_delete_branch:
@@ -22,11 +25,11 @@ jobs:
         uses: neondatabase/delete-branch-action@v3.1.4
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          branch: ${{ env.DEPLOY_TAG }}
+          branch: ${{ env.HONO_DEPLOY_TAG }}
           api_key: ${{ env.NEON_API_TOKEN }}
 
-  cf_teardown_hono:
-    name: Teardown Staging Cloudflare Workers
+  cf_teardown:
+    name: Delete Staging Cloudflare Workers & Pages
     runs-on: ubuntu-latest
 
     steps:
@@ -37,8 +40,12 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
-          command: delete --name ${{ env.DEPLOY_TAG }}
+          command: delete --name ${{ env.HONO_DEPLOY_TAG }}
           workingDirectory: hono
+
+      - name: Teardown Next
+        run: bash pages_teardown.sh ${{ env.NEXT_PAGES_PROJECT_NAME }} ${{ env.NEXT_DEPLOY_TAG }} ${{ env.CF_ACCOUNT_ID }} ${{ env.CF_API_TOKEN }}
+        working-directory: .github/workflows/utils
 
   gh_delete_deploy_env:
     name: Delete Github Deploy Environment
@@ -52,8 +59,14 @@ jobs:
           app-id: ${{ env.GH_ENV_APP_ID }}
           private-key: ${{ env.GH_ENV_APP_PRIVATE_KEY }}
 
-      - name: Delete Github Deploy Environment
+      - name: Delete Hono Github Deploy Environment
         uses: strumwolf/delete-deployment-environment@v3
         with:
           token: ${{ steps.get-token.outputs.token }}
           environment: hono-stage-${{ github.event.number }}
+
+      - name: Delete Next Github Deploy Environment
+        uses: strumwolf/delete-deployment-environment@v3
+        with:
+          token: ${{ steps.get-token.outputs.token }}
+          environment: next-stage-${{ github.event.number }}
