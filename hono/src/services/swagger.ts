@@ -16,13 +16,7 @@ app.get('/', (c) => {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="Custom Swagger" />
-        <title>Custom Swagger</title>
-        <script>
-          // custom script
-        </script>
-        <style>
-          /* custom style */
-        </style>
+        <title>Shafa API</title>
       </head>
       <body>
         ${SwaggerUI({ spec: swaggerJson, url: '/doc' })}

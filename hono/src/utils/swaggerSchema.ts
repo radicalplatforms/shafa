@@ -4,7 +4,10 @@ import {
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
 } from '@asteasolutions/zod-to-openapi'
-import { z } from 'zod'
+import { ZodObject, z } from 'zod'
+import { version } from '../../package.json'
+import { items, outfits } from '../schema'
+
 
 extendZodWithOpenApi(z)
 
@@ -21,30 +24,8 @@ const ItemIdSchema = registry.registerParameter(
   })
 )
 
-const ItemIdSchemaDel = registry.registerParameter(
-  'ItemId',
-  z.string().openapi({
-    param: {
-      name: 'id',
-      in: 'path',
-    },
-    example: '1212121',
-  })
-)
-
 const OutfitIdSchema = registry.registerParameter(
-  'ItemId',
-  z.string().openapi({
-    param: {
-      name: 'id',
-      in: 'path',
-    },
-    example: '1212121',
-  })
-)
-
-const OutfitIdSchemaDel = registry.registerParameter(
-  'ItemId',
+  'OutfitId',
   z.string().openapi({
     param: {
       name: 'id',
@@ -81,22 +62,17 @@ registry.registerPath({
   description: 'return all items',
   summary: 'get items',
   security: [{ [bearerAuth.name]: [] }],
-  /*
-  request: {
-    params: z.object({ id: UserIdSchema }),
-  },
-  */
   responses: {
     200: {
       description: 'Object with user data.',
       content: {
         'application/json': {
-          schema: ItemSchema,
+          schema: ItemIdSchema,
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -107,11 +83,6 @@ registry.registerPath({
   description: 'post all items',
   summary: 'post items',
   security: [{ [bearerAuth.name]: [] }],
-  /*
-  request: {
-    params: z.object({ id: UserIdSchema }),
-  },
-  */
   responses: {
     200: {
       description: 'Object with user data.',
@@ -121,8 +92,8 @@ registry.registerPath({
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -145,8 +116,8 @@ registry.registerPath({
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -158,7 +129,7 @@ registry.registerPath({
   summary: 'delete items',
   security: [{ [bearerAuth.name]: [] }],
   request: {
-    params: z.object({ id: ItemIdSchemaDel }),
+    params: z.object({ id: ItemIdSchema }),
   },
   responses: {
     200: {
@@ -169,8 +140,8 @@ registry.registerPath({
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -190,8 +161,8 @@ registry.registerPath({
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -202,11 +173,6 @@ registry.registerPath({
   description: 'post all outfits',
   summary: 'get items',
   security: [{ [bearerAuth.name]: [] }],
-  /*
-  request: {
-    params: z.object({ id: UserIdSchema }),
-  },
-  */
   responses: {
     200: {
       description: 'Object with user data.',
@@ -216,8 +182,8 @@ registry.registerPath({
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -240,8 +206,8 @@ registry.registerPath({
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -253,7 +219,7 @@ registry.registerPath({
   summary: 'delete items',
   security: [{ [bearerAuth.name]: [] }],
   request: {
-    params: z.object({ id: OutfitIdSchemaDel }),
+    params: z.object({ id: OutfitIdSchema }),
   },
   responses: {
     200: {
@@ -264,8 +230,8 @@ registry.registerPath({
         },
       },
     },
-    204: {
-      description: 'No content - successful operation',
+    500: {
+      description: 'Server Error',
     },
   },
 })
@@ -274,27 +240,23 @@ async function getOpenApiDocumentation() {
   const generator = new OpenApiGeneratorV3(registry.definitions)
 
   return await generator.generateDocument({
-    openapi: '3.0.0',
+    openapi: `${version}`,
     info: {
       version: '1.0.0',
-      title: 'My API',
-      description: 'This is the API',
+      title: 'Shafa API',
+      description: 'A wardrobe logging, composition, and organization app',
     },
-    servers: [{ url: 'http://127.0.0.1:8787/api/v1' }],
+    servers: [{ url: 'https://api.shafa.app/api' }],
   })
 }
 
 export default async function writeDocumentation() {
   const docs = await getOpenApiDocumentation()
   const fileContent = JSON.stringify(docs)
-  try {
-    fs.writeFileSync('docs/swagger.json', fileContent, {
-      encoding: 'utf-8',
-    })
-    console.log('Documentation written to swagger.json')
-  } catch (error) {
-    console.error('Error writing documentation:', error)
-  }
+  fs.writeFileSync('docs/swagger.json', fileContent, {
+    encoding: 'utf-8',
+  })
+  console.log('Documentation written to swagger.json')
 }
 
 writeDocumentation()
