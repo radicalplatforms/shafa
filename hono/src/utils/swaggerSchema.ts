@@ -8,7 +8,6 @@ import { ZodObject, z } from 'zod'
 import { version } from '../../package.json'
 import { items, outfits } from '../schema'
 
-
 extendZodWithOpenApi(z)
 
 const registry = new OpenAPIRegistry()
