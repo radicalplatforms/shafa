@@ -4,7 +4,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { items, itemsToOutfits, itemTypeEnum, outfits } from '../schema'
+import { items, itemsToOutfits, itemTypeEnum, outfits } from '../schema/schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 

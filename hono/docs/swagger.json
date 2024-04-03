@@ -1,7 +1,7 @@
 {
-  "openapi": "0.0.0",
+  "openapi": "3.1.0",
   "info": {
-    "version": "1.0.0",
+    "version": "0.0.0",
     "title": "Shafa API",
     "description": "A wardrobe logging, composition, and organization app"
   },
@@ -11,8 +11,8 @@
       "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
     },
     "schemas": {
-      "ItemId": { "type": "string", "example": "1212121" },
-      "OutfitId": { "type": "string", "example": "1212121" }
+      "ItemId": { "type": "string", "example": "ksflx82z4fvxzchqcuuxb6oc" },
+      "OutfitId": { "type": "string", "example": "rvd2jeisbayz0at39aw1e30n" }
     },
     "parameters": {
       "ItemId": {
@@ -32,198 +32,237 @@
   "paths": {
     "/items": {
       "get": {
-        "description": "return all items",
-        "summary": "get items",
+        "description": "Get all items in the wardrobe",
+        "summary": "Retrieve items",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "List of items.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ItemId" } }
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "brand": { "type": "string" },
+                    "photoUrl": { "type": "string" },
+                    "type": {
+                      "type": "string",
+                      "enum": ["layer", "top", "bottom", "footwear", "accessory"]
+                    },
+                    "rating": { "type": "integer" },
+                    "createdAt": { "type": "string" },
+                    "authorUsername": { "type": "string" }
+                  },
+                  "required": ["id", "name", "type", "rating", "createdAt", "authorUsername"]
+                }
+              }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       },
       "post": {
-        "description": "post all items",
-        "summary": "post items",
+        "description": "Add a new item to the wardrobe",
+        "summary": "Add item",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "Item added successfully.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer" },
+                    "id": { "type": "string" },
                     "name": { "type": "string" },
-                    "type": { "type": "string" },
-                    "description": { "type": "string" }
+                    "brand": { "type": "string" },
+                    "photoUrl": { "type": "string" },
+                    "type": {
+                      "type": "string",
+                      "enum": ["layer", "top", "bottom", "footwear", "accessory"]
+                    },
+                    "rating": { "type": "integer" },
+                    "createdAt": { "type": "string" },
+                    "authorUsername": { "type": "string" }
                   },
-                  "required": ["name", "type"]
+                  "required": ["id", "name", "type", "rating", "createdAt", "authorUsername"]
                 }
               }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       },
       "put": {
-        "description": "put all items",
-        "summary": "put items",
+        "description": "Update an existing item in the wardrobe",
+        "summary": "Update item",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "$ref": "#/components/parameters/ItemId" }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "Item updated successfully.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer" },
+                    "id": { "type": "string" },
                     "name": { "type": "string" },
-                    "type": { "type": "string" },
-                    "description": { "type": "string" }
+                    "brand": { "type": "string" },
+                    "photoUrl": { "type": "string" },
+                    "type": {
+                      "type": "string",
+                      "enum": ["layer", "top", "bottom", "footwear", "accessory"]
+                    },
+                    "rating": { "type": "integer" },
+                    "createdAt": { "type": "string" },
+                    "authorUsername": { "type": "string" }
                   },
-                  "required": ["name", "type"]
+                  "required": ["id", "name", "type", "rating", "createdAt", "authorUsername"]
                 }
               }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       },
       "delete": {
-        "description": "delete all items",
-        "summary": "delete items",
+        "description": "Delete an item from the wardrobe",
+        "summary": "Delete item",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "$ref": "#/components/parameters/ItemId" }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "Item deleted successfully.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer" },
+                    "id": { "type": "string" },
                     "name": { "type": "string" },
-                    "type": { "type": "string" },
-                    "description": { "type": "string" }
+                    "brand": { "type": "string" },
+                    "photoUrl": { "type": "string" },
+                    "type": {
+                      "type": "string",
+                      "enum": ["layer", "top", "bottom", "footwear", "accessory"]
+                    },
+                    "rating": { "type": "integer" },
+                    "createdAt": { "type": "string" },
+                    "authorUsername": { "type": "string" }
                   },
-                  "required": ["name", "type"]
+                  "required": ["id", "name", "type", "rating", "createdAt", "authorUsername"]
                 }
               }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       }
     },
     "/outfits": {
       "get": {
-        "description": "return all outfits",
-        "summary": "get outfits",
+        "description": "Get all logged outfits",
+        "summary": "Retrieve outfits",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "List of outfits.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer" },
-                    "itemIds": { "type": "array", "items": { "type": "integer" } },
+                    "id": { "type": "string" },
                     "rating": { "type": "integer" },
+                    "wearDate": { "type": "string" },
                     "authorUsername": { "type": "string" }
                   },
-                  "required": ["itemIds", "authorUsername"]
+                  "required": ["id", "rating", "wearDate", "authorUsername"]
                 }
               }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       },
       "post": {
-        "description": "post all outfits",
-        "summary": "get items",
+        "description": "Log a new outfit for the day",
+        "summary": "Log outfit",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "Outfit logged successfully.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer" },
-                    "itemIds": { "type": "array", "items": { "type": "integer" } },
+                    "id": { "type": "string" },
                     "rating": { "type": "integer" },
+                    "wearDate": { "type": "string" },
                     "authorUsername": { "type": "string" }
                   },
-                  "required": ["itemIds", "authorUsername"]
+                  "required": ["id", "rating", "wearDate", "authorUsername"]
                 }
               }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       },
       "put": {
-        "description": "put all items",
-        "summary": "put items",
+        "description": "Update an existing outfit",
+        "summary": "Update outfit",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "$ref": "#/components/parameters/OutfitId" }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "Outfit updated successfully.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer" },
-                    "itemIds": { "type": "array", "items": { "type": "integer" } },
+                    "id": { "type": "string" },
                     "rating": { "type": "integer" },
+                    "wearDate": { "type": "string" },
                     "authorUsername": { "type": "string" }
                   },
-                  "required": ["itemIds", "authorUsername"]
+                  "required": ["id", "rating", "wearDate", "authorUsername"]
                 }
               }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       },
       "delete": {
-        "description": "delete all items",
-        "summary": "delete items",
+        "description": "Delete an outfit from the logged outfits",
+        "summary": "Delete outfit",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "$ref": "#/components/parameters/OutfitId" }],
         "responses": {
           "200": {
-            "description": "Object with user data.",
+            "description": "Outfit deleted successfully.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer" },
-                    "itemIds": { "type": "array", "items": { "type": "integer" } },
+                    "id": { "type": "string" },
                     "rating": { "type": "integer" },
+                    "wearDate": { "type": "string" },
                     "authorUsername": { "type": "string" }
                   },
-                  "required": ["itemIds", "authorUsername"]
+                  "required": ["id", "rating", "wearDate", "authorUsername"]
                 }
               }
             }
           },
-          "500": { "description": "Server Error" }
+          "500": { "description": "Internal Server Error" }
         }
       }
     }

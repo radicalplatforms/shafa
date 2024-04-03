@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Context } from 'hono'
 import postgres from 'postgres'
-import * as schema from '../../src/schema'
+import * as schema from '../../src/schema/schema'
 import { clean, provision } from '../utils/db'
 
 /**

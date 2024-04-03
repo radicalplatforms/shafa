@@ -6,7 +6,7 @@
     "dev": "wrangler dev",
     "migrate": "tsx migrate.ts",
     "generate": "drizzle-kit generate:pg",
-    "docs": "npx ts-node src/utils/swaggerSchema.ts",
+    "update-docs": "npx ts-node src/utils/swaggerSchema.ts",
     "test": "jest --detectOpenHandles --testPathIgnorePatterns='neon.preflight' --testPathIgnorePatterns='remote.preflight' --testPathIgnorePatterns='/preflight'",
     "test:smoke": "jest --testPathPattern=smoke.test.ts$",
     "test:unit": "jest --testPathPattern=unit.test.ts$",

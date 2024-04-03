@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import { itemTypeEnum, itemsToOutfits } from '../../../src/schema'
+import { itemTypeEnum, itemsToOutfits } from '../../../src/schema/schema'
 import { instance } from '../db'
 import type { ItemType } from './items'
 
