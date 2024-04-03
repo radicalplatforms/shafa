@@ -20,4 +20,5 @@ export const OutfitSchema = z.object({
 })
 
 export type Item = z.infer<typeof ItemSchema>
+export interface ItemInterface extends Item {}
 export type Outfit = z.infer<typeof OutfitSchema>
