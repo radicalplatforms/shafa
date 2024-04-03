@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import { outfits } from '../../../src/schema'
+import { outfits } from '../../../src/schema/schema'
 import { instance } from '../db'
 
 export interface Outfit {
