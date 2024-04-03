@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 import { items, itemTypeEnum } from '../../../src/schema/schema'
+import type { ItemInterface } from '../../../src/schema/zod-definitions'
 import { instance } from '../db'
-import { ItemInterface } from '../../../src/schema/zod-definitions'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
 
