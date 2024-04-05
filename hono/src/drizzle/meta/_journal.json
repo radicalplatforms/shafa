@@ -15,6 +15,13 @@
       "when": 1709104030876,
       "tag": "0001_dusty_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1712353813550,
+      "tag": "0002_cynical_khan",
+      "breakpoints": true
     }
   ]
 }

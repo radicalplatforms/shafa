@@ -4,7 +4,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { items, itemsToOutfits, itemTypeEnum, outfits } from '../schema'
+import { items, itemsExtended, itemsToOutfits, itemTypeEnum, outfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
@@ -47,7 +47,7 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
   const itemsData = await c
     .get('db')
     .select()
-    .from(items)
+    .from(itemsExtended)
     .where(eq(items.authorUsername, 'rak3rman'))
     .limit(pageSize + 1)
     .offset(pageNumber * pageSize)
