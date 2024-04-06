@@ -43,25 +43,6 @@ export const itemsRelations = relations(items, ({ many }) => ({
   itemsToOutfits: many(itemsToOutfits),
 }))
 
-export const itemsExtended = pgView('items_extended').as((qb) => {
-  return qb
-    .select({
-      id: items.id,
-      name: items.name,
-      brand: items.brand,
-      photoUrl: items.photoUrl,
-      type: items.type,
-      rating: items.rating,
-      createdAt: items.createdAt,
-      lastWorn: sql`outfits.wear_date`.as('last_worn'),
-    })
-    .from(items)
-    .leftJoin(itemsToOutfits, eq(items.id, itemsToOutfits.itemId))
-    .leftJoin(outfits, eq(outfits.id, itemsToOutfits.outfitId))
-    .orderBy(desc(outfits.wearDate))
-    .limit(1)
-})
-
 /**
  * Outfits
  */
@@ -109,3 +90,26 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
     references: [outfits.id],
   }),
 }))
+
+
+export const itemsExtended = pgView('items_extended').as((qb) => {
+  return qb
+    .select({
+      id: items.id,
+      name: items.name,
+      brand: items.brand,
+      photoUrl: items.photoUrl,
+      type: items.type,
+      rating: items.rating,
+      createdAt: items.createdAt,
+      authorUsername: items.authorUsername,
+      lastWorn: sql`(SELECT wear_date
+                     FROM outfits
+                     WHERE id = (SELECT outfit_id
+                                 FROM items_to_outfits
+                                 WHERE item_id = items.id
+                                 ORDER BY outfit_id DESC LIMIT 1)
+                    )`.as('last_worn'),
+    })
+    .from(items)
+})

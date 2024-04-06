@@ -48,7 +48,7 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     .get('db')
     .select()
     .from(itemsExtended)
-    .where(eq(items.authorUsername, 'rak3rman'))
+    .where(eq(itemsExtended.authorUsername, 'rak3rman'))
     .limit(pageSize + 1)
     .offset(pageNumber * pageSize)
 

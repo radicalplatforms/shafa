@@ -6,10 +6,11 @@ SELECT "items"."id",
        "items"."type",
        "items"."rating",
        "items"."created_at",
-       "outfits"."wear_date" AS "last_worn"
-FROM "items"
-       JOIN
-     "items_to_outfits" ON "items"."id" = "items_to_outfits"."item_id"
-       JOIN
-     "outfits" ON "outfits"."id" = "items_to_outfits"."outfit_id"
-ORDER BY "outfits"."wear_date" DESC LIMIT 1;
+       "items"."author_username",
+       (SELECT "wear_date"
+        FROM "outfits"
+        WHERE "id" = (SELECT "outfit_id"
+                      FROM "items_to_outfits"
+                      WHERE "item_id" = "items"."id"
+                      ORDER BY "outfit_id" DESC LIMIT 1)) AS "last_worn"
+FROM "items";
