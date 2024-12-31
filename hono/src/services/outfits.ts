@@ -296,11 +296,17 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     })()
 
     // Calculate all scores
-    const time_factor = Math.trunc(calculateTimeFactorScore(outfit.daysSinceWorn as number, outfit.wearCount as number))
+    const time_factor = Math.trunc(
+      calculateTimeFactorScore(outfit.daysSinceWorn as number, outfit.wearCount as number)
+    )
     const frequency_score = Math.trunc(calculateFrequencyScore(outfit.wearCount as number))
-    const day_of_week_score = Math.trunc(calculateDayOfWeekScore(outfit.sameDayOfWeekCount as number))
+    const day_of_week_score = Math.trunc(
+      calculateDayOfWeekScore(outfit.sameDayOfWeekCount as number)
+    )
     const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 20)
-    const similarity_penalty = Math.trunc(Math.max(-30, (outfit.similarOutfitsCount as number) * -15))
+    const similarity_penalty = Math.trunc(
+      Math.max(-30, (outfit.similarOutfitsCount as number) * -15)
+    )
 
     return {
       base_score,
