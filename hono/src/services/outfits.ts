@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, and, sql, not, inArray, desc, asc } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -180,7 +180,8 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   const today = new Date()
 
   // First, get all outfits with their wear history and ratings
-  const outfitsWithScores = await c.get('db')
+  const outfitsWithScores = await c
+    .get('db')
     .select({
       id: outfits.id,
       rating: outfits.rating,
@@ -206,14 +207,14 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
             AND EXTRACT(MONTH FROM NOW()) + 1 
           THEN 1 ELSE 0 
         END)
-      `
+      `,
     })
     .from(outfits)
     .groupBy(outfits.id)
     .having(sql`MAX(${outfits.wearDate}) < NOW() - INTERVAL '5 days'`) // Basic cooldown period
 
   // Calculate a composite score for each outfit
-  const scoredOutfits = outfitsWithScores.map(outfit => {
+  const scoredOutfits = outfitsWithScores.map((outfit) => {
     const baseScore = outfit.rating * 20 // Rating 0-4 becomes 0-80 points
 
     // Time-based decay: Gradually increase score for unworn items
@@ -221,9 +222,8 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     const timeFactor = Math.min(outfit.daysSinceWorn / 30, 1) * 20 // Max 20 points
 
     // Frequency balance: Prefer less frequently worn outfits
-    const frequencyScore = outfit.wearCount < 3 ? 15 : 
-                          outfit.wearCount < 5 ? 10 : 
-                          outfit.wearCount < 10 ? 5 : 0
+    const frequencyScore =
+      outfit.wearCount < 3 ? 15 : outfit.wearCount < 5 ? 10 : outfit.wearCount < 10 ? 5 : 0
 
     // Day of week preference
     const dayOfWeekScore = outfit.sameDayOfWeekCount > 0 ? 15 : 0
@@ -235,7 +235,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
 
     return {
       outfitId: outfit.id,
-      score: totalScore
+      score: totalScore,
     }
   })
 
@@ -245,7 +245,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
       sql`${outfits.id} IN ${scoredOutfits
         .sort((a, b) => b.score - a.score)
         .slice(0, suggestionLimit)
-        .map(o => o.outfitId)}`
+        .map((o) => o.outfitId)}`
     ),
     with: {
       itemsToOutfits: {
@@ -263,14 +263,14 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
 
   // Sort the results by their calculated scores
   const sortedOutfits = suggestedOutfits.sort((a, b) => {
-    const scoreA = scoredOutfits.find(s => s.outfitId === a.id)?.score || 0
-    const scoreB = scoredOutfits.find(s => s.outfitId === b.id)?.score || 0
+    const scoreA = scoredOutfits.find((s) => s.outfitId === a.id)?.score || 0
+    const scoreB = scoredOutfits.find((s) => s.outfitId === b.id)?.score || 0
     return scoreB - scoreA
   })
 
   return c.json({
     suggestions: sortedOutfits,
-    generated_at: today
+    generated_at: today,
   })
 })
 
