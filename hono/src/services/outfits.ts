@@ -285,22 +285,22 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
 
   const calculateScores = (outfit: (typeof outfitsWithScores)[0]) => {
     // Base score from outfit rating, weighted by wear count
-    const ratingConfidence = Math.min(outfit.wearCount / 5, 1)
-    const base_score = Math.trunc(outfit.rating * 20 * ratingConfidence)
+    const ratingConfidence = Math.min((outfit.wearCount as number) / 5, 1)
+    const base_score = Math.trunc((outfit.rating as number) * 20 * ratingConfidence)
 
     // Score based on individual item ratings and count
     const items_score = (() => {
       if (!outfit.avgItemRating || !outfit.itemCount) return 0
-      const itemCountBonus = Math.min(outfit.itemCount / 4, 1)
-      return Math.trunc(outfit.avgItemRating * 8 * itemCountBonus)
+      const itemCountBonus = Math.min((outfit.itemCount as number) / 4, 1)
+      return Math.trunc((outfit.avgItemRating as number) * 8 * itemCountBonus)
     })()
 
     // Calculate all scores
-    const time_factor = Math.trunc(calculateTimeFactorScore(outfit.daysSinceWorn, outfit.wearCount))
-    const frequency_score = Math.trunc(calculateFrequencyScore(outfit.wearCount))
-    const day_of_week_score = Math.trunc(calculateDayOfWeekScore(outfit.sameDayOfWeekCount))
-    const seasonal_score = Math.trunc(outfit.seasonalRelevance * 20)
-    const similarity_penalty = Math.trunc(Math.max(-30, outfit.similarOutfitsCount * -15))
+    const time_factor = Math.trunc(calculateTimeFactorScore(outfit.daysSinceWorn as number, outfit.wearCount as number))
+    const frequency_score = Math.trunc(calculateFrequencyScore(outfit.wearCount as number))
+    const day_of_week_score = Math.trunc(calculateDayOfWeekScore(outfit.sameDayOfWeekCount as number))
+    const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 20)
+    const similarity_penalty = Math.trunc(Math.max(-30, (outfit.similarOutfitsCount as number) * -15))
 
     return {
       base_score,
