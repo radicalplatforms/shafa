@@ -381,11 +381,31 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     })
     .sort((a, b) => b.scoring_details.total_score - a.scoring_details.total_score)
 
-  const last_page = !(outfitsWithDetails.length > pageSize)
-  if (!last_page) outfitsWithDetails.pop()
+  // Filter out duplicate outfits with same core items, keeping highest scored version
+  const uniqueOutfits = outfitsWithDetails
+    .reduce((acc, outfit) => {
+      const coreItemsKey = (outfit.scoring_details.raw_data.core_items as string[]).sort().join('|')
+
+      if (
+        !acc.has(coreItemsKey) ||
+        (acc.get(coreItemsKey)?.scoring_details.total_score || 0) <
+          outfit.scoring_details.total_score
+      ) {
+        acc.set(coreItemsKey, outfit)
+      }
+      return acc
+    }, new Map())
+    .values()
+
+  const filteredOutfits = [...uniqueOutfits]
+    .sort((a, b) => b.scoring_details.total_score - a.scoring_details.total_score)
+    .slice(0, pageSize + 1)
+
+  const last_page = !(filteredOutfits.length > pageSize)
+  if (!last_page) filteredOutfits.pop()
 
   return c.json({
-    suggestions: outfitsWithDetails,
+    suggestions: filteredOutfits,
     generated_at: today,
     metadata: {
       wardrobe_size: wardrobeSize,
