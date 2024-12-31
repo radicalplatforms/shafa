@@ -250,9 +250,8 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     if (days < recencyThreshold) return 0
 
     // Calculate ideal wear interval (14-60 days) based on wardrobe size
+    const baseInterval = Math.max(14, Math.min(Math.ceil(wardrobeSize / 10), 60))
     const idealInterval = (() => {
-      const baseInterval = Math.max(14, Math.min(Math.ceil(wardrobeSize / 10), 60))
-
       if (wearCount <= 1) return baseInterval * 1.5 // New or rarely worn items
       if (wearCount <= 3) return baseInterval // Occasionally worn items
       if (wearCount <= 6) return baseInterval * 0.7 // Regularly worn items
@@ -260,12 +259,13 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     })()
 
     // Score based on deviation from ideal interval
-    if (days < idealInterval * 0.35) return 5 // Too soon
-    if (days < idealInterval * 0.7) return 10 // Getting appropriate
-    if (days < idealInterval * 1.5) return 20 // Ideal time range
-    if (days < idealInterval * 2.5) return 15 // Still good
-    if (days < idealInterval * 4.0) return 10 // Getting old
-    return 5 // Very old
+    if (days < idealInterval * 0.35) return 5
+    if (days < idealInterval * 0.7) return 10
+    if (days < idealInterval * 1.5) return 20
+    if (days < idealInterval * 2.5) return 15
+    if (days < idealInterval * 4.0) return 5
+    if (days < idealInterval * 6.0) return 0
+    return -10
   }
 
   // Score based on how often the outfit has been worn
@@ -284,9 +284,9 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   }
 
   const calculateScores = (outfit: (typeof outfitsWithScores)[0]) => {
-    // Base score from outfit rating, weighted by wear count
+    // Base score from outfit rating
     const ratingConfidence = Math.min((outfit.wearCount as number) / 5, 1)
-    const base_score = Math.trunc((outfit.rating as number) * 20 * ratingConfidence)
+    const base_score = Math.trunc((outfit.rating as number) * 15 * ratingConfidence)
 
     // Score based on individual item ratings and count
     const items_score = (() => {
@@ -303,9 +303,11 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     const day_of_week_score = Math.trunc(
       calculateDayOfWeekScore(outfit.sameDayOfWeekCount as number)
     )
-    const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 20)
+    const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 15)
+
+    // Increase similarity penalty
     const similarity_penalty = Math.trunc(
-      Math.max(-30, (outfit.similarOutfitsCount as number) * -15)
+      Math.max(-45, (outfit.similarOutfitsCount as number) * -20)
     )
 
     return {
