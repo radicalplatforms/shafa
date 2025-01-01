@@ -7,6 +7,7 @@ import { itemTypeEnum } from '../../src/schema'
 import { clean, provision } from '../utils/db'
 import type { ItemFactory } from '../utils/factory/items'
 import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
+import type { OutfitSuggestionAPI } from '../utils/factory/outfits'
 import { type OutfitAPI, OutfitFactory, PartialOutfitFactory } from '../utils/factory/outfits'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
@@ -137,5 +138,79 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     const resJSON = (await res.json()) as OutfitAPI
     expect(resJSON).toMatchObject(testOutfits[0].formatAPI())
     testOutfits.splice(0, 1)
+  })
+
+  test('GET /outfits/suggest: should return outfit suggestions with scores', async () => {
+    const res = await app.request('/api/outfits/suggest')
+    expect(res.status).toBe(200)
+    const resJSON = (await res.json()) as {
+      suggestions: OutfitSuggestionAPI[]
+      generated_at: Date
+      metadata: {
+        wardrobe_size: number
+        recency_threshold: number
+        last_page: boolean
+      }
+    }
+    expect(Array.isArray(resJSON.suggestions)).toBe(true)
+    // Validate scoring details structure and types
+    const scoringDetails = resJSON.suggestions[0].scoring_details
+    expect(scoringDetails).toBeDefined()
+
+    // Validate score values match expected ranges and types
+    expect(scoringDetails.base_score).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.base_score).toBeLessThanOrEqual(60) // Max rating (4) * 15
+    expect(scoringDetails.items_score).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.items_score).toBeLessThanOrEqual(32) // Max rating (4) * 8
+    expect(scoringDetails.time_factor).toBeGreaterThanOrEqual(-10)
+    expect(scoringDetails.time_factor).toBeLessThanOrEqual(20)
+    expect(scoringDetails.frequency_score).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.frequency_score).toBeLessThanOrEqual(20)
+    expect(scoringDetails.day_of_week_score).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.day_of_week_score).toBeLessThanOrEqual(15)
+    expect(scoringDetails.seasonal_score).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.seasonal_score).toBeLessThanOrEqual(15)
+    expect(scoringDetails.similarity_penalty).toBeGreaterThanOrEqual(-45)
+    expect(scoringDetails.similarity_penalty).toBeLessThanOrEqual(0)
+
+    // Validate total score is sum of all components
+    expect(scoringDetails.total_score).toBe(
+      scoringDetails.base_score +
+        scoringDetails.items_score +
+        scoringDetails.time_factor +
+        scoringDetails.frequency_score +
+        scoringDetails.day_of_week_score +
+        scoringDetails.seasonal_score +
+        scoringDetails.similarity_penalty
+    )
+
+    // Validate raw data structure and types
+    const rawData = scoringDetails.raw_data
+    expect(rawData).toBeDefined()
+    expect(Number.isInteger(rawData.wear_count)).toBe(true)
+    expect(rawData.wear_count).toBeGreaterThanOrEqual(0)
+
+    expect(Number.isInteger(rawData.days_since_worn)).toBe(true)
+    expect(rawData.days_since_worn).toBeGreaterThanOrEqual(0)
+
+    expect(Number.isInteger(rawData.same_day_count)).toBe(true)
+    expect(rawData.same_day_count).toBeGreaterThanOrEqual(0)
+
+    expect(typeof rawData.seasonal_relevance).toBe('number')
+    expect(rawData.seasonal_relevance).toBeGreaterThanOrEqual(0)
+    expect(rawData.seasonal_relevance).toBeLessThanOrEqual(1)
+
+    expect(Number.isInteger(rawData.similar_outfits_count)).toBe(true)
+    expect(rawData.similar_outfits_count).toBeGreaterThanOrEqual(0)
+
+    expect(Array.isArray(rawData.core_items)).toBe(true)
+    rawData.core_items.forEach((item) => {
+      expect(typeof item).toBe('string')
+      expect(item.length).toBe(24) // CUID length
+    })
+    expect(resJSON.generated_at).toBeDefined()
+    expect(resJSON.metadata.wardrobe_size).toEqual(5)
+    expect(resJSON.metadata.recency_threshold).toEqual(3)
+    expect(resJSON.metadata.last_page).toBeTruthy()
   })
 })
