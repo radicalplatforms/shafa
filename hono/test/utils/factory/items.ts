@@ -1,19 +1,9 @@
 import { faker } from '@faker-js/faker'
-import { items, itemTypeEnum } from '../../../src/schema'
+import { items, itemTypeEnum } from '../../../src/schema/schema'
+import type { ItemInterface } from '../../../src/schema/zod-definitions'
 import { instance } from '../db'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
-
-export interface Item {
-  id: string
-  name: string
-  brand: string
-  photoUrl: string
-  type: ItemType
-  rating: number
-  createdAt: Date
-  authorUsername: string
-}
 
 export interface ItemAPI {
   id: string
@@ -26,8 +16,8 @@ export interface ItemAPI {
   authorUsername: string
 }
 
-export class ItemFactory implements Item {
-  constructor(seed?: number, options?: Partial<Item> | ItemAPI) {
+export class ItemFactory implements ItemInterface {
+  constructor(seed?: number, options?: Partial<ItemInterface> | ItemAPI) {
     faker.seed(seed ?? undefined)
     this.id = options?.id
       ? (options.id as string)
