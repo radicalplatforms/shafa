@@ -309,7 +309,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     const recentlyWornCount = outfit.recentlyWornItemCount as number
     const similarity_penalty = (() => {
       if (recentlyWornCount === 0) return 0
-      
+
       // Exponential penalty based on number of recently worn items
       // 1 item: -20, 2 items: -45, 3 items: -80, 4+ items: -125
       const basePenalty = -20
@@ -332,13 +332,15 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     // First, group outfits by their core items and keep only the most recent one
     .reduce((acc, outfit) => {
       const coreItemsKey = (outfit.coreItems as string[])
-        .filter(id => id) // Remove any null/undefined values
+        .filter((id) => id) // Remove any null/undefined values
         .sort()
         .join('|')
 
       // Only keep this outfit if it's more recent than existing one with same core items
-      if (!acc.has(coreItemsKey) || 
-          new Date(outfit.lastWorn as string) > new Date(acc.get(coreItemsKey)!.lastWorn as string)) {
+      if (
+        !acc.has(coreItemsKey) ||
+        new Date(outfit.lastWorn as string) > new Date(acc.get(coreItemsKey)!.lastWorn as string)
+      ) {
         acc.set(coreItemsKey, outfit)
       }
       return acc
@@ -346,7 +348,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     .values()
 
   // Convert to array and calculate scores
-  const uniqueOutfits = [...scoredOutfits].map(outfit => ({
+  const uniqueOutfits = [...scoredOutfits].map((outfit) => ({
     outfitId: outfit.id,
     score: Object.values(calculateScores(outfit)).reduce((a, b) => a + b, 0),
   }))
