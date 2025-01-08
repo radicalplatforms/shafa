@@ -153,6 +153,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
       }
     }
     expect(Array.isArray(resJSON.suggestions)).toBe(true)
+
     // Validate scoring details structure and types
     const scoringDetails = resJSON.suggestions[0].scoring_details
     expect(scoringDetails).toBeDefined()
@@ -160,17 +161,23 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     // Validate score values match expected ranges and types
     expect(scoringDetails.base_score).toBeGreaterThanOrEqual(0)
     expect(scoringDetails.base_score).toBeLessThanOrEqual(60) // Max rating (4) * 15
+
     expect(scoringDetails.items_score).toBeGreaterThanOrEqual(0)
     expect(scoringDetails.items_score).toBeLessThanOrEqual(32) // Max rating (4) * 8
+
     expect(scoringDetails.time_factor).toBeGreaterThanOrEqual(-10)
     expect(scoringDetails.time_factor).toBeLessThanOrEqual(20)
+
     expect(scoringDetails.frequency_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.frequency_score).toBeLessThanOrEqual(20)
+    expect(scoringDetails.frequency_score).toBeLessThanOrEqual(20) // Never worn bonus
+
     expect(scoringDetails.day_of_week_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.day_of_week_score).toBeLessThanOrEqual(15)
+    expect(scoringDetails.day_of_week_score).toBeLessThanOrEqual(15) // Max confidence * 15
+
     expect(scoringDetails.seasonal_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.seasonal_score).toBeLessThanOrEqual(15)
-    expect(scoringDetails.similarity_penalty).toBeGreaterThanOrEqual(-45)
+    expect(scoringDetails.seasonal_score).toBeLessThanOrEqual(15) // Max seasonal relevance * 15
+
+    expect(scoringDetails.similarity_penalty).toBeGreaterThanOrEqual(-125) // Max penalty for 4+ items
     expect(scoringDetails.similarity_penalty).toBeLessThanOrEqual(0)
 
     // Validate total score is sum of all components
@@ -187,6 +194,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     // Validate raw data structure and types
     const rawData = scoringDetails.raw_data
     expect(rawData).toBeDefined()
+
     expect(Number.isInteger(rawData.wear_count)).toBe(true)
     expect(rawData.wear_count).toBeGreaterThanOrEqual(0)
 
@@ -200,14 +208,15 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     expect(rawData.seasonal_relevance).toBeGreaterThanOrEqual(0)
     expect(rawData.seasonal_relevance).toBeLessThanOrEqual(1)
 
-    expect(Number.isInteger(rawData.similar_outfits_count)).toBe(true)
-    expect(rawData.similar_outfits_count).toBeGreaterThanOrEqual(0)
+    expect(Number.isInteger(rawData.recently_worn_items)).toBe(true)
+    expect(rawData.recently_worn_items).toBeGreaterThanOrEqual(0)
 
     expect(Array.isArray(rawData.core_items)).toBe(true)
     rawData.core_items.forEach((item) => {
       expect(typeof item).toBe('string')
       expect(item.length).toBe(24) // CUID length
     })
+
     expect(resJSON.generated_at).toBeDefined()
     expect(resJSON.metadata.wardrobe_size).toEqual(5)
     expect(resJSON.metadata.recency_threshold).toEqual(3)

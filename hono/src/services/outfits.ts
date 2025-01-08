@@ -232,7 +232,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
               SELECT 1
               FROM outfits o2
               JOIN items_to_outfits io2 ON io2.outfit_id = o2.id
-              WHERE o2.wear_date > NOW() - INTERVAL '${recencyThreshold} days'
+              WHERE o2.wear_date > NOW() - make_interval(days => ${recencyThreshold})
                 AND io2.item_id = io1.item_id
             )
         )::integer

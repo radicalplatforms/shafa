@@ -31,7 +31,7 @@ export interface OutfitSuggestionAPI extends OutfitAPI {
       days_since_worn: number
       same_day_count: number
       seasonal_relevance: number
-      similar_outfits_count: number
+      recently_worn_items: number
       core_items: string[]
     }
   }
