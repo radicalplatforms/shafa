@@ -222,18 +222,18 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
         ARRAY_AGG(DISTINCT ${itemsToOutfits.itemId}::text)
         FILTER (WHERE ${itemsToOutfits.itemType}::text IN ('layer', 'top', 'bottom'))
       `,
-      similarOutfitsCount: sql`
+      recentlyWornItemCount: sql`
         (
-          SELECT COUNT(DISTINCT o2.id)
-          FROM outfits o2
-          JOIN items_to_outfits io2 ON io2.outfit_id = o2.id
-          WHERE o2.wear_date > NOW() - INTERVAL '14 days'
-            AND io2.item_type::text IN ('layer', 'top', 'bottom')
-            AND io2.item_id IN (
-              SELECT io1.item_id 
-              FROM items_to_outfits io1 
-              WHERE io1.outfit_id = ${outfits.id}
-                AND io1.item_type::text IN ('layer', 'top', 'bottom')
+          SELECT COUNT(DISTINCT io1.item_id)
+          FROM items_to_outfits io1 
+          WHERE io1.outfit_id = ${outfits.id}
+            AND io1.item_type::text IN ('layer', 'top', 'bottom')
+            AND EXISTS (
+              SELECT 1
+              FROM outfits o2
+              JOIN items_to_outfits io2 ON io2.outfit_id = o2.id
+              WHERE o2.wear_date > NOW() - INTERVAL '${recencyThreshold} days'
+                AND io2.item_id = io1.item_id
             )
         )::integer
       `,
@@ -305,10 +305,17 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     )
     const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 15)
 
-    // Increase similarity penalty
-    const similarity_penalty = Math.trunc(
-      Math.max(-45, (outfit.similarOutfitsCount as number) * -20)
-    )
+    // Calculate exponential penalty for recently worn items
+    const recentlyWornCount = outfit.recentlyWornItemCount as number
+    const similarity_penalty = (() => {
+      if (recentlyWornCount === 0) return 0
+      
+      // Exponential penalty based on number of recently worn items
+      // 1 item: -20, 2 items: -45, 3 items: -80, 4+ items: -125
+      const basePenalty = -20
+      const penaltyMultiplier = Math.pow(1.5, recentlyWornCount)
+      return Math.trunc(Math.max(-125, basePenalty * penaltyMultiplier))
+    })()
 
     return {
       base_score,
@@ -321,7 +328,25 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     }
   }
 
-  const scoredOutfits = outfitsWithScores.map((outfit) => ({
+  const scoredOutfits = outfitsWithScores
+    // First, group outfits by their core items and keep only the most recent one
+    .reduce((acc, outfit) => {
+      const coreItemsKey = (outfit.coreItems as string[])
+        .filter(id => id) // Remove any null/undefined values
+        .sort()
+        .join('|')
+
+      // Only keep this outfit if it's more recent than existing one with same core items
+      if (!acc.has(coreItemsKey) || 
+          new Date(outfit.lastWorn as string) > new Date(acc.get(coreItemsKey)!.lastWorn as string)) {
+        acc.set(coreItemsKey, outfit)
+      }
+      return acc
+    }, new Map())
+    .values()
+
+  // Convert to array and calculate scores
+  const uniqueOutfits = [...scoredOutfits].map(outfit => ({
     outfitId: outfit.id,
     score: Object.values(calculateScores(outfit)).reduce((a, b) => a + b, 0),
   }))
@@ -329,7 +354,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   const suggestedOutfits = await c.get('db').query.outfits.findMany({
     where: inArray(
       outfits.id,
-      scoredOutfits
+      uniqueOutfits
         .sort((a, b) => b.score - a.score)
         .slice(pageNumber * pageSize, pageNumber * pageSize + pageSize + 1)
         .map((o) => o.outfitId)
@@ -373,7 +398,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
             days_since_worn: outfitScore?.daysSinceWorn || 0,
             same_day_count: outfitScore?.sameDayOfWeekCount || 0,
             seasonal_relevance: outfitScore?.seasonalRelevance || 0,
-            similar_outfits_count: outfitScore?.similarOutfitsCount || 0,
+            recently_worn_items: outfitScore?.recentlyWornItemCount || 0,
             core_items: outfitScore?.coreItems || [],
           },
         },
@@ -381,23 +406,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     })
     .sort((a, b) => b.scoring_details.total_score - a.scoring_details.total_score)
 
-  // Filter out duplicate outfits with same core items, keeping highest scored version
-  const uniqueOutfits = outfitsWithDetails
-    .reduce((acc, outfit) => {
-      const coreItemsKey = (outfit.scoring_details.raw_data.core_items as string[]).sort().join('|')
-
-      if (
-        !acc.has(coreItemsKey) ||
-        (acc.get(coreItemsKey)?.scoring_details.total_score || 0) <
-          outfit.scoring_details.total_score
-      ) {
-        acc.set(coreItemsKey, outfit)
-      }
-      return acc
-    }, new Map())
-    .values()
-
-  const filteredOutfits = [...uniqueOutfits]
+  const filteredOutfits = [...outfitsWithDetails]
     .sort((a, b) => b.scoring_details.total_score - a.scoring_details.total_score)
     .slice(0, pageSize + 1)
 
