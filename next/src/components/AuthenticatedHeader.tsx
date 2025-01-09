@@ -64,29 +64,30 @@ export default function AuthenticatedHeader() {
 
   return (
     <>
-      <header className="mb-8 fade-in flex justify-between items-start">
-        <div>
-          <h1 className="text-4xl font-bold mb-2 linear-gradient">Shafa</h1>
-          <p className="text-xl text-muted-foreground">{greeting}, Radison.</p>
+      <header className="mb-4 sm:mb-8 fade-in flex flex-col items-center gap-4 sm:gap-0 sm:flex-row sm:justify-between sm:items-start">
+        <div className="text-center sm:text-left space-y-1">
+          <h1 className="text-3xl sm:text-4xl font-bold linear-gradient">Shafa</h1>
+          <p className="text-base sm:text-xl text-muted-foreground">{greeting}, Radison.</p>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground mb-1">{today}</p>
+        <div className="text-center sm:text-right space-y-1.5">
+          <p className="text-xs sm:text-sm text-muted-foreground">{today}</p>
           {streak !== null && (
-            <div className="flex items-center justify-end">
-              <Flame className="h-4 w-4 mr-1 text-orange-500" />
-              <span className="font-medium">{streak} day streak</span>
+            <div className="flex items-center justify-center sm:justify-end gap-1">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <span className="text-sm sm:text-base font-medium">{streak} day streak</span>
             </div>
           )}
         </div>
       </header>
-      <nav className="mb-8 fade-in flex justify-between items-center">
-        <div className="flex space-x-2">
+      <nav className="mb-6 sm:mb-8 fade-in flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-stretch sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-3">
           {NAV_LINKS.map(({ href, label, Icon }) => (
-            <Link key={href} href={href}>
+            <Link key={href} href={href} className="w-full sm:w-auto">
               <Button 
                 variant={pathname === href ? "default" : "secondary"}
+                className="w-full sm:w-auto"
               >
-                <Icon className="mr-1 h-5 w-5" />
+                <Icon className="mr-1 h-4 w-4 sm:h-5 sm:w-5" />
                 {label}
               </Button>
             </Link>

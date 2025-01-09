@@ -82,7 +82,7 @@ export default function OutfitList() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {outfits.map((outfit, index) => (
         <div
           key={`outfit-${outfit.id}`}
@@ -91,10 +91,10 @@ export default function OutfitList() {
           style={{ animationDelay: `${index * 50}ms` }}
         >
           <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <span className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="mr-1 h-4 w-4" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                  <Calendar className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                   {formatDate(outfit.wearDate)}
                 </span>
                 <Rating rating={outfit.rating + 1} />

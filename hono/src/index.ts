@@ -31,7 +31,12 @@ app.use(
         'https://shafa.app',
         'https://*.shafa-next.pages.dev',
         'https://*.radicalplatforms.workers.dev',
+        'http://localhost:3000',
       ]
+
+      if (process.env.NODE_ENV === 'development') {
+        allowedOrigins.push('http://localhost:3000')
+      }
 
       if (!origin) return allowedOrigins[0]
 

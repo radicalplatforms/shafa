@@ -9,10 +9,10 @@ interface ItemListProps {
 
 export function ItemList({ items, coreItems = [] }: ItemListProps) {
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-2">
       {items.map((itemToOutfit, index) => (
         itemToOutfit.item && (
-          <li key={itemToOutfit.itemId || `item-${index}-${itemToOutfit.itemType}`}>
+          <li key={itemToOutfit.itemId || `item-${index}-${itemToOutfit.itemType}`} className="text-sm">
             <Item 
               item={itemToOutfit.item}
               itemType={itemToOutfit.itemType as keyof typeof itemTypeIcons}
@@ -24,4 +24,3 @@ export function ItemList({ items, coreItems = [] }: ItemListProps) {
     </ul>
   )
 }
-

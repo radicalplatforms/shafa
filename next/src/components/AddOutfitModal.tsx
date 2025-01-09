@@ -172,16 +172,36 @@ export function AddOutfitModal({
         </DialogTrigger>
       )}
       <DialogContent 
-        className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl overflow-visible [&>button]:hidden"
+        className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl overflow-visible [&>button]:hidden w-[95vw] max-h-[90vh] overflow-y-auto"
       >
-        <div className="px-6 pt-6">
-          <div className="flex justify-between items-center mb-4">
+        <div className="px-4 sm:px-6 pt-6">
+          <div className="flex justify-between items-center mb-4 sm:hidden">
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={cn(
+                    "h-5 w-5 cursor-pointer transition-colors",
+                    star <= rating ? "text-primary fill-current" : "text-gray-300"
+                  )}
+                  onClick={() => setRating(star)}
+                />
+              ))}
+            </div>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 p-4">
+                <X className="h-6 w-6" />
+              </Button>
+            </DialogClose>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[200px] justify-start text-left font-normal",
+                    "w-full sm:w-[200px] justify-start text-left font-normal",
                     !date && "text-muted-foreground"
                   )}
                 >
@@ -195,10 +215,12 @@ export function AddOutfitModal({
                   selected={date}
                   onSelect={setDate}
                   initialFocus
+                  className="rounded-md border"
                 />
               </PopoverContent>
             </Popover>
-            <div className="flex items-center space-x-4">
+            
+            <div className="hidden sm:flex justify-between sm:justify-end items-center w-full sm:w-auto gap-4">
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
@@ -233,7 +255,7 @@ export function AddOutfitModal({
               <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
               {showDropdown && (searchResults.length > 0 || isSearching) && (
                 <div className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg">
-                  <ScrollArea className="h-[200px] rounded-md border">
+                  <ScrollArea className="h-[150px] sm:h-[200px] rounded-md border">
                     {isSearching ? (
                       <div className="flex items-center justify-center p-4">
                         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -258,18 +280,26 @@ export function AddOutfitModal({
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-2">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <span className="text-sm text-muted-foreground">Save to outfit as:</span>
               <ItemTypeButtons onSelect={handleAddItem} disabled={!selectedItem} />
             </div>
           </div>
           <div className="mt-6">
-            <ScrollArea className="h-[250px] px-2">
+            <ScrollArea className="max-h-fit sm:h-[250px] px-2">
               <div className="space-y-2">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
-                    <Item item={item} itemType={item.itemType} />
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveItem(item.id)}>
+                  <div key={item.id} className="flex items-center gap-2 w-full max-w-full overflow-hidden">
+                    <div className="flex-1 min-w-0 max-w-[calc(100%-3rem)]">
+                      <Item item={item} itemType={item.itemType} />
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="flex-shrink-0"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -278,11 +308,15 @@ export function AddOutfitModal({
             </ScrollArea>
           </div>
         </div>
-        <div className="flex justify-end items-center bg-muted rounded-b-sm py-4 px-6 border-t">
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Outfit
-            </Button>
+        <div className="flex justify-end items-center bg-muted rounded-b-sm py-4 px-4 sm:px-6 border-t mt-4">
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Create Outfit
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -479,7 +479,7 @@ app.get('/streak', injectDB, async (c) => {
   }
 
   // Calculate longest streak
-  let tempStreak = 0
+  let tempStreak = 1 // Start at 1 since we're counting the current day
   streakData.forEach((row, i) => {
     const currentDate = new Date(row.date)
     const nextDate = streakData[i + 1] ? new Date(streakData[i + 1].date) : null
@@ -487,9 +487,8 @@ app.get('/streak', injectDB, async (c) => {
     if (nextDate && currentDate.getTime() - nextDate.getTime() === 86400000) {
       tempStreak++
     } else {
-      tempStreak++
       longestStreak = Math.max(longestStreak, tempStreak)
-      tempStreak = 0
+      tempStreak = 1 // Reset to 1 instead of 0 since we're starting a new streak
     }
   })
 
@@ -499,6 +498,8 @@ app.get('/streak', injectDB, async (c) => {
     last_logged_date: streakData[0]?.date || null,
     metadata: {
       generated_at: today.toISOString(),
+      is_grace_period:
+        currentStreak === 1 && !datesWithOutfits.has(today.toISOString().split('T')[0]),
     },
   })
 })
