@@ -17,7 +17,9 @@ import { ItemsResponse } from '@/lib/client'
 import { ItemTypeButtons, itemTypeIcons } from './ItemTypeButtons'
 import { Item } from '@/components/Item'
 
-type Item = ItemsResponse extends { items: Array<infer T> } ? T : never
+type Item = ItemType & {
+  type: keyof typeof itemTypeIcons
+}
 
 interface ItemWithType extends ItemType {
   itemType: keyof typeof itemTypeIcons
@@ -70,7 +72,7 @@ export function AddOutfitModal({
           })
           const data = await response.json()
           if (data && Array.isArray(data.items)) {
-            setSearchResults(data.items)
+            setSearchResults(data.items as Item[])
           } else {
             setSearchResults([])
           }
@@ -106,7 +108,7 @@ export function AddOutfitModal({
 
   const handleAddItem = (itemType: keyof typeof itemTypeIcons) => {
     if (selectedItem) {
-      const newItem: ItemWithType = { ...selectedItem, itemType }
+      const newItem: ItemWithType = { ...(selectedItem as ItemType), itemType }
       const newItems = [...items, newItem].sort((a, b) => {
         const order = ['layer', 'top', 'bottom', 'footwear', 'accessory'];
         return order.indexOf(a.itemType) - order.indexOf(b.itemType);
@@ -133,7 +135,7 @@ export function AddOutfitModal({
     setIsSubmitting(true)
 
     const outfitData: OutfitCreate = {
-      wearDate: format(date, 'yyyy-MM-dd'),
+      wearDate: date,
       rating: rating - 1,
       itemIdsTypes: items.map(item => ({ id: item.id, itemType: item.itemType }))
     }

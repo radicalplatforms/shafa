@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { OutfitSuggestion } from '@/types/outfitSuggestion'
+import { OutfitSuggestion, ItemToOutfit } from '@/types/outfit'
 import { client } from '@/lib/client'
 import { Star, Zap } from 'lucide-react'
 import { SuggestionScoreBar } from '@/components/SuggestionScoreBar'
@@ -92,17 +92,14 @@ export default function OutfitSuggestions() {
       <AddOutfitModal 
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        initialItems={selectedSuggestion?.itemsToOutfits.map(itemToOutfit => ({
-          id: itemToOutfit.item.id,
-          itemType: itemToOutfit.itemType,
-          name: itemToOutfit.item.name,
-          brand: itemToOutfit.item.brand,
-          photoUrl: itemToOutfit.item.photoUrl,
-          type: itemToOutfit.item.type,
-          rating: itemToOutfit.item.rating,
-          createdAt: itemToOutfit.item.createdAt,
-          authorUsername: itemToOutfit.item.authorUsername
-        }))}
+        initialItems={selectedSuggestion?.itemsToOutfits
+          .filter((itemToOutfit: ItemToOutfit): itemToOutfit is ItemToOutfit & { item: NonNullable<ItemToOutfit['item']> } => 
+            itemToOutfit.item !== undefined
+          )
+          .map((itemToOutfit) => ({
+            ...itemToOutfit.item,
+            itemType: itemToOutfit.itemType as "layer" | "top" | "bottom" | "footwear" | "accessory"
+          }))}
         initialRating={selectedSuggestion?.rating}
         initialDate={new Date()}
         showTrigger={false}
@@ -148,9 +145,9 @@ export default function OutfitSuggestions() {
                 </div>
                 <div className="divider"></div>
                 <ItemList 
-                  items={suggestion.itemsToOutfits.map(item => ({
+                  items={suggestion.itemsToOutfits.map((item: ItemToOutfit) => ({
                     ...item,
-                    id: item.id || `suggestion-item-${suggestion.id}-${item.itemType}`
+                    id: item.itemId || `suggestion-item-${suggestion.id}-${item.itemType}`
                   }))}
                   coreItems={suggestion.scoring_details.raw_data.core_items}
                 />

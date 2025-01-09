@@ -2,13 +2,13 @@ import { Item as ItemType } from '@/types/outfit'
 import { Layers, Shirt, Footprints, Crown } from 'lucide-react'
 import { PiPantsFill } from 'react-icons/pi'
 
-const itemTypeIcons = {
+export const itemTypeIcons = {
   layer: Layers,
   top: Shirt,
   bottom: PiPantsFill,
   footwear: Footprints,
   accessory: Crown,
-}
+} as const
 
 interface ItemProps {
   item: ItemType

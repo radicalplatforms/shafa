@@ -365,7 +365,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     .values()
 
   // Convert to array and calculate scores
-  const uniqueOutfits = [...scoredOutfits].map((outfit) => ({
+  const uniqueOutfits = Array.from(scoredOutfits).map((outfit) => ({
     outfitId: outfit.id,
     score: Object.values(calculateScores(outfit)).reduce((a, b) => a + b, 0),
   }))

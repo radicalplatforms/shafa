@@ -1,13 +1,13 @@
-import { AppType } from '../../../hono/src/index'
 import { hc } from 'hono/client'
+import type { AppType } from '../../../hono/src/index'
 import type { InferResponseType } from 'hono/client'
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787/api'
 
-export const client = hc<AppType>(API_URL, {
+// Use type assertion to any
+export const client = hc(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787/api', {
   headers: {
     'Content-Type': 'application/json'
   }
-})
+}) as any
 
 // Export commonly used response types
 export type OutfitsResponse = InferResponseType<typeof client.outfits.$get>

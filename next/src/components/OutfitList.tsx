@@ -29,35 +29,36 @@ export default function OutfitList() {
     if (node) observer.current.observe(node)
   }, [loading, hasMore])
 
-  useEffect(() => {
-    const fetchOutfits = async () => {
-      try {
-        const response = await client.outfits.$get({
-          query: { page: page.toString(), size: 24 }
-        })
-        const data = await response.json()
-        setOutfits(prevOutfits => page === 0 ? data.outfits : [...prevOutfits, ...data.outfits])
-        setHasMore(!data.last_page)
-      } catch (err) {
-        setError('Failed to load outfits. Please try again later.')
-      } finally {
-        setLoading(false)
-      }
+  const fetchOutfits = useCallback(async () => {
+    try {
+      const response = await client.outfits.$get({
+        query: { page: page.toString(), size: 24 }
+      })
+      const data = await response.json()
+      setOutfits(prevOutfits => page === 0 ? data.outfits : [...prevOutfits, ...data.outfits])
+      setHasMore(!data.last_page)
+    } catch (err) {
+      setError('Failed to load outfits. Please try again later.')
+    } finally {
+      setLoading(false)
     }
-
-    fetchOutfits()
   }, [page])
+
+  useEffect(() => {
+    fetchOutfits()
+  }, [page, fetchOutfits])
 
   useEffect(() => {
     const handleOutfitCreated = () => {
       setPage(0)  // Reset to first page
       setOutfits([])  // Clear existing outfits
       setLoading(true)  // Show loading state
+      fetchOutfits() // Immediately fetch new data
     }
 
     window.addEventListener('outfitCreated', handleOutfitCreated)
     return () => window.removeEventListener('outfitCreated', handleOutfitCreated)
-  }, [])
+  }, [fetchOutfits])
 
   if (loading && page === 0) {
     return <OutfitListLoading />

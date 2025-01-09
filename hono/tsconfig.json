@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2015",
     "module": "ESNext",
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -11,6 +11,7 @@
     "jsxImportSource": "hono/jsx",
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "downlevelIteration": true,
   },
   "include": ["src/**/*", "test/**/*", ".eslintrc.js", "jest.config.js", "migrate.ts"],
 }
