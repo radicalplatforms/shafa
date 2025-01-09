@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { OutfitSuggestion } from '@/types/outfitSuggestion'
-import { Skeleton } from '@/components/ui/skeleton'
 import { client } from '@/lib/client'
 import { Star, Zap } from 'lucide-react'
-import { Progress } from '@/components/ui/progress'
-import { Item } from '@/components/Item'
+import { SuggestionScoreBar } from '@/components/SuggestionScoreBar'
+import { ItemList } from '@/components/ItemList'
+import OutfitSuggestionsLoading from './OutfitSuggestionsLoading'
+import { Rating } from '@/components/ui/rating'
+import { AddOutfitModal } from '@/components/AddOutfitModal'
 
 export default function OutfitSuggestions() {
   const [suggestions, setSuggestions] = useState<OutfitSuggestion[]>([])
@@ -15,111 +17,152 @@ export default function OutfitSuggestions() {
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const [maxScore, setMaxScore] = useState<number | null>(null)
+  const observer = useRef<IntersectionObserver | null>(null)
+  const [selectedSuggestion, setSelectedSuggestion] = useState<OutfitSuggestion | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const fetchSuggestions = async () => {
-    try {
-      setLoading(true)
-      const response = await client.outfits.suggest.$get({
-        query: { page: page.toString(), size: '10' }
-      })
-      const data = await response.json()
-      setSuggestions(prevSuggestions => [...prevSuggestions, ...data.suggestions])
-      setHasMore(!data.metadata.last_page)
-      setPage(prevPage => prevPage + 1)
-    } catch (err) {
-      setError('Failed to load outfit suggestions. Please try again later.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const lastSuggestionElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return
+    if (observer.current) observer.current.disconnect()
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1)
+      }
+    })
+    if (node) observer.current.observe(node)
+  }, [loading, hasMore])
 
   useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const response = await client.outfits.suggest.$get({
+          query: { 
+            page: page.toString(), 
+            size: 12
+          }
+        })
+        const data = await response.json()
+        setSuggestions(prevSuggestions => 
+          page === 0 ? data.suggestions : [...prevSuggestions, ...data.suggestions]
+        )
+        setHasMore(!data.metadata.last_page)
+        
+        // Set the max score based on the first suggestion's total score
+        if (data.suggestions.length > 0 && maxScore === null) {
+          setMaxScore(data.suggestions[0].scoring_details.total_score)
+        }
+      } catch (err) {
+        setError('Failed to load outfit suggestions. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchSuggestions()
+  }, [page, maxScore])
+
+  useEffect(() => {
+    const handleOutfitCreated = () => {
+      setPage(0)  // Reset to first page
+      setSuggestions([])  // Clear existing suggestions
+      setMaxScore(null)  // Reset max score
+      setLoading(true)  // Show loading state
+    }
+
+    window.addEventListener('outfitCreated', handleOutfitCreated)
+    return () => window.removeEventListener('outfitCreated', handleOutfitCreated)
   }, [])
+
+  const handleSuggestionClick = (suggestion: OutfitSuggestion) => {
+    setSelectedSuggestion(suggestion)
+    setIsModalOpen(true)
+  }
+
+  if (loading && page === 0) {
+    return <OutfitSuggestionsLoading />
+  }
 
   if (error) {
     return <div className="text-destructive">{error}</div>
   }
 
   return (
-    <div>
+    <>
+      <AddOutfitModal 
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        initialItems={selectedSuggestion?.itemsToOutfits.map(itemToOutfit => ({
+          id: itemToOutfit.item.id,
+          itemType: itemToOutfit.itemType,
+          name: itemToOutfit.item.name,
+          brand: itemToOutfit.item.brand,
+          photoUrl: itemToOutfit.item.photoUrl,
+          type: itemToOutfit.item.type,
+          rating: itemToOutfit.item.rating,
+          createdAt: itemToOutfit.item.createdAt,
+          authorUsername: itemToOutfit.item.authorUsername
+        }))}
+        initialRating={selectedSuggestion?.rating}
+        initialDate={new Date()}
+        showTrigger={false}
+        onSuccess={() => {
+          window.dispatchEvent(new Event('outfitCreated'))
+        }}
+      />
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {suggestions.map((suggestion) => (
-          <Card key={`suggestion-${suggestion.id}`} className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 fade-in">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <span className="flex items-center text-sm text-muted-foreground">
-                  <Zap className="mr-1 h-4 w-4" />
-                  Suggested Outfit
-                </span>
-                <span className="flex items-center text-sm text-muted-foreground">
-                  <Star className="mr-1 h-4 w-4" />
-                  {suggestion.rating}/5
-                </span>
-              </div>
-              <div className="mb-4">
-                <p className="text-sm font-medium mb-1">Suggestion Score</p>
-                <Progress value={suggestion.scoring_details.total_score * 10} className="w-full" />
-                <p className="text-xs text-right mt-1">{suggestion.scoring_details.total_score.toFixed(2)}</p>
-              </div>
-              <ul className="space-y-3">
-                {suggestion.itemsToOutfits.map((itemToOutfit) => (
-                  <li key={`suggestion-${suggestion.id}-item-${itemToOutfit.item.id}`}>
-                    <Item item={itemToOutfit.item} itemType={itemToOutfit.itemType} />
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4 text-xs text-muted-foreground">
-                <p>Last worn: {suggestion.scoring_details.raw_data.days_since_worn} days ago</p>
-                <p>Wear count: {suggestion.scoring_details.raw_data.wear_count}</p>
-              </div>
-            </CardContent>
-          </Card>
+        {suggestions.map((suggestion, index) => (
+          <div
+            key={`suggestion-${suggestion.id}`}
+            ref={index === suggestions.length - 1 ? lastSuggestionElementRef : null}
+            className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <span 
+                    className="suggestion-header flex items-center text-sm text-muted-foreground"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    <Zap className="zap-icon mr-1 h-4 w-4" />
+                    Suggested Outfit
+                  </span>
+                  <Rating rating={suggestion.rating + 1} />
+                </div>
+                <div className="mb-4">
+                  <p className="text-sm font-medium mb-2">Suggestion Score</p>
+                  <SuggestionScoreBar
+                    totalScore={suggestion.scoring_details.total_score}
+                    maxScore={maxScore || suggestion.scoring_details.total_score}
+                    categories={[
+                      { name: 'Base', score: suggestion.scoring_details.base_score, color: '#2563eb' }, // Bright blue - authority/foundation
+                      { name: 'Items', score: suggestion.scoring_details.items_score, color: '#15803d' }, // Deep green - quality/value 
+                      { name: 'Time', score: suggestion.scoring_details.time_factor, color: '#d97706' }, // Amber - temporal/aging
+                      { name: 'Frequency', score: suggestion.scoring_details.frequency_score, color: '#9333ea' }, // Bright purple - repetition/rhythm
+                      { name: 'Day', score: suggestion.scoring_details.day_of_week_score, color: '#dc2626' }, // Bright red - importance/urgency
+                      { name: 'Season', score: suggestion.scoring_details.seasonal_score, color: '#0891b2' }, // Bright cyan - nature/cycles
+                    ]}
+                  />
+                </div>
+                <div className="divider"></div>
+                <ItemList 
+                  items={suggestion.itemsToOutfits.map(item => ({
+                    ...item,
+                    id: item.id || `suggestion-item-${suggestion.id}-${item.itemType}`
+                  }))}
+                  coreItems={suggestion.scoring_details.raw_data.core_items}
+                />
+                <div className="mt-4 text-xs text-muted-foreground">
+                  <p>Last worn: {suggestion.scoring_details.raw_data.days_since_worn} days ago</p>
+                  <p>Wear count: {suggestion.scoring_details.raw_data.wear_count}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         ))}
       </div>
-      {loading && <SuggestionSkeleton />}
-      {hasMore && !loading && (
-        <button
-          onClick={fetchSuggestions}
-          className="mt-6 px-4 py-2 w-full bg-accent text-accent-foreground rounded-md hover:bg-accent/90 transition-colors duration-300"
-        >
-          Load More
-        </button>
-      )}
-    </div>
+    </>
   )
 }
-
-function SuggestionSkeleton() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {[...Array(3)].map((_, index) => (
-        <Card key={`suggestion-skeleton-${index}`} className="overflow-hidden">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <Skeleton className="h-4 w-full mb-1" />
-            <Skeleton className="h-2 w-full mb-4" />
-            {[...Array(3)].map((_, i) => (
-              <div key={`item-skeleton-${i}`} className="flex items-center mb-3">
-                <Skeleton className="h-5 w-5 mr-3" />
-                <Skeleton className="w-10 h-10 rounded-full mr-3" />
-                <div className="flex-grow">
-                  <Skeleton className="h-4 w-24 mb-1" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-            <div className="mt-4">
-              <Skeleton className="h-3 w-32 mb-1" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  )
-}
-

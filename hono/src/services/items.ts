@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, and, or, ilike } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -36,10 +36,11 @@ const paginationValidationItems = z.object({
       message: 'Items page size must be a positive number and less than or equal to 1000',
     })
     .optional(),
+  search: z.string().optional(),
 })
 
 app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c) => {
-  const { page, size } = c.req.query()
+  const { page, size, search } = c.req.query()
 
   const pageNumber: number = page ? +page : 0
   const pageSize: number = size ? +size : 25
@@ -48,7 +49,14 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     .get('db')
     .select()
     .from(items)
-    .where(eq(items.authorUsername, 'rak3rman'))
+    .where(
+      search
+        ? and(
+            or(ilike(items.name, `%${search}%`), ilike(items.brand, `%${search}%`)),
+            eq(items.authorUsername, 'rak3rman')
+          )
+        : eq(items.authorUsername, 'rak3rman')
+    )
     .limit(pageSize + 1)
     .offset(pageNumber * pageSize)
 

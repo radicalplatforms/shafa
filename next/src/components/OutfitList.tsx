@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Outfit } from '@/types/outfit'
-import { Skeleton } from '@/components/ui/skeleton'
 import { client } from '@/lib/client'
 import { Calendar, Star } from 'lucide-react'
-import { Item } from '@/components/Item'
+import { ItemList } from '@/components/ItemList'
+import OutfitListLoading from './OutfitListLoading'
+import { Rating } from '@/components/ui/rating'
+import { AddOutfitModal } from '@/components/AddOutfitModal'
 
 export default function OutfitList() {
   const [outfits, setOutfits] = useState<Outfit[]>([])
@@ -14,96 +16,93 @@ export default function OutfitList() {
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const observer = useRef<IntersectionObserver | null>(null)
 
-  const fetchOutfits = async () => {
-    try {
-      setLoading(true)
-      const response = await client.outfits.$get({
-        query: { page: page.toString(), size: '10' }
-      })
-      const data = await response.json()
-      setOutfits(prevOutfits => [...prevOutfits, ...data.outfits])
-      setHasMore(!data.last_page)
-      setPage(prevPage => prevPage + 1)
-    } catch (err) {
-      setError('Failed to load outfits. Please try again later.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const lastOutfitElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return
+    if (observer.current) observer.current.disconnect()
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1)
+      }
+    })
+    if (node) observer.current.observe(node)
+  }, [loading, hasMore])
 
   useEffect(() => {
+    const fetchOutfits = async () => {
+      try {
+        const response = await client.outfits.$get({
+          query: { page: page.toString(), size: 24 }
+        })
+        const data = await response.json()
+        setOutfits(prevOutfits => page === 0 ? data.outfits : [...prevOutfits, ...data.outfits])
+        setHasMore(!data.last_page)
+      } catch (err) {
+        setError('Failed to load outfits. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchOutfits()
+  }, [page])
+
+  useEffect(() => {
+    const handleOutfitCreated = () => {
+      setPage(0)  // Reset to first page
+      setOutfits([])  // Clear existing outfits
+      setLoading(true)  // Show loading state
+    }
+
+    window.addEventListener('outfitCreated', handleOutfitCreated)
+    return () => window.removeEventListener('outfitCreated', handleOutfitCreated)
   }, [])
+
+  if (loading && page === 0) {
+    return <OutfitListLoading />
+  }
 
   if (error) {
     return <div className="text-destructive">{error}</div>
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    // Create new date using UTC components to preserve the date
+    const utcDate = new Date(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate()
+    )
+    const dayOfWeek = utcDate.toLocaleDateString('en-US', { weekday: 'short' })
+    const formattedDate = utcDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return `${dayOfWeek}, ${formattedDate}`
+  }
+
   return (
-    <div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {outfits.map((outfit) => (
-          <Card key={`outfit-${outfit.id}`} className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 fade-in">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {outfits.map((outfit, index) => (
+        <div
+          key={`outfit-${outfit.id}`}
+          ref={index === outfits.length - 1 ? lastOutfitElementRef : null}
+          className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: `${index * 50}ms` }}
+        >
+          <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <span className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="mr-1 h-4 w-4" />
-                  {new Date(outfit.wearDate).toLocaleDateString()}
+                  {formatDate(outfit.wearDate)}
                 </span>
-                <span className="flex items-center text-sm text-muted-foreground">
-                  <Star className="mr-1 h-4 w-4" />
-                  {outfit.rating}/5
-                </span>
+                <Rating rating={outfit.rating + 1} />
               </div>
-              <ul className="space-y-3">
-                {outfit.itemsToOutfits.map((itemToOutfit) => (
-                  <li key={`outfit-${outfit.id}-item-${itemToOutfit.item.id}`}>
-                    <Item item={itemToOutfit.item} itemType={itemToOutfit.itemType} />
-                  </li>
-                ))}
-              </ul>
+              <ItemList items={outfit.itemsToOutfits} />
             </CardContent>
           </Card>
-        ))}
-      </div>
-      {loading && <OutfitSkeleton />}
-      {hasMore && !loading && (
-        <button
-          onClick={fetchOutfits}
-          className="mt-6 px-4 py-2 w-full bg-accent text-accent-foreground rounded-md hover:bg-accent/90 transition-colors duration-300"
-        >
-          Load More
-        </button>
-      )}
-    </div>
-  )
-}
-
-function OutfitSkeleton() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {[...Array(3)].map((_, index) => (
-        <Card key={`outfit-skeleton-${index}`} className="overflow-hidden">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            {[...Array(3)].map((_, i) => (
-              <div key={`item-skeleton-${i}`} className="flex items-center mb-3">
-                <Skeleton className="h-5 w-5 mr-3" />
-                <Skeleton className="w-10 h-10 rounded-full mr-3" />
-                <div className="flex-grow">
-                  <Skeleton className="h-4 w-24 mb-1" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        </div>
       ))}
     </div>
   )
 }
-

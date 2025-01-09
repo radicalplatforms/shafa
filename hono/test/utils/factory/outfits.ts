@@ -24,7 +24,6 @@ export interface OutfitSuggestionAPI extends OutfitAPI {
     frequency_score: number
     day_of_week_score: number
     seasonal_score: number
-    similarity_penalty: number
     total_score: number
     raw_data: {
       wear_count: number

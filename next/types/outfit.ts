@@ -10,8 +10,8 @@ export interface Item {
 }
 
 export interface ItemToOutfit {
-  itemType: string
-  item: Item
+  id: string
+  itemType: 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
 }
 
 export interface Outfit {
@@ -20,5 +20,11 @@ export interface Outfit {
   wearDate: string
   authorUsername: string
   itemsToOutfits: ItemToOutfit[]
+}
+
+export interface OutfitCreate {
+  rating: number
+  wearDate: string
+  itemIdsTypes: ItemToOutfit[]
 }
 
