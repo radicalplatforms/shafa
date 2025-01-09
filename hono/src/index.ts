@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import { version } from '../package.json'
@@ -21,6 +22,15 @@ app.use('*', prettyJSON(), async (c, next) => {
   c.header('X-PrettyJson-Middleware', 'Executed')
   await next()
 })
+
+app.use('*', cors({
+  origin: ['https://api.shafa.app', 'http://localhost:3000'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['X-Total-Count'],
+  maxAge: 600,
+  credentials: true,
+}))
 
 app.get('/', async (c) => {
   return c.text(`Shafa API v${version}`)
