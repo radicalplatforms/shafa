@@ -71,6 +71,10 @@ jobs:
         run: npm ci
         working-directory: next
 
+      - name: Setup Environment
+        run: |
+          echo "NEXT_PUBLIC_API_URL=https://api.shafa.app/api" > next/.env.production
+
       - name: Build Cloudflare Next on Pages
         run: npm run pages:build
         working-directory: next
@@ -81,5 +85,3 @@ jobs:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch production
           workingDirectory: next
-          preCommands: |
-            echo "NEXT_PUBLIC_API_URL=https://api.shafa.app/api" >> .vercel/output/static/.env
