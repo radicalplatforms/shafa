@@ -30,21 +30,21 @@ app.use(
       const allowedOrigins = [
         'https://shafa.app',
         'https://*.shafa-next.pages.dev',
-        'https://*.radicalplatforms.workers.dev'
-      ];
-      
-      if (!origin) return allowedOrigins[0];
-      
-      const matched = allowedOrigins.some(allowed => {
+        'https://*.radicalplatforms.workers.dev',
+      ]
+
+      if (!origin) return allowedOrigins[0]
+
+      const matched = allowedOrigins.some((allowed) => {
         if (!allowed.includes('*')) {
-          return origin === allowed;
+          return origin === allowed
         }
-        const pattern = allowed.replace('*', '.*');
-        const regex = new RegExp('^' + pattern + '$');
-        return regex.test(origin);
-      });
-      
-      return matched ? origin : allowedOrigins[0];
+        const pattern = allowed.replace('*', '.*')
+        const regex = new RegExp('^' + pattern + '$')
+        return regex.test(origin)
+      })
+
+      return matched ? origin : allowedOrigins[0]
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
