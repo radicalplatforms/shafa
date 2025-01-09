@@ -67,7 +67,7 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
-          command: pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} --env NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev/api
+          command: pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} --binding NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev/api
           workingDirectory: next
           preCommands: |
             echo "NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev/api" > .vercel/output/static/_env
