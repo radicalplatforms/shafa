@@ -55,6 +55,10 @@ jobs:
         run: npm ci
         working-directory: next
 
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: hono
+
       - name: Build Cloudflare Next on Pages
         run: npm run pages:build
         working-directory: next
@@ -65,4 +69,6 @@ jobs:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} 
           workingDirectory: next
+          preCommands: |
+            echo "NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev" >> .env
  

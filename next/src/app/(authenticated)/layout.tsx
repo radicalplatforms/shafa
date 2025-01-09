@@ -11,8 +11,8 @@ export default function AuthenticatedLayout({
       <div className="container mx-auto p-4 py-12">
         <Suspense>
           <AuthenticatedHeader />
-          {children}
         </Suspense>
+        {children}
       </div>
     </div>
   )

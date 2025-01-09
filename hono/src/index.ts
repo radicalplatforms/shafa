@@ -26,7 +26,7 @@ app.use('*', prettyJSON(), async (c, next) => {
 app.use(
   '*',
   cors({
-    origin: ['https://shafa.app'],
+    origin: ['https://shafa.app', 'https://*.radicalplatforms.workers.dev'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['X-Total-Count'],
