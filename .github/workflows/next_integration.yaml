@@ -70,5 +70,5 @@ jobs:
           command: pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} 
           workingDirectory: next
           preCommands: |
-            echo "NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev" >> .env
+            echo "NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev/api" >> .vercel/output/static/.env
  

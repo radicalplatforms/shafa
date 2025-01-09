@@ -81,3 +81,5 @@ jobs:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch production
           workingDirectory: next
+          preCommands: |
+            echo "NEXT_PUBLIC_API_URL=https://api.shafa.app/api" >> .vercel/output/static/.env
