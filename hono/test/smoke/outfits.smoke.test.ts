@@ -165,7 +165,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     expect(scoringDetails.items_score).toBeGreaterThanOrEqual(0)
     expect(scoringDetails.items_score).toBeLessThanOrEqual(32) // Max rating (4) * 8
 
-    expect(scoringDetails.time_factor).toBeGreaterThanOrEqual(-10)
+    expect(scoringDetails.time_factor).toBeGreaterThanOrEqual(0)
     expect(scoringDetails.time_factor).toBeLessThanOrEqual(20)
 
     expect(scoringDetails.frequency_score).toBeGreaterThanOrEqual(0)
@@ -177,9 +177,6 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     expect(scoringDetails.seasonal_score).toBeGreaterThanOrEqual(0)
     expect(scoringDetails.seasonal_score).toBeLessThanOrEqual(15) // Max seasonal relevance * 15
 
-    expect(scoringDetails.similarity_penalty).toBeGreaterThanOrEqual(-125) // Max penalty for 4+ items
-    expect(scoringDetails.similarity_penalty).toBeLessThanOrEqual(0)
-
     // Validate total score is sum of all components
     expect(scoringDetails.total_score).toBe(
       scoringDetails.base_score +
@@ -187,8 +184,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
         scoringDetails.time_factor +
         scoringDetails.frequency_score +
         scoringDetails.day_of_week_score +
-        scoringDetails.seasonal_score +
-        scoringDetails.similarity_penalty
+        scoringDetails.seasonal_score
     )
 
     // Validate raw data structure and types

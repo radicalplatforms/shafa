@@ -219,8 +219,11 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
         END)::float / NULLIF(COUNT(*), 0)::float
       `,
       coreItems: sql`
-        ARRAY_AGG(DISTINCT ${itemsToOutfits.itemId}::text)
-        FILTER (WHERE ${itemsToOutfits.itemType}::text IN ('layer', 'top', 'bottom'))
+        COALESCE(
+          ARRAY_AGG(DISTINCT ${itemsToOutfits.itemId}::text)
+          FILTER (WHERE ${itemsToOutfits.itemType}::text IN ('layer', 'top', 'bottom')),
+          ARRAY[]::text[]
+        )
       `,
       recentlyWornItemCount: sql`
         (
@@ -243,10 +246,27 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     .from(outfits)
     .leftJoin(itemsToOutfits, eq(outfits.id, itemsToOutfits.outfitId))
     .leftJoin(sql`items`, eq(itemsToOutfits.itemId, sql`items.id`))
-    .groupBy(outfits.id)
-    .having(sql`MAX(${outfits.wearDate}) < CURRENT_DATE - ${recencyThreshold}::integer`)
+    .groupBy(outfits.id).having(sql`NOT EXISTS (
+      SELECT 1 FROM outfits o2 
+      JOIN items_to_outfits io2 ON io2.outfit_id = o2.id
+      WHERE io2.item_id IN (
+        SELECT io1.item_id 
+        FROM items_to_outfits io1 
+        WHERE io1.outfit_id = ${outfits.id}
+        AND io1.item_type::text IN ('layer', 'top', 'bottom')
+      )
+      AND io2.item_type::text IN ('layer', 'top', 'bottom')
+      AND o2.wear_date > CURRENT_DATE - ${recencyThreshold}::integer
+      GROUP BY o2.id
+      HAVING COUNT(DISTINCT io2.item_id) = (
+        SELECT COUNT(DISTINCT io3.item_id)
+        FROM items_to_outfits io3
+        WHERE io3.outfit_id = ${outfits.id}
+        AND io3.item_type::text IN ('layer', 'top', 'bottom')
+      )
+    )`)
 
-  const calculateTimeFactorScore = (days: number, wearCount: number) => {
+  const calculateTimeFactorScore = (days: number, wearCount: number, recentlyWornCount: number) => {
     if (days < recencyThreshold) return 0
 
     // Calculate ideal wear interval (14-60 days) based on wardrobe size
@@ -259,13 +279,16 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     })()
 
     // Score based on deviation from ideal interval
-    if (days < idealInterval * 0.35) return 5
-    if (days < idealInterval * 0.7) return 10
-    if (days < idealInterval * 1.5) return 20
-    if (days < idealInterval * 2.5) return 15
-    if (days < idealInterval * 4.0) return 5
-    if (days < idealInterval * 6.0) return 0
-    return -10
+    let timeScore = 0
+    if (days < idealInterval * 0.35) timeScore = 10
+    else if (days < idealInterval * 0.7) timeScore = 20
+    else if (days < idealInterval * 1.5) timeScore = 40
+    else if (days < idealInterval * 2.5) timeScore = 30
+    else if (days < idealInterval * 4.0) timeScore = 20
+
+    // Apply similarity penalty
+    const similarityPenalty = recentlyWornCount * 5
+    return Math.max(0, timeScore - similarityPenalty)
   }
 
   // Score based on how often the outfit has been worn
@@ -284,38 +307,36 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   }
 
   const calculateScores = (outfit: (typeof outfitsWithScores)[0]) => {
-    // Base score from outfit rating
+    // 1. Base Score (0-40)
     const ratingConfidence = Math.min((outfit.wearCount as number) / 5, 1)
-    const base_score = Math.trunc((outfit.rating as number) * 15 * ratingConfidence)
+    const base_score = Math.trunc((outfit.rating as number) * 10 * ratingConfidence)
 
-    // Score based on individual item ratings and count
+    // 2. Items Score (0-32)
     const items_score = (() => {
       if (!outfit.avgItemRating || !outfit.itemCount) return 0
       const itemCountBonus = Math.min((outfit.itemCount as number) / 4, 1)
       return Math.trunc((outfit.avgItemRating as number) * 8 * itemCountBonus)
     })()
 
-    // Calculate all scores
+    // 3. Time Factor (0-40)
     const time_factor = Math.trunc(
-      calculateTimeFactorScore(outfit.daysSinceWorn as number, outfit.wearCount as number)
+      calculateTimeFactorScore(
+        outfit.daysSinceWorn as number,
+        outfit.wearCount as number,
+        outfit.recentlyWornItemCount as number
+      )
     )
+
+    // 4. Frequency Score (0-20)
     const frequency_score = Math.trunc(calculateFrequencyScore(outfit.wearCount as number))
+
+    // 5. Day of Week Score (0-15)
     const day_of_week_score = Math.trunc(
       calculateDayOfWeekScore(outfit.sameDayOfWeekCount as number)
     )
+
+    // 6. Seasonal Score (0-15)
     const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 15)
-
-    // Calculate exponential penalty for recently worn items
-    const recentlyWornCount = outfit.recentlyWornItemCount as number
-    const similarity_penalty = (() => {
-      if (recentlyWornCount === 0) return 0
-
-      // Exponential penalty based on number of recently worn items
-      // 1 item: -20, 2 items: -45, 3 items: -80, 4+ items: -125
-      const basePenalty = -20
-      const penaltyMultiplier = Math.pow(1.5, recentlyWornCount)
-      return Math.trunc(Math.max(-125, basePenalty * penaltyMultiplier))
-    })()
 
     return {
       base_score,
@@ -324,17 +345,13 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
       frequency_score,
       day_of_week_score,
       seasonal_score,
-      similarity_penalty,
     }
   }
 
   const scoredOutfits = outfitsWithScores
     // First, group outfits by their core items and keep only the most recent one
     .reduce((acc, outfit) => {
-      const coreItemsKey = (outfit.coreItems as string[])
-        .filter((id) => id) // Remove any null/undefined values
-        .sort()
-        .join('|')
+      const coreItemsKey = (outfit.coreItems as string[]).filter(Boolean).sort().join('|')
 
       // Only keep this outfit if it's more recent than existing one with same core items
       if (
@@ -348,7 +365,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     .values()
 
   // Convert to array and calculate scores
-  const uniqueOutfits = [...scoredOutfits].map((outfit) => ({
+  const uniqueOutfits = Array.from(scoredOutfits).map((outfit) => ({
     outfitId: outfit.id,
     score: Object.values(calculateScores(outfit)).reduce((a, b) => a + b, 0),
   }))
@@ -387,7 +404,6 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
             frequency_score: 0,
             day_of_week_score: 0,
             seasonal_score: 0,
-            similarity_penalty: 0,
           }
 
       return {
@@ -422,6 +438,68 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
       wardrobe_size: wardrobeSize,
       recency_threshold: recencyThreshold,
       last_page: last_page,
+    },
+  })
+})
+
+app.get('/streak', injectDB, async (c) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const streakData = await c
+    .get('db')
+    .select({
+      date: sql<string>`DATE(${outfits.wearDate})::text`,
+      count: sql<number>`COUNT(*)::integer`,
+    })
+    .from(outfits)
+    .groupBy(sql`DATE(${outfits.wearDate})`)
+    .orderBy(sql`DATE(${outfits.wearDate}) DESC`)
+
+  const datesWithOutfits = new Set(
+    streakData.map((row) => new Date(row.date).toISOString().split('T')[0])
+  )
+
+  let currentStreak = 0
+  let longestStreak = 0
+  const checkDate = today
+
+  // Calculate current streak
+  while (datesWithOutfits.has(checkDate.toISOString().split('T')[0])) {
+    currentStreak++
+    checkDate.setDate(checkDate.getDate() - 1)
+  }
+
+  // Allow one day grace period for current streak
+  if (
+    currentStreak === 0 &&
+    datesWithOutfits.has(new Date(today.getTime() - 86400000).toISOString().split('T')[0])
+  ) {
+    currentStreak = 1
+  }
+
+  // Calculate longest streak
+  let tempStreak = 1 // Start at 1 since we're counting the current day
+  streakData.forEach((row, i) => {
+    const currentDate = new Date(row.date)
+    const nextDate = streakData[i + 1] ? new Date(streakData[i + 1].date) : null
+
+    if (nextDate && currentDate.getTime() - nextDate.getTime() === 86400000) {
+      tempStreak++
+    } else {
+      longestStreak = Math.max(longestStreak, tempStreak)
+      tempStreak = 1 // Reset to 1 instead of 0 since we're starting a new streak
+    }
+  })
+
+  return c.json({
+    current_streak: currentStreak,
+    longest_streak: longestStreak,
+    last_logged_date: streakData[0]?.date || null,
+    metadata: {
+      generated_at: today.toISOString(),
+      is_grace_period:
+        currentStreak === 1 && !datesWithOutfits.has(today.toISOString().split('T')[0]),
     },
   })
 })
