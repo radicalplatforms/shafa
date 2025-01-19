@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, inArray, and, or, ilike } from 'drizzle-orm'
+import { eq, inArray, and, or, ilike, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -47,7 +47,17 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
 
   const itemsData = await c
     .get('db')
-    .select()
+    .select({
+      id: items.id,
+      name: items.name,
+      brand: items.brand,
+      photoUrl: items.photoUrl,
+      type: items.type,
+      rating: items.rating,
+      createdAt: items.createdAt,
+      authorUsername: items.authorUsername,
+      lastWornAt: sql<Date | null>`MAX(${outfits.wearDate})`,
+    })
     .from(items)
     .where(
       search
@@ -57,6 +67,9 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
           )
         : eq(items.authorUsername, 'rak3rman')
     )
+    .leftJoin(itemsToOutfits, eq(items.id, itemsToOutfits.itemId))
+    .leftJoin(outfits, eq(itemsToOutfits.outfitId, outfits.id))
+    .groupBy(items.id)
     .limit(pageSize + 1)
     .offset(pageNumber * pageSize)
 

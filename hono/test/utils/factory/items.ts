@@ -13,6 +13,7 @@ export interface Item {
   rating: number
   createdAt: Date
   authorUsername: string
+  last_worn: Date | null
 }
 
 export interface ItemAPI {
@@ -24,6 +25,7 @@ export interface ItemAPI {
   rating: number
   createdAt: string
   authorUsername: string
+  last_worn: string | null
 }
 
 export class ItemFactory implements Item {
@@ -49,6 +51,9 @@ export class ItemFactory implements Item {
     this.authorUsername = options?.authorUsername
       ? (options.authorUsername as string)
       : faker.internet.userName()
+    this.last_worn = options?.last_worn
+      ? new Date(options.last_worn)
+      : null
   }
 
   async store(name: string, port: number) {
@@ -60,6 +65,7 @@ export class ItemFactory implements Item {
     return {
       ...this,
       createdAt: this.createdAt.toISOString(),
+      last_worn: this.last_worn?.toISOString() || null,
     }
   }
 
@@ -71,6 +77,7 @@ export class ItemFactory implements Item {
   rating: number
   createdAt: Date
   authorUsername: string
+  last_worn: Date | null
 }
 
 export interface PartialItem {
