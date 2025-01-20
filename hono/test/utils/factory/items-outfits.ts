@@ -1,7 +1,8 @@
 import { faker } from '@faker-js/faker'
 import { itemTypeEnum, itemsToOutfits } from '../../../src/schema'
 import { instance } from '../db'
-import type { ItemType } from './items'
+import type { ItemFactory, ItemType } from './items'
+import { OutfitFactory } from './outfits'
 
 export interface ItemToOutfit {
   itemId: string
@@ -28,4 +29,19 @@ export class ItemToOutfitFactory implements ItemToOutfit {
   itemId: string
   outfitId: string
   itemType: ItemType
+}
+
+export function itemsComputeLastWornAt(items: ItemFactory[], outfits: OutfitFactory[], itemsToOutfits: ItemToOutfitFactory[]): ItemFactory[] {
+  return items.map(item => {
+    const relevantOutfits = outfits
+      .filter(outfit => itemsToOutfits.some(io => io.outfitId === outfit.id && io.itemId === item.id))
+      .sort((a, b) => {
+        if (!a.wearDate) return -1
+        if (!b.wearDate) return 1
+        return b.wearDate.getTime() - a.wearDate.getTime()
+      })
+
+    item.lastWornAt = relevantOutfits.length > 0 ? relevantOutfits[0].wearDate.toISOString().split('T')[0] : null
+    return item
+  })
 }

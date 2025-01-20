@@ -6,6 +6,8 @@ import * as schema from '../../src/schema'
 import { clean, provision } from '../utils/db'
 import { type ItemAPI, ItemFactory, PartialItemFactory } from '../utils/factory/items'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
+import { OutfitFactory } from '../utils/factory/outfits'
+import { ItemToOutfitFactory, itemsComputeLastWornAt } from '../utils/factory/items-outfits'
 
 /**
  * Items Smoke Tests
@@ -87,16 +89,19 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
     })
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
-    expect(resJSON).toMatchObject(testItems[0].formatAPI())
+    expect(resJSON).toMatchObject(testItems[0].formatAPI({ omitLastWornAt: true }))
     testItems.splice(0, 1)
   })
 })
 
 describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
   let testItems: ItemFactory[] = []
+  let testOutfits: OutfitFactory[] = []
+  let testItemsToOutfits: ItemToOutfitFactory[] = []
 
   beforeAll(async () => {
-    ;[testItems] = await basicSmallSeed(DB_NAME, DB_PORT)
+    ;[testItems, testOutfits, testItemsToOutfits] = await basicSmallSeed(DB_NAME, DB_PORT)
+    testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
   })
 
   afterAll(async () => {
@@ -106,6 +111,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
   async function validateItemsGetter() {
     const res = await app.request('/api/items')
     const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: boolean }
+    testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
     expect(res.status).toBe(200)
     expect(resJSON.items).toEqual(testItems.map((item) => item.formatAPI()))
     expect(resJSON.last_page).toEqual(true)
@@ -119,7 +125,7 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     })
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
-    expect(resJSON).toMatchObject(testItems[0].formatAPI())
+    expect(resJSON).toMatchObject(testItems[0].formatAPI({ omitLastWornAt: true }))
     testItems.splice(0, 1)
   })
 

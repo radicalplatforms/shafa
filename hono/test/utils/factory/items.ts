@@ -13,7 +13,7 @@ export interface Item {
   rating: number
   createdAt: Date
   authorUsername: string
-  last_worn: Date | null
+  lastWornAt: string | null
 }
 
 export interface ItemAPI {
@@ -25,7 +25,7 @@ export interface ItemAPI {
   rating: number
   createdAt: string
   authorUsername: string
-  last_worn: string | null
+  lastWornAt?: string | null
 }
 
 export class ItemFactory implements Item {
@@ -51,8 +51,8 @@ export class ItemFactory implements Item {
     this.authorUsername = options?.authorUsername
       ? (options.authorUsername as string)
       : faker.internet.userName()
-    this.last_worn = options?.last_worn
-      ? new Date(options.last_worn)
+    this.lastWornAt = options?.lastWornAt
+      ? (options.lastWornAt as string)
       : null
   }
 
@@ -61,12 +61,19 @@ export class ItemFactory implements Item {
     await db.insert(items).values(this).onConflictDoNothing()
   }
 
-  formatAPI(): ItemAPI {
-    return {
+  formatAPI({ omitLastWornAt = false }: { omitLastWornAt?: boolean } = {}): ItemAPI {
+    const formatted = {
       ...this,
       createdAt: this.createdAt.toISOString(),
-      last_worn: this.last_worn?.toISOString() || null,
+      lastWornAt: this.lastWornAt || null,
     }
+    
+    if (omitLastWornAt) {
+      const { lastWornAt, ...rest } = formatted
+      return rest
+    }
+    
+    return formatted
   }
 
   id: string
@@ -77,7 +84,7 @@ export class ItemFactory implements Item {
   rating: number
   createdAt: Date
   authorUsername: string
-  last_worn: Date | null
+  lastWornAt: string | null
 }
 
 export interface PartialItem {
