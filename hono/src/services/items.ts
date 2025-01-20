@@ -62,12 +62,10 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     .where(
       search
         ? and(
-            ...search.toLowerCase().split(/\s+/).map(word =>
-              or(
-                ilike(items.name, `%${word}%`),
-                ilike(items.brand, `%${word}%`)
-              )
-            ),
+            ...search
+              .toLowerCase()
+              .split(/\s+/)
+              .map((word) => or(ilike(items.name, `%${word}%`), ilike(items.brand, `%${word}%`))),
             eq(items.authorUsername, 'rak3rman')
           )
         : eq(items.authorUsername, 'rak3rman')
@@ -75,7 +73,7 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     .leftJoin(itemsToOutfits, eq(items.id, itemsToOutfits.itemId))
     .leftJoin(outfits, eq(itemsToOutfits.outfitId, outfits.id))
     .groupBy(items.id)
-    .orderBy(sql`MAX(${outfits.wearDate}) DESC NULLS FIRST`)
+    .orderBy(sql`MAX(${outfits.wearDate}) ASC NULLS FIRST`, items.name)
     .limit(pageSize + 1)
     .offset(pageNumber * pageSize)
 

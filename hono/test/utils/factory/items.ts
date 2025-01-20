@@ -51,9 +51,7 @@ export class ItemFactory implements Item {
     this.authorUsername = options?.authorUsername
       ? (options.authorUsername as string)
       : faker.internet.userName()
-    this.lastWornAt = options?.lastWornAt
-      ? (options.lastWornAt as string)
-      : null
+    this.lastWornAt = options?.lastWornAt ? (options.lastWornAt as string) : null
   }
 
   async store(name: string, port: number) {
@@ -67,12 +65,13 @@ export class ItemFactory implements Item {
       createdAt: this.createdAt.toISOString(),
       lastWornAt: this.lastWornAt || null,
     }
-    
+
     if (omitLastWornAt) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { lastWornAt, ...rest } = formatted
       return rest
     }
-    
+
     return formatted
   }
 

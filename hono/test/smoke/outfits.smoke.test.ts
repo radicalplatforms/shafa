@@ -85,7 +85,9 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
           .filter((itemToOutfit) => itemToOutfit.outfitId === outfit.id)
           .map((itemToOutfit) => ({
             itemType: itemToOutfit.itemType,
-            item: testItems.find((item) => itemToOutfit.itemId === item.id)?.formatAPI({ omitLastWornAt: true }),
+            item: testItems
+              .find((item) => itemToOutfit.itemId === item.id)
+              ?.formatAPI({ omitLastWornAt: true }),
           })),
       }))
     )
