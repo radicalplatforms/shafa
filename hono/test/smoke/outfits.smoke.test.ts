@@ -218,7 +218,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
 
     expect(resJSON.generated_at).toBeDefined()
     expect(resJSON.metadata.wardrobe_size).toEqual(5)
-    expect(resJSON.metadata.recency_threshold).toEqual(3)
+    expect(resJSON.metadata.recency_threshold).toEqual(1)
     expect(resJSON.metadata.last_page).toBeTruthy()
   })
 })

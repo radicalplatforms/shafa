@@ -187,15 +187,34 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   const pageSize: number = size ? +size : 10
   const today = new Date()
 
-  // Get total number of items in wardrobe
-  const wardrobeSize = await c
+  // Get total number of items in wardrobe and counts by type
+  const wardrobeCounts = await c
     .get('db')
-    .select({ count: sql<number>`count(*)` })
+    .select({
+      total: sql<number>`count(*)`,
+      layer: sql<number>`count(*) filter (where type = 'layer')`,
+      top: sql<number>`count(*) filter (where type = 'top')`,
+      bottom: sql<number>`count(*) filter (where type = 'bottom')`,
+      footwear: sql<number>`count(*) filter (where type = 'footwear')`,
+      accessory: sql<number>`count(*) filter (where type = 'accessory')`,
+    })
     .from(sql`items`)
-    .then((result) => Number(result[0].count))
+    .then((result) => ({
+      total: Number(result[0].total),
+      layer: Number(result[0].layer),
+      top: Number(result[0].top),
+      bottom: Number(result[0].bottom),
+      footwear: Number(result[0].footwear),
+      accessory: Number(result[0].accessory),
+    }))
 
-  // Calculate minimum days before suggesting an outfit again (3-14 days)
-  const recencyThreshold = Math.max(3, Math.min(Math.ceil(wardrobeSize / 20), 14))
+  // Calculate minimum days before suggesting an outfit again
+  const recencyThreshold = Math.min(
+    wardrobeCounts.layer,
+    wardrobeCounts.top,
+    wardrobeCounts.bottom,
+    wardrobeCounts.footwear
+  )
 
   // Fetch outfits with their wear statistics and scoring metrics
   const outfitsWithScores = await c
@@ -203,19 +222,19 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     .select({
       id: outfits.id,
       rating: outfits.rating,
-      lastWorn: sql`MAX(${outfits.wearDate})::text`,
+      lastWorn: sql`MAX(${outfits.wearDate} AT TIME ZONE 'PDT')::text`,
       wearCount: sql`COUNT(${outfits.wearDate})::integer`,
-      daysSinceWorn: sql`EXTRACT(DAY FROM (NOW() - MAX(${outfits.wearDate})))::integer`,
+      daysSinceWorn: sql`EXTRACT(DAY FROM (NOW() AT TIME ZONE 'PDT' - MAX(${outfits.wearDate} AT TIME ZONE 'PDT')))::integer`,
       sameDayOfWeekCount: sql`
         COUNT(CASE 
-          WHEN EXTRACT(DOW FROM ${outfits.wearDate}::timestamp) = EXTRACT(DOW FROM NOW()) 
+          WHEN EXTRACT(DOW FROM ${outfits.wearDate} AT TIME ZONE 'PDT') = EXTRACT(DOW FROM NOW() AT TIME ZONE 'PDT') 
           THEN 1 
         END)::integer
       `,
       seasonalRelevance: sql`
         COUNT(CASE 
-          WHEN EXTRACT(MONTH FROM ${outfits.wearDate}::timestamp) 
-            BETWEEN EXTRACT(MONTH FROM NOW()) - 1 AND EXTRACT(MONTH FROM NOW()) + 1 
+          WHEN EXTRACT(MONTH FROM ${outfits.wearDate} AT TIME ZONE 'PDT') 
+            BETWEEN EXTRACT(MONTH FROM NOW() AT TIME ZONE 'PDT') - 1 AND EXTRACT(MONTH FROM NOW() AT TIME ZONE 'PDT') + 1 
           THEN 1 
         END)::float / NULLIF(COUNT(*), 0)::float
       `,
@@ -231,7 +250,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
           SELECT COUNT(DISTINCT io1.item_id)
           FROM items_to_outfits io1 
           WHERE io1.outfit_id = ${outfits.id}
-            AND io1.item_type::text IN ('layer', 'top', 'bottom')
+            AND io1.item_type::text IN ('layer', 'top', 'bottom', 'footwear')
             AND EXISTS (
               SELECT 1
               FROM outfits o2
@@ -270,25 +289,43 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   const calculateTimeFactorScore = (days: number, wearCount: number, recentlyWornCount: number) => {
     if (days < recencyThreshold) return 0
 
-    // Calculate ideal wear interval (14-60 days) based on wardrobe size
-    const baseInterval = Math.max(14, Math.min(Math.ceil(wardrobeSize / 10), 60))
+    // Calculate ideal wear interval based on how often the outfit is worn
     const idealInterval = (() => {
-      if (wearCount <= 1) return baseInterval * 1.5 // New or rarely worn items
-      if (wearCount <= 3) return baseInterval // Occasionally worn items
-      if (wearCount <= 6) return baseInterval * 0.7 // Regularly worn items
-      return baseInterval * 0.5 // Frequently worn items
+      switch (true) {
+        case wearCount <= 1:
+          return recencyThreshold * 2.5 // New outfits: longest interval
+        case wearCount <= 3:
+          return recencyThreshold * 2.0 // Occasional outfits
+        case wearCount <= 6:
+          return recencyThreshold * 1.5 // Regular outfits
+        default:
+          return recencyThreshold * 1.2 // Favorite outfits: shortest interval
+      }
     })()
 
-    // Score based on deviation from ideal interval
-    let timeScore = 0
-    if (days < idealInterval * 0.35) timeScore = 10
-    else if (days < idealInterval * 0.7) timeScore = 20
-    else if (days < idealInterval * 1.5) timeScore = 40
-    else if (days < idealInterval * 2.5) timeScore = 30
-    else if (days < idealInterval * 4.0) timeScore = 20
+    // Score based on how close we are to the ideal interval
+    // Higher scores when closer to ideal timing
+    const timeScore = (() => {
+      const relativeDays = days / idealInterval
+      switch (true) {
+        case relativeDays < 0.35:
+          return 5 // Much too soon
+        case relativeDays < 0.7:
+          return 15 // Slightly too soon
+        case relativeDays < 1.5:
+          return 40 // Ideal timing
+        case relativeDays < 2.5:
+          return 30 // Getting a bit old
+        case relativeDays < 4.0:
+          return 20 // Rather old, last chance
+        default:
+          return 10 // Too old
+      }
+    })()
 
-    // Apply similarity penalty
+    // Reduce score if similar items were worn recently
     const similarityPenalty = recentlyWornCount * 5
+
     return Math.max(0, timeScore - similarityPenalty)
   }
 
@@ -308,16 +345,14 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   }
 
   const calculateScores = (outfit: (typeof outfitsWithScores)[0]) => {
-    // 1. Base Score (0-40)
+    // 1. Base Score (0-20)
     const ratingConfidence = Math.min((outfit.wearCount as number) / 5, 1)
-    const base_score = Math.trunc((outfit.rating as number) * 20 * ratingConfidence)
+    const base_score = Math.trunc((outfit.rating as number) * 10 * ratingConfidence)
 
-    // 2. Items Score (0-32)
-    const items_score = (() => {
-      if (!outfit.avgItemRating || !outfit.itemCount) return 0
-      const itemCountBonus = Math.min((outfit.itemCount as number) / 4, 1)
-      return Math.trunc((outfit.avgItemRating as number) * 8 * itemCountBonus)
-    })()
+    // 2. Items Score (0-20)
+    const items_score = Math.trunc(
+      (outfit.avgItemRating as number) * 5 * Math.min((outfit.itemCount as number) / 4, 1)
+    )
 
     // 3. Time Factor (0-40)
     const time_factor = Math.trunc(
@@ -436,7 +471,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     suggestions: filteredOutfits,
     generated_at: today,
     metadata: {
-      wardrobe_size: wardrobeSize,
+      wardrobe_size: wardrobeCounts.total,
       recency_threshold: recencyThreshold,
       last_page: last_page,
     },
@@ -450,12 +485,12 @@ app.get('/streak', injectDB, async (c) => {
   const streakData = await c
     .get('db')
     .select({
-      date: sql<string>`DATE(${outfits.wearDate})::text`,
+      date: sql<string>`DATE(${outfits.wearDate} AT TIME ZONE 'PDT')::text`,
       count: sql<number>`COUNT(*)::integer`,
     })
     .from(outfits)
-    .groupBy(sql`DATE(${outfits.wearDate})`)
-    .orderBy(sql`DATE(${outfits.wearDate}) DESC`)
+    .groupBy(sql`DATE(${outfits.wearDate} AT TIME ZONE 'PDT')`)
+    .orderBy(sql`DATE(${outfits.wearDate} AT TIME ZONE 'PDT') DESC`)
 
   const datesWithOutfits = new Set(
     streakData.map((row) => new Date(row.date).toISOString().split('T')[0])
