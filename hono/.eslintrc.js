@@ -19,5 +19,7 @@ module.exports = {
         drizzleObjectName: ['db', 'get'],
       },
     ],
+    'sort-imports': 'off',
+    'import/order': 'off',
   },
 }

@@ -72,6 +72,12 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
     testItems[0] = new ItemFactory(undefined, resJSON)
   })
 
+  test('GET /items: should return created item', async () => {
+    const res = await app.request(`/api/items/${testItems[0].id}`)
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testItems[0].formatAPI())
+  })
+
   test('PUT /items: should update existing item', async () => {
     const testPartialItem2 = new PartialItemFactory(2)
     const res = await app.request(`/api/items/${testItems[0].id}`, {
@@ -83,6 +89,12 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
     const resJSON = (await res.json()) as ItemAPI
     expect(resJSON).toMatchObject(testPartialItem2.formatAPI())
     testItems[0] = new ItemFactory(undefined, resJSON)
+  })
+
+  test('GET /items: should return updated item', async () => {
+    const res = await app.request(`/api/items/${testItems[0].id}`)
+    const resJSON = (await res.json()) as ItemAPI
+    expect(resJSON).toMatchObject(testItems[0].formatAPI())
   })
 
   test('DELETE /items: should delete existing item', async () => {
