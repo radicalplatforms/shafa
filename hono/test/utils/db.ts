@@ -1,9 +1,9 @@
 import { execSync } from 'child_process'
-import fs from 'fs'
-import { platform } from 'os'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import fs from 'fs'
+import { platform } from 'os'
 import postgres from 'postgres'
 
 import * as schema from '../../src/schema'

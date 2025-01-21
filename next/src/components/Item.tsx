@@ -1,8 +1,7 @@
-import { DateTime } from "luxon"
-import { Crown, Footprints, Layers, Shirt } from 'lucide-react'
-import { PiPantsFill } from 'react-icons/pi'
-
 import { Item as ItemType } from '@/types/outfit'
+import { Layers, Shirt, Footprints, Crown } from 'lucide-react'
+import { PiPantsFill } from 'react-icons/pi'
+import { DateTime } from "luxon"
 
 export const itemTypeIcons = {
   layer: Layers,
