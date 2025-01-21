@@ -8,7 +8,7 @@ export function OutfitSuggestionsCardLoading() {
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-4">
           <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-5" />
         </div>
         <div className="mb-4">
           <Skeleton className="h-4 w-full mb-2" />

@@ -8,7 +8,7 @@ import { Star, Zap } from 'lucide-react'
 import { SuggestionScoreBar } from '@/components/SuggestionScoreBar'
 import { ItemList } from '@/components/ItemList'
 import OutfitSuggestionsLoading from './OutfitSuggestionsLoading'
-import { Rating } from '@/components/ui/rating'
+import Rating from '@/components/ui/rating'
 import { AddOutfitModal } from '@/components/AddOutfitModal'
 
 export default function OutfitSuggestions() {
@@ -100,7 +100,6 @@ export default function OutfitSuggestions() {
             ...itemToOutfit.item,
             itemType: itemToOutfit.itemType as "layer" | "top" | "bottom" | "footwear" | "accessory"
           }))}
-        initialRating={selectedSuggestion?.rating}
         initialDate={new Date()}
         showTrigger={false}
         onSuccess={() => {
@@ -126,7 +125,7 @@ export default function OutfitSuggestions() {
                     <Zap className="zap-icon mr-1 h-4 w-4" />
                     Suggested Outfit
                   </span>
-                  <Rating rating={suggestion.rating + 1} />
+                  <Rating rating={suggestion.rating as 0 | 1 | 2} />
                 </div>
                 <div className="mb-4">
                   <p className="text-sm font-medium mb-2">Suggestion Score</p>
