@@ -13,5 +13,12 @@
     "skipLibCheck": true,
     "downlevelIteration": true,
   },
-  "include": ["src/**/*", "test/**/*", ".eslintrc.js", "jest.config.js", "migrate.ts"],
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    ".eslintrc.js",
+    "jest.config.js",
+    "migrate.ts",
+    "drizzle.config.ts",
+  ],
 }

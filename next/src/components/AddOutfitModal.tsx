@@ -16,6 +16,7 @@ import React from 'react'
 import { ItemsResponse } from '@/lib/client'
 import { ItemTypeButtons, itemTypeIcons } from './ItemTypeButtons'
 import { Item } from '@/components/Item'
+import Rating from './ui/rating'
 
 type Item = ItemType & {
   type: keyof typeof itemTypeIcons
@@ -29,7 +30,6 @@ interface AddOutfitModalProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   initialItems?: Array<ItemType & { itemType: keyof typeof itemTypeIcons }>
-  initialRating?: number
   initialDate?: Date
   showTrigger?: boolean
   onSuccess?: () => void
@@ -39,7 +39,6 @@ export function AddOutfitModal({
   open: controlledOpen, 
   onOpenChange,
   initialItems,
-  initialRating = 2,
   initialDate = new Date(),
   showTrigger = true,
   onSuccess
@@ -47,11 +46,11 @@ export function AddOutfitModal({
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<ItemWithType[]>([])
   const [date, setDate] = useState<Date>(initialDate)
-  const [rating, setRating] = useState<number>(3)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<Item[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submittingRating, setSubmittingRating] = useState<number | null>(null)
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -125,12 +124,6 @@ export function AddOutfitModal({
 
   const isOpen = controlledOpen ?? open
 
-  useEffect(() => {
-    if (isOpen && initialRating !== undefined) {
-      setRating(initialRating + 1)
-    }
-  }, [isOpen, initialRating])
-
   const handleAddItem = (itemType: keyof typeof itemTypeIcons) => {
     if (selectedItem) {
       const newItem: ItemWithType = { ...(selectedItem as ItemType), itemType }
@@ -152,16 +145,17 @@ export function AddOutfitModal({
     setItems(items.filter(item => item.id !== itemId))
   }
 
-  const handleSubmit = async () => {
-    if (!date || rating === 0 || items.length === 0) {
+  const handleSubmit = async (rating: 0 | 1 | 2) => {
+    if (!date || items.length === 0) {
       return
     }
 
     setIsSubmitting(true)
+    setSubmittingRating(rating)
 
     const outfitData: OutfitCreate = {
       wearDate: date,
-      rating: rating - 1,
+      rating: rating,
       itemIdsTypes: items.map(item => ({ id: item.id, itemType: item.itemType }))
     }
 
@@ -173,7 +167,6 @@ export function AddOutfitModal({
         // Reset all state variables
         setItems([])
         setDate(new Date())
-        setRating(3)
         setSearchTerm('')
         setSearchResults([])
         setSelectedItem(null)
@@ -186,6 +179,7 @@ export function AddOutfitModal({
       // Handle error silently
     } finally {
       setIsSubmitting(false)
+      setSubmittingRating(null)
     }
   }
 
@@ -209,33 +203,13 @@ export function AddOutfitModal({
         className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl overflow-visible [&>button]:hidden w-[95vw] max-h-[90vh] overflow-y-auto"
       >
         <div className="px-4 sm:px-6 pt-6">
-          <div className="flex justify-between items-center mb-4 sm:hidden">
-            <div className="flex">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={cn(
-                    "h-5 w-5 cursor-pointer transition-colors",
-                    star <= rating ? "text-primary fill-current" : "text-gray-300"
-                  )}
-                  onClick={() => setRating(star)}
-                />
-              ))}
-            </div>
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6 p-4">
-                <X className="h-6 w-6" />
-              </Button>
-            </DialogClose>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <div className="flex justify-between items-center gap-4 mb-4">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full sm:w-[200px] justify-start text-left font-normal",
+                    "w-[200px] justify-start text-left font-normal",
                     !date && "text-muted-foreground"
                   )}
                 >
@@ -253,26 +227,12 @@ export function AddOutfitModal({
                 />
               </PopoverContent>
             </Popover>
-            
-            <div className="hidden sm:flex justify-between sm:justify-end items-center w-full sm:w-auto gap-4">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={cn(
-                      "h-5 w-5 cursor-pointer transition-colors",
-                      star <= rating ? "text-primary fill-current" : "text-gray-300"
-                    )}
-                    onClick={() => setRating(star)}
-                  />
-                ))}
-              </div>
-              <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="h-5 w-5 p-4">
-                  <X className="h-5 w-5" />
-                </Button>
-              </DialogClose>
-            </div>
+
+            <DialogClose asChild className="ml-auto">
+              <Button variant="ghost" size="icon" className="h-5 w-5 p-4">
+                <X className="h-5 w-5" />
+              </Button>
+            </DialogClose>
           </div>
           <div className="space-y-4">
             <div className="relative">
@@ -326,7 +286,7 @@ export function AddOutfitModal({
             </div>
           </div>
           <div className="mt-6">
-            <ScrollArea className="max-h-fit sm:h-[250px] px-2">
+            <ScrollArea className="max-h-fit min-h-[100px] sm:h-[250px] px-2">
               <div className="space-y-2">
                 {items.map((item) => (
                   <div key={item.id} className="flex items-center gap-2 w-full max-w-full overflow-hidden">
@@ -351,15 +311,26 @@ export function AddOutfitModal({
             </ScrollArea>
           </div>
         </div>
-        <div className="flex justify-end items-center bg-muted rounded-b-sm py-4 px-4 sm:px-6 border-t mt-4">
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Log Outfit
-          </Button>
+        <div className="flex justify-end items-center gap-2 rounded-b-sm py-4 px-4 sm:px-6 border-t mt-4">
+          {[
+            { rating: 2, label: 'Hit' },
+            { rating: 1, label: 'Mid' },
+            { rating: 0, label: 'Miss' }
+          ].map(({ rating, label }) => (
+            <Button
+              key={label}
+              onClick={() => handleSubmit(rating as 0 | 1 | 2)}
+              disabled={isSubmitting}
+              className={`w-full sm:w-auto text-black bg-white border-[1px] hover:bg-muted border-gray-200 shadow-sm transition-colors`}
+            >
+              {isSubmitting && submittingRating === rating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Rating rating={rating as 0 | 1 | 2} />
+              )}
+              {label}
+            </Button>
+          ))}
         </div>
       </DialogContent>
     </Dialog>

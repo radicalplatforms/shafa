@@ -7,7 +7,7 @@ import { client } from '@/lib/client'
 import { Calendar, Star } from 'lucide-react'
 import { ItemList } from '@/components/ItemList'
 import OutfitListLoading from './OutfitListLoading'
-import { Rating } from '@/components/ui/rating'
+import Rating from '@/components/ui/rating'
 import { AddOutfitModal } from '@/components/AddOutfitModal'
 
 export default function OutfitList() {
@@ -97,7 +97,7 @@ export default function OutfitList() {
                   <Calendar className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                   {formatDate(outfit.wearDate)}
                 </span>
-                <Rating rating={outfit.rating + 1} />
+                <Rating rating={outfit.rating as 0 | 1 | 2} />
               </div>
               <ItemList items={outfit.itemsToOutfits} />
             </CardContent>

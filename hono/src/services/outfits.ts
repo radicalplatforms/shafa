@@ -12,7 +12,7 @@ import injectDB from '../utils/inject-db'
 const app = new Hono<{ Variables: Variables }>()
 
 const insertOutfitSchema = createInsertSchema(outfits, {
-  rating: z.number().min(0).max(4).default(2),
+  rating: z.number().min(0).max(2).default(1),
   wearDate: z.coerce.date(),
   authorUsername: z.string().default(''),
 })
@@ -247,7 +247,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     .from(outfits)
     .leftJoin(itemsToOutfits, eq(outfits.id, itemsToOutfits.outfitId))
     .leftJoin(sql`items`, eq(itemsToOutfits.itemId, sql`items.id`))
-    .groupBy(outfits.id).having(sql`NOT EXISTS (
+    .groupBy(outfits.id).having(sql`${outfits.rating} > 0 AND NOT EXISTS (
       SELECT 1 FROM outfits o2 
       JOIN items_to_outfits io2 ON io2.outfit_id = o2.id
       WHERE io2.item_id IN (
@@ -310,7 +310,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   const calculateScores = (outfit: (typeof outfitsWithScores)[0]) => {
     // 1. Base Score (0-40)
     const ratingConfidence = Math.min((outfit.wearCount as number) / 5, 1)
-    const base_score = Math.trunc((outfit.rating as number) * 10 * ratingConfidence)
+    const base_score = Math.trunc((outfit.rating as number) * 20 * ratingConfidence)
 
     // 2. Items Score (0-32)
     const items_score = (() => {

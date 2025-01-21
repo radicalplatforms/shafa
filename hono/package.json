@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "migrate": "tsx migrate.ts",
-    "generate": "drizzle-kit generate:pg",
+    "generate": "drizzle-kit generate",
     "test": "jest --detectOpenHandles --testPathIgnorePatterns='neon.preflight' --testPathIgnorePatterns='remote.preflight' --testPathIgnorePatterns='/preflight'",
     "test:smoke": "jest --testPathPattern=smoke.test.ts$",
     "test:unit": "jest --testPathPattern=unit.test.ts$",
@@ -37,7 +37,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "babel-jest": "^29.7.0",
     "dotenv": "^16.4.4",
-    "drizzle-kit": "^0.20.14",
+    "drizzle-kit": "^0.30.2",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-drizzle": "^0.2.3",

@@ -1,10 +1,8 @@
 {
-  "id": "575244e2-446c-44a4-911c-bd2161725f51",
-  "prevId": "00000000-0000-0000-0000-000000000000",
-  "version": "5",
-  "dialect": "pg",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "items": {
+    "public.items": {
       "name": "items",
       "schema": "",
       "columns": {
@@ -61,9 +59,12 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false,
+      "checkConstraints": {}
     },
-    "items_to_outfits": {
+    "public.items_to_outfits": {
       "name": "items_to_outfits",
       "schema": "",
       "columns": {
@@ -91,20 +92,20 @@
         "items_to_outfits_item_id_items_id_fk": {
           "name": "items_to_outfits_item_id_items_id_fk",
           "tableFrom": "items_to_outfits",
-          "tableTo": "items",
           "columnsFrom": ["item_id"],
+          "tableTo": "items",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "items_to_outfits_outfit_id_outfits_id_fk": {
           "name": "items_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "items_to_outfits",
-          "tableTo": "outfits",
           "columnsFrom": ["outfit_id"],
+          "tableTo": "outfits",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -113,9 +114,12 @@
           "columns": ["item_id", "outfit_id"]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false,
+      "checkConstraints": {}
     },
-    "outfits": {
+    "public.outfits": {
       "name": "outfits",
       "schema": "",
       "columns": {
@@ -148,25 +152,29 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false,
+      "checkConstraints": {}
     }
   },
   "enums": {
-    "itemType": {
+    "public.itemType": {
       "name": "itemType",
-      "values": {
-        "layer": "layer",
-        "top": "top",
-        "bottom": "bottom",
-        "footwear": "footwear",
-        "accessory": "accessory"
-      }
+      "schema": "public",
+      "values": ["layer", "top", "bottom", "footwear", "accessory"]
     }
   },
   "schemas": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
-  }
+    "tables": {},
+    "columns": {}
+  },
+  "id": "575244e2-446c-44a4-911c-bd2161725f51",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "sequences": {},
+  "policies": {},
+  "views": {},
+  "roles": {}
 }

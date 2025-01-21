@@ -15,6 +15,13 @@
       "when": 1709104030876,
       "tag": "0001_dusty_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1737430332272,
+      "tag": "0002_bizarre_gamma_corps",
+      "breakpoints": true
     }
   ]
 }

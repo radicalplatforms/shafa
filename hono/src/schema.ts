@@ -1,6 +1,15 @@
 import { createId } from '@paralleldrive/cuid2'
-import { relations } from 'drizzle-orm'
-import { date, pgEnum, pgTable, primaryKey, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+import { relations, sql } from 'drizzle-orm'
+import {
+  check,
+  date,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  smallint,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
 
 /**
  * Item Type Enumeration
@@ -37,14 +46,20 @@ export const itemsRelations = relations(items, ({ many }) => ({
 /**
  * Outfits
  */
-export const outfits = pgTable('outfits', {
-  id: text('id')
-    .$defaultFn(() => createId())
-    .primaryKey(),
-  rating: smallint('rating').notNull(),
-  wearDate: date('wear_date', { mode: 'date' }).notNull().defaultNow(),
-  authorUsername: text('author_username').notNull(),
-})
+export const outfits = pgTable(
+  'outfits',
+  {
+    id: text('id')
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    rating: smallint('rating').notNull(),
+    wearDate: date('wear_date', { mode: 'date' }).notNull().defaultNow(),
+    authorUsername: text('author_username').notNull(),
+  },
+  (table) => ({
+    ratingCheck: check('rating_check', sql`${table.rating} >= 0 AND ${table.rating} <= 2`),
+  })
+)
 
 export const outfitsRelations = relations(outfits, ({ many }) => ({
   itemsToOutfits: many(itemsToOutfits),
