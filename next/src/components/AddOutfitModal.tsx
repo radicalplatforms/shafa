@@ -30,7 +30,6 @@ interface AddOutfitModalProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   initialItems?: Array<ItemType & { itemType: keyof typeof itemTypeIcons }>
-  initialDate?: Date
   showTrigger?: boolean
   onSuccess?: () => void
 }
@@ -39,13 +38,18 @@ export function AddOutfitModal({
   open: controlledOpen, 
   onOpenChange,
   initialItems,
-  initialDate = new Date(),
   showTrigger = true,
   onSuccess
 }: AddOutfitModalProps) {
+  const getStartOfToday = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  }
+
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<ItemWithType[]>([])
-  const [date, setDate] = useState<Date>(initialDate)
+  const [date, setDate] = useState<Date>(getStartOfToday)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<Item[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -118,6 +122,9 @@ export function AddOutfitModal({
   }, [searchTerm])
 
   const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setDate(getStartOfToday())
+    }
     setOpen(newOpen)
     onOpenChange?.(newOpen)
   }
@@ -166,7 +173,7 @@ export function AddOutfitModal({
       if (response.ok) {
         // Reset all state variables
         setItems([])
-        setDate(new Date())
+        setDate(getStartOfToday())
         setSearchTerm('')
         setSearchResults([])
         setSelectedItem(null)
@@ -221,7 +228,7 @@ export function AddOutfitModal({
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={(day) => setDate(day || new Date())}
+                  onSelect={(day) => setDate(day || getStartOfToday())}
                   initialFocus
                   className="rounded-md border"
                 />
