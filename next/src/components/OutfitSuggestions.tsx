@@ -100,7 +100,6 @@ export default function OutfitSuggestions() {
             ...itemToOutfit.item,
             itemType: itemToOutfit.itemType as "layer" | "top" | "bottom" | "footwear" | "accessory"
           }))}
-        initialDate={new Date()}
         showTrigger={false}
         onSuccess={() => {
           window.dispatchEvent(new Event('outfitCreated'))
