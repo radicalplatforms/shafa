@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker'
-import { items, itemTypeEnum } from '../../../src/schema'
+
+import { itemTypeEnum, items } from '../../../src/schema'
 import { instance } from '../db'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
@@ -13,6 +14,7 @@ export interface Item {
   rating: number
   createdAt: Date
   authorUsername: string
+  lastWornAt: string | null
 }
 
 export interface ItemAPI {
@@ -24,6 +26,7 @@ export interface ItemAPI {
   rating: number
   createdAt: string
   authorUsername: string
+  lastWornAt?: string | null
 }
 
 export class ItemFactory implements Item {
@@ -49,6 +52,7 @@ export class ItemFactory implements Item {
     this.authorUsername = options?.authorUsername
       ? (options.authorUsername as string)
       : faker.internet.userName()
+    this.lastWornAt = options?.lastWornAt ? (options.lastWornAt as string) : null
   }
 
   async store(name: string, port: number) {
@@ -56,11 +60,20 @@ export class ItemFactory implements Item {
     await db.insert(items).values(this).onConflictDoNothing()
   }
 
-  formatAPI(): ItemAPI {
-    return {
+  formatAPI({ omitLastWornAt = false }: { omitLastWornAt?: boolean } = {}): ItemAPI {
+    const formatted = {
       ...this,
       createdAt: this.createdAt.toISOString(),
+      lastWornAt: this.lastWornAt || null,
     }
+
+    if (omitLastWornAt) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { lastWornAt, ...rest } = formatted
+      return rest
+    }
+
+    return formatted
   }
 
   id: string
@@ -71,6 +84,7 @@ export class ItemFactory implements Item {
   rating: number
   createdAt: Date
   authorUsername: string
+  lastWornAt: string | null
 }
 
 export interface PartialItem {

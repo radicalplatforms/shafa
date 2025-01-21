@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Context } from 'hono'
 import postgres from 'postgres'
+
 import app from '../../src/index'
 import * as schema from '../../src/schema'
 import { itemTypeEnum } from '../../src/schema'
@@ -85,7 +86,9 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
           .filter((itemToOutfit) => itemToOutfit.outfitId === outfit.id)
           .map((itemToOutfit) => ({
             itemType: itemToOutfit.itemType,
-            item: testItems.find((item) => itemToOutfit.itemId === item.id)?.formatAPI(),
+            item: testItems
+              .find((item) => itemToOutfit.itemId === item.id)
+              ?.formatAPI({ omitLastWornAt: true }),
           })),
       }))
     )
