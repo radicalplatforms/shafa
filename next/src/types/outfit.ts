@@ -8,6 +8,7 @@ export interface Item {
   rating: number
   authorUsername: string
   createdAt: string
+  lastWornAt?: string | null
 }
 
 export type ItemToOutfit = {

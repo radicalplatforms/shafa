@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker'
-import { items, itemTypeEnum } from '../../../src/schema'
+
+import { itemTypeEnum, items } from '../../../src/schema'
 import { instance } from '../db'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'

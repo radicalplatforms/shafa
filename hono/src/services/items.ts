@@ -1,10 +1,12 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, inArray, and, or, ilike, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
+import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { items, itemsToOutfits, itemTypeEnum, outfits } from '../schema'
+
+import { itemTypeEnum, items, itemsToOutfits, outfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
@@ -39,14 +41,8 @@ const paginationValidationItems = z.object({
   search: z.string().optional(),
 })
 
-app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c) => {
-  const { page, size, search } = c.req.query()
-
-  const pageNumber: number = page ? +page : 0
-  const pageSize: number = size ? +size : 25
-
-  const itemsData = await c
-    .get('db')
+const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined) => {
+  return db
     .select({
       id: items.id,
       name: items.name,
@@ -59,20 +55,28 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
       lastWornAt: sql<Date | null>`MAX(${outfits.wearDate})`,
     })
     .from(items)
-    .where(
-      search
-        ? and(
-            ...search
-              .toLowerCase()
-              .split(/\s+/)
-              .map((word) => or(ilike(items.name, `%${word}%`), ilike(items.brand, `%${word}%`))),
-            eq(items.authorUsername, 'rak3rman')
-          )
-        : eq(items.authorUsername, 'rak3rman')
-    )
+    .where(whereClause)
     .leftJoin(itemsToOutfits, eq(items.id, itemsToOutfits.itemId))
     .leftJoin(outfits, eq(itemsToOutfits.outfitId, outfits.id))
     .groupBy(items.id)
+}
+
+app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c) => {
+  const { page, size, search } = c.req.query()
+  const pageNumber: number = page ? +page : 0
+  const pageSize: number = size ? +size : 25
+
+  const whereClause = search
+    ? and(
+        ...search
+          .toLowerCase()
+          .split(/\s+/)
+          .map((word) => or(ilike(items.name, `%${word}%`), ilike(items.brand, `%${word}%`))),
+        eq(items.authorUsername, 'rak3rman')
+      )
+    : eq(items.authorUsername, 'rak3rman')
+
+  const itemsData = await getItemQuery(c.get('db'), whereClause)
     .orderBy(sql`MAX(${outfits.wearDate}) ASC NULLS FIRST`, items.name)
     .limit(pageSize + 1)
     .offset(pageNumber * pageSize)
@@ -84,6 +88,21 @@ app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c)
     items: itemsData,
     last_page: last_page,
   })
+})
+
+app.get('/:id', zValidator('param', selectItemSchema.pick({ id: true })), injectDB, async (c) => {
+  const { id } = c.req.valid('param')
+
+  const itemData = await getItemQuery(
+    c.get('db'),
+    and(eq(items.id, id), eq(items.authorUsername, 'rak3rman'))
+  ).limit(1)
+
+  if (!itemData.length) {
+    return c.json({ message: 'Item not found' }, 404)
+  }
+
+  return c.json(itemData[0])
 })
 
 app.post(

@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker'
+
 import { itemTypeEnum, itemsToOutfits } from '../../../src/schema'
 import { instance } from '../db'
 import type { ItemFactory, ItemType } from './items'

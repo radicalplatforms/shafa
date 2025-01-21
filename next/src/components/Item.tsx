@@ -1,6 +1,8 @@
-import { Item as ItemType } from '@/types/outfit'
-import { Layers, Shirt, Footprints, Crown } from 'lucide-react'
+import { DateTime } from "luxon"
+import { Crown, Footprints, Layers, Shirt } from 'lucide-react'
 import { PiPantsFill } from 'react-icons/pi'
+
+import { Item as ItemType } from '@/types/outfit'
 
 export const itemTypeIcons = {
   layer: Layers,
@@ -14,9 +16,10 @@ interface ItemProps {
   item: ItemType
   itemType: keyof typeof itemTypeIcons
   isCoreItem?: boolean
+  showLastWornAt?: boolean
 }
 
-export function Item({ item, itemType, isCoreItem = false }: ItemProps) {
+export function Item({ item, itemType, isCoreItem = false, showLastWornAt = false }: ItemProps) {
   const Icon = itemTypeIcons[itemType]
 
 
@@ -33,6 +36,12 @@ export function Item({ item, itemType, isCoreItem = false }: ItemProps) {
           </p>
           <p className="text-xs text-muted-foreground -mt-[0.1rem]">
             {item.brand || <i>Unbranded</i>}
+            {showLastWornAt && item.lastWornAt && (
+              <span>
+                <span className="text-xs align-top ml-[5px] mr-[6px]">•</span>
+                Worn {DateTime.fromISO(item.lastWornAt).toRelativeCalendar()}
+              </span>
+            )}
           </p>
         </div>
       </div>

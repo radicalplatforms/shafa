@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogClose, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CalendarIcon, Star, ChevronDown, Loader2 } from 'lucide-react'
+import { PlusCircle, X, CalendarIcon, Star, ChevronDown, Loader2, SearchIcon } from 'lucide-react'
 import { client } from '@/lib/client'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -40,13 +40,13 @@ export function AddOutfitModal({
   onOpenChange,
   initialItems,
   initialRating = 2,
-  initialDate,
+  initialDate = new Date(),
   showTrigger = true,
   onSuccess
 }: AddOutfitModalProps) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<ItemWithType[]>([])
-  const [date, setDate] = useState<Date | undefined>(initialDate)
+  const [date, setDate] = useState<Date>(initialDate)
   const [rating, setRating] = useState<number>(3)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<Item[]>([])
@@ -58,7 +58,32 @@ export function AddOutfitModal({
 
   useEffect(() => {
     if (initialItems?.length) {
+      // First set the initial items to show something immediately
       setItems(initialItems)
+      
+      // Then fetch fresh data for each item
+      const refreshItemsData = async () => {
+        try {
+          const refreshedItems = await Promise.all(
+            initialItems.map(async (item) => {
+              const response = await client.items[':id'].$get({
+                param: { id: item.id }
+              })
+              const freshItemData = await response.json()
+              return {
+                ...freshItemData,
+                itemType: item.itemType // Preserve the itemType from initial data
+              } as ItemWithType
+            })
+          )
+          setItems(refreshedItems)
+        } catch (error) {
+          // If refresh fails, we still have the initial items displayed
+          console.error('Failed to refresh items data:', error)
+        }
+      }
+
+      refreshItemsData()
     }
   }, [initialItems])
 
@@ -145,6 +170,15 @@ export function AddOutfitModal({
         json: outfitData
       })
       if (response.ok) {
+        // Reset all state variables
+        setItems([])
+        setDate(new Date())
+        setRating(3)
+        setSearchTerm('')
+        setSearchResults([])
+        setSelectedItem(null)
+        setShowDropdown(false)
+        
         handleOpenChange(false)
         onSuccess?.()
       }
@@ -171,7 +205,7 @@ export function AddOutfitModal({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl overflow-visible [&>button]:hidden w-[95vw] max-h-[90vh] overflow-y-auto"
       >
         <div className="px-4 sm:px-6 pt-6">
@@ -205,7 +239,7 @@ export function AddOutfitModal({
                     !date && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon className="mr-1.5 h-4 w-4" />
                   {date ? format(date, "EEE, MMM d") : "Pick a date"}
                 </Button>
               </PopoverTrigger>
@@ -213,7 +247,7 @@ export function AddOutfitModal({
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={(day) => setDate(day || new Date())}
                   initialFocus
                   className="rounded-md border"
                 />
@@ -250,9 +284,10 @@ export function AddOutfitModal({
                   setSearchTerm(e.target.value)
                   setShowDropdown(true)
                 }}
-                className="pr-8"
+                className="pl-[45px] pr-8 text-sm font-normal"
               />
-              <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+              <SearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 transform font-normal" />
+              <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transform font-normal" />
               {showDropdown && (searchResults.length > 0 || isSearching) && (
                 <div className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg">
                   <ScrollArea className="h-[150px] sm:h-[200px] rounded-md border">
@@ -268,7 +303,11 @@ export function AddOutfitModal({
                             className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                             onClick={() => handleItemSelect(item)}
                           >
-                            <Item item={item} itemType={item.type as keyof typeof itemTypeIcons} />
+                            <Item 
+                              item={item} 
+                              itemType={item.type as keyof typeof itemTypeIcons}
+                              showLastWornAt
+                            />
                           </li>
                         ))}
                         {searchResults.length === 0 && (
@@ -292,7 +331,11 @@ export function AddOutfitModal({
                 {items.map((item) => (
                   <div key={item.id} className="flex items-center gap-2 w-full max-w-full overflow-hidden">
                     <div className="flex-1 min-w-0 max-w-[calc(100%-3rem)]">
-                      <Item item={item} itemType={item.itemType} />
+                      <Item 
+                        item={item} 
+                        itemType={item.itemType} 
+                        showLastWornAt
+                      />
                     </div>
                     <Button 
                       variant="ghost" 
@@ -315,7 +358,7 @@ export function AddOutfitModal({
             className="w-full sm:w-auto"
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Outfit
+            Log Outfit
           </Button>
         </div>
       </DialogContent>
