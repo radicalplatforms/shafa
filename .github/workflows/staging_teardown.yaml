@@ -9,7 +9,7 @@ env:
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   CF_ACCOUNT_ID: 287572e2291030d8c5e360fcc593a16b
-  GH_ENV_APP_ID: ${{ variables.GH_ENV_APP_ID }}
+  GH_ENV_APP_ID: ${{ vars.GH_ENV_APP_ID }}
   GH_ENV_APP_PRIVATE_KEY: ${{ secrets.GH_ENV_APP_PRIVATE_KEY }}
   NEXT_PAGES_PROJECT_NAME: shafa-next
   HONO_DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
