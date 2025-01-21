@@ -341,7 +341,7 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
   // Score based on previous wear patterns for this day of week
   const calculateDayOfWeekScore = (sameDayCount: number) => {
     const dayOfWeekConfidence = Math.min(sameDayCount / 3, 1) // Caps at 3 same-day wears
-    return sameDayCount > 0 ? 15 * dayOfWeekConfidence : 0
+    return sameDayCount > 0 ? 10 * dayOfWeekConfidence : 0
   }
 
   const calculateScores = (outfit: (typeof outfitsWithScores)[0]) => {
@@ -366,13 +366,13 @@ app.get('/suggest', zValidator('query', suggestionsValidation), injectDB, async 
     // 4. Frequency Score (0-20)
     const frequency_score = Math.trunc(calculateFrequencyScore(outfit.wearCount as number))
 
-    // 5. Day of Week Score (0-15)
+    // 5. Day of Week Score (0-10)
     const day_of_week_score = Math.trunc(
       calculateDayOfWeekScore(outfit.sameDayOfWeekCount as number)
     )
 
-    // 6. Seasonal Score (0-15)
-    const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 15)
+    // 6. Seasonal Score (0-8)
+    const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 8)
 
     return {
       base_score,
