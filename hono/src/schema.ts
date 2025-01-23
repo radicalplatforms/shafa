@@ -5,6 +5,7 @@ import {
   date,
   pgEnum,
   pgTable,
+  boolean,
   primaryKey,
   smallint,
   text,
@@ -96,3 +97,105 @@ export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
     references: [outfits.id],
   }),
 }))
+
+/**
+ * Tag Status Enumeration
+ */
+export const tagStatusEnum: [string, ...string[]] = [
+  'manually_assigned',
+  'suggested',
+  'suggestion_accepted',
+  'suggestion_rejected',
+]
+export const tagStatusEnumPg = pgEnum('tagStatus', tagStatusEnum)
+
+/**
+ * Tags
+ */
+export const tags = pgTable(
+  'tags',
+  {
+    id: text('id')
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    name: text('name').notNull(),
+    authorUsername: text('author_username').notNull(),
+    hexColor: text('hex_color').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  }
+)
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  tagsToOutfits: many(tagsToOutfits),
+  tagsToItems: many(tagsToItems)
+}))
+
+/**
+ * Tags to Outfits
+ */
+export const tagsToOutfits = pgTable(
+  'tags_to_outfits',
+  {
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => tags.id),
+    outfitId: text('outfit_id')
+      .notNull()
+      .references(() => outfits.id),
+    status: tagStatusEnumPg('status').notNull().default('suggested'),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.tagId, table.outfitId] }),
+    }
+  }
+)
+
+export const tagsToOutfitsRelations = relations(tagsToOutfits, ({ one }) => ({
+  tag: one(tags, {
+    fields: [tagsToOutfits.tagId],
+    references: [tags.id],
+  }),
+  outfit: one(outfits, {
+    fields: [tagsToOutfits.outfitId],
+    references: [outfits.id],
+  }),
+}))
+
+/**
+ * Tags to Items
+ */
+export const tagsToItems = pgTable(
+  'tags_to_items',
+  {
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => tags.id),
+    itemId: text('item_id')
+      .notNull()
+      .references(() => items.id),
+    status: tagStatusEnumPg('status').notNull().default('suggested'),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.tagId, table.itemId] }),
+    }
+  }
+)
+
+export const tagsToItemsRelations = relations(tagsToItems, ({ one }) => ({
+  tag: one(tags, {
+    fields: [tagsToItems.tagId],
+    references: [tags.id],
+  }),
+  item: one(items, {
+    fields: [tagsToItems.itemId],
+    references: [items.id],
+  }),
+}))
+
+
+
+
+
+
