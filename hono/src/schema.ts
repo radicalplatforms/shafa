@@ -42,6 +42,7 @@ export const items = pgTable('items', {
 
 export const itemsRelations = relations(items, ({ many }) => ({
   itemsToOutfits: many(itemsToOutfits),
+  tagsToItems: many(tagsToItems),
 }))
 
 /**
@@ -64,6 +65,7 @@ export const outfits = pgTable(
 
 export const outfitsRelations = relations(outfits, ({ many }) => ({
   itemsToOutfits: many(itemsToOutfits),
+  tagsToOutfits: many(tagsToOutfits),
 }))
 
 /**
@@ -119,10 +121,14 @@ export const tags = pgTable(
       .$defaultFn(() => createId())
       .primaryKey(),
     name: text('name').notNull(),
-    authorUsername: text('author_username').notNull(),
     hexColor: text('hex_color').notNull(),
+    minDaysBeforeReuse: smallint('min_days_before_reuse').notNull().default(-1),
     createdAt: timestamp('created_at').notNull().defaultNow(),
-  }
+    authorUsername: text('author_username').notNull(),
+  },
+  (table) => ({
+    minDaysCheck: check('min_days_before_reuse', sql`${table.minDaysBeforeReuse} >= -1`),
+  })
 )
 
 export const tagsRelations = relations(tags, ({ many }) => ({

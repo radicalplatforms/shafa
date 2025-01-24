@@ -5,7 +5,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { itemTypeEnum, itemsToOutfits, outfits } from '../schema'
+import { itemTypeEnum, itemsToOutfits, outfits, tagsToOutfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
@@ -80,6 +80,15 @@ app.get('/', zValidator('query', paginationValidationOutfits), injectDB, async (
           item: true,
         },
         orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
+      },
+      tagsToOutfits: {
+        columns: {
+          tagId: false,
+          outfitId: false,
+        },
+        with: {
+          tag: true,
+        },
       },
     },
     orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
