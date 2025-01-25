@@ -22,12 +22,10 @@ const selectTagSchema = createSelectSchema(tags, {
 })
 
 app.get('/', injectDB, async (c) => {
-  const tagsData = await c
-    .get('db')
-    .select()
-    .from(tags)
-    .where(eq(tags.authorUsername, 'rak3rman')) // TODO: remove and replace with author integration
-    .orderBy(tags.name)
+  const tagsData = await c.get('db').query.tags.findMany({
+    where: eq(tags.authorUsername, 'rak3rman'), // TODO: remove and replace with author integration
+    orderBy: (tags, { asc }) => [asc(tags.name)],
+  })
 
   return c.json({ tags: tagsData })
 })
@@ -74,24 +72,19 @@ app.put(
   }
 )
 
-app.delete(
-  '/:id',
-  zValidator('param', selectTagSchema.pick({ id: true })),
-  injectDB,
-  async (c) => {
-    const params = c.req.valid('param')
+app.delete('/:id', zValidator('param', selectTagSchema.pick({ id: true })), injectDB, async (c) => {
+  const params = c.req.valid('param')
 
-    return c.json(
-      await c.get('db').transaction(async (tx) => {
-        // Delete tag relationships first
-        await tx.delete(tagsToItems).where(eq(tagsToItems.tagId, params.id))
-        await tx.delete(tagsToOutfits).where(eq(tagsToOutfits.tagId, params.id))
-        
-        // Then delete the tag
-        return (await tx.delete(tags).where(eq(tags.id, params.id)).returning())[0]
-      })
-    )
-  }
-)
+  return c.json(
+    await c.get('db').transaction(async (tx) => {
+      // Delete tag relationships first
+      await tx.delete(tagsToItems).where(eq(tagsToItems.tagId, params.id))
+      await tx.delete(tagsToOutfits).where(eq(tagsToOutfits.tagId, params.id))
+
+      // Then delete the tag
+      return (await tx.delete(tags).where(eq(tags.id, params.id)).returning())[0]
+    })
+  )
+})
 
 export default app

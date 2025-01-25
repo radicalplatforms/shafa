@@ -1,11 +1,11 @@
 import { createId } from '@paralleldrive/cuid2'
 import { relations, sql } from 'drizzle-orm'
 import {
+  boolean,
   check,
   date,
   pgEnum,
   pgTable,
-  boolean,
   primaryKey,
   smallint,
   text,
@@ -133,7 +133,7 @@ export const tags = pgTable(
 
 export const tagsRelations = relations(tags, ({ many }) => ({
   tagsToOutfits: many(tagsToOutfits),
-  tagsToItems: many(tagsToItems)
+  tagsToItems: many(tagsToItems),
 }))
 
 /**
@@ -144,10 +144,10 @@ export const tagsToOutfits = pgTable(
   {
     tagId: text('tag_id')
       .notNull()
-      .references(() => tags.id),
+      .references(() => tags.id, { onDelete: 'cascade' }),
     outfitId: text('outfit_id')
       .notNull()
-      .references(() => outfits.id),
+      .references(() => outfits.id, { onDelete: 'cascade' }),
     status: tagStatusEnumPg('status').notNull().default('suggested'),
   },
   (table) => {
@@ -176,10 +176,10 @@ export const tagsToItems = pgTable(
   {
     tagId: text('tag_id')
       .notNull()
-      .references(() => tags.id),
+      .references(() => tags.id, { onDelete: 'cascade' }),
     itemId: text('item_id')
       .notNull()
-      .references(() => items.id),
+      .references(() => items.id, { onDelete: 'cascade' }),
     status: tagStatusEnumPg('status').notNull().default('suggested'),
   },
   (table) => {
@@ -199,9 +199,3 @@ export const tagsToItemsRelations = relations(tagsToItems, ({ one }) => ({
     references: [items.id],
   }),
 }))
-
-
-
-
-
-

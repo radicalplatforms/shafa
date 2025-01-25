@@ -26,6 +26,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
       )
       .min(1)
       .max(8),
+    tagIds: z.array(z.string()).max(8),
   })
   .omit({ id: true })
 
@@ -131,6 +132,14 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
         }))
       )
 
+      // Insert tag to outfit relationships
+      await tx.insert(tagsToOutfits).values(
+        body.tagIds.map((e) => ({
+          tagId: e,
+          outfitId: newOutfit.id,
+        }))
+      )
+
       return newOutfit
     })
   )
@@ -168,6 +177,17 @@ app.put(
             itemId: e.id,
             outfitId: updatedOutfit.id,
             itemType: e.itemType,
+          }))
+        )
+
+        // Delete all tag to outfit relationships
+        await tx.delete(tagsToOutfits).where(eq(tagsToOutfits.outfitId, params.id))
+
+        // Insert tag to outfit relationships
+        await tx.insert(tagsToOutfits).values(
+          body.tagIds.map((e) => ({
+            tagId: e,
+            outfitId: updatedOutfit.id,
           }))
         )
 
