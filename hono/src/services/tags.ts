@@ -14,6 +14,7 @@ const app = new Hono<{ Variables: Variables }>()
 const insertTagSchema = createInsertSchema(tags, {
   name: z.string().min(1).max(60),
   hexColor: z.string().regex(/^#[0-9A-F]{6}$/i),
+  minDaysBeforeItemReuse: z.number().min(-1).max(365).default(-1),
   authorUsername: z.string().default(''),
 }).omit({ id: true, createdAt: true })
 

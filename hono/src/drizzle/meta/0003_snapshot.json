@@ -1,5 +1,5 @@
 {
-  "id": "43e2406e-2f8f-42c9-b26b-ad45fe82b94c",
+  "id": "c294797c-c239-4edb-ad49-5d561f76f9bc",
   "prevId": "f7541b2b-570b-4156-99dc-56bc35c62b29",
   "version": "7",
   "dialect": "postgresql",
@@ -97,8 +97,12 @@
           "name": "items_to_outfits_item_id_items_id_fk",
           "tableFrom": "items_to_outfits",
           "tableTo": "items",
-          "columnsFrom": ["item_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -106,8 +110,12 @@
           "name": "items_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "items_to_outfits",
           "tableTo": "outfits",
-          "columnsFrom": ["outfit_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "outfit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -115,7 +123,10 @@
       "compositePrimaryKeys": {
         "items_to_outfits_item_id_outfit_id_pk": {
           "name": "items_to_outfits_item_id_outfit_id_pk",
-          "columns": ["item_id", "outfit_id"]
+          "columns": [
+            "item_id",
+            "outfit_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -188,8 +199,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "min_days_before_reuse": {
-          "name": "min_days_before_reuse",
+        "min_days_before_item_reuse": {
+          "name": "min_days_before_item_reuse",
           "type": "smallint",
           "primaryKey": false,
           "notNull": true,
@@ -215,9 +226,9 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "min_days_before_reuse": {
-          "name": "min_days_before_reuse",
-          "value": "\"tags\".\"min_days_before_reuse\" >= -1"
+        "min_days_before_item_reuse": {
+          "name": "min_days_before_item_reuse",
+          "value": "\"tags\".\"min_days_before_item_reuse\" >= -1"
         }
       },
       "isRLSEnabled": false
@@ -253,8 +264,12 @@
           "name": "tags_to_items_tag_id_tags_id_fk",
           "tableFrom": "tags_to_items",
           "tableTo": "tags",
-          "columnsFrom": ["tag_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -262,8 +277,12 @@
           "name": "tags_to_items_item_id_items_id_fk",
           "tableFrom": "tags_to_items",
           "tableTo": "items",
-          "columnsFrom": ["item_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -271,7 +290,10 @@
       "compositePrimaryKeys": {
         "tags_to_items_tag_id_item_id_pk": {
           "name": "tags_to_items_tag_id_item_id_pk",
-          "columns": ["tag_id", "item_id"]
+          "columns": [
+            "tag_id",
+            "item_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -310,8 +332,12 @@
           "name": "tags_to_outfits_tag_id_tags_id_fk",
           "tableFrom": "tags_to_outfits",
           "tableTo": "tags",
-          "columnsFrom": ["tag_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -319,8 +345,12 @@
           "name": "tags_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "tags_to_outfits",
           "tableTo": "outfits",
-          "columnsFrom": ["outfit_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "outfit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -328,7 +358,10 @@
       "compositePrimaryKeys": {
         "tags_to_outfits_tag_id_outfit_id_pk": {
           "name": "tags_to_outfits_tag_id_outfit_id_pk",
-          "columns": ["tag_id", "outfit_id"]
+          "columns": [
+            "tag_id",
+            "outfit_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -341,12 +374,23 @@
     "public.itemType": {
       "name": "itemType",
       "schema": "public",
-      "values": ["layer", "top", "bottom", "footwear", "accessory"]
+      "values": [
+        "layer",
+        "top",
+        "bottom",
+        "footwear",
+        "accessory"
+      ]
     },
     "public.tagStatus": {
       "name": "tagStatus",
       "schema": "public",
-      "values": ["manually_assigned", "suggested", "suggestion_accepted", "suggestion_rejected"]
+      "values": [
+        "manually_assigned",
+        "suggested",
+        "suggestion_accepted",
+        "suggestion_rejected"
+      ]
     }
   },
   "schemas": {},

@@ -133,12 +133,15 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
       )
 
       // Insert tag to outfit relationships
-      await tx.insert(tagsToOutfits).values(
-        body.tagIds.map((e) => ({
-          tagId: e,
-          outfitId: newOutfit.id,
-        }))
-      )
+      if (body.tagIds.length > 0) {
+        await tx.insert(tagsToOutfits).values(
+          body.tagIds.map((e) => ({
+            tagId: e,
+            outfitId: newOutfit.id,
+            status: 'manually_assigned',
+          }))
+        )
+      }
 
       return newOutfit
     })
@@ -188,6 +191,7 @@ app.put(
           body.tagIds.map((e) => ({
             tagId: e,
             outfitId: updatedOutfit.id,
+            status: 'manually_assigned',
           }))
         )
 

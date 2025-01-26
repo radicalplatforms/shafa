@@ -122,12 +122,12 @@ export const tags = pgTable(
       .primaryKey(),
     name: text('name').notNull(),
     hexColor: text('hex_color').notNull(),
-    minDaysBeforeReuse: smallint('min_days_before_reuse').notNull().default(-1),
+    minDaysBeforeItemReuse: smallint('min_days_before_item_reuse').notNull().default(-1),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     authorUsername: text('author_username').notNull(),
   },
   (table) => ({
-    minDaysCheck: check('min_days_before_reuse', sql`${table.minDaysBeforeReuse} >= -1`),
+    minDaysCheck: check('min_days_before_item_reuse', sql`${table.minDaysBeforeItemReuse} >= -1`),
   })
 )
 

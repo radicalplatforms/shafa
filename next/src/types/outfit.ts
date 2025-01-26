@@ -18,6 +18,20 @@ export type ItemToOutfit = {
   item?: Item
 }
 
+export type Tag = {
+  id: string
+  name: string
+  hexColor: string
+  minDaysBeforeItemReuse: number
+  createdAt: string
+  authorUsername: string
+}
+
+export type TagToOutfit = {
+  status: string
+  tag: Tag
+}
+
 export type OutfitCreate = {
   rating?: number
   wearDate: Date
@@ -25,6 +39,7 @@ export type OutfitCreate = {
     id: string
     itemType: string
   }>
+  tagIds?: string[]
 }
 
 export interface Outfit {
@@ -32,6 +47,7 @@ export interface Outfit {
   wearDate: string
   rating: number
   itemsToOutfits: ItemToOutfit[]
+  tagsToOutfits: TagToOutfit[]
   createdAt: string
 }
 

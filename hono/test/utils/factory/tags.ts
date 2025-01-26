@@ -7,7 +7,7 @@ export interface Tag {
   id: string
   name: string
   hexColor: string
-  minDaysBeforeReuse: number
+  minDaysBeforeItemReuse: number
   createdAt: Date
   authorUsername: string
 }
@@ -16,7 +16,7 @@ export interface TagAPI {
   id: string
   name: string
   hexColor: string
-  minDaysBeforeReuse: number
+  minDaysBeforeItemReuse: number
   createdAt: string
   authorUsername: string
 }
@@ -31,8 +31,8 @@ export class TagFactory implements Tag {
     this.hexColor = options?.hexColor
       ? (options.hexColor as string)
       : faker.color.rgb({ format: 'hex' })
-    this.minDaysBeforeReuse = options?.minDaysBeforeReuse
-      ? (options.minDaysBeforeReuse as number)
+    this.minDaysBeforeItemReuse = options?.minDaysBeforeItemReuse
+      ? (options.minDaysBeforeItemReuse as number)
       : faker.number.int({ min: -1, max: 365 })
     this.createdAt = options?.createdAt
       ? new Date(options.createdAt as Date)
@@ -57,7 +57,7 @@ export class TagFactory implements Tag {
   id: string
   name: string
   hexColor: string
-  minDaysBeforeReuse: number
+  minDaysBeforeItemReuse: number
   createdAt: Date
   authorUsername: string
 }
@@ -65,7 +65,7 @@ export class TagFactory implements Tag {
 export interface PartialTag {
   name: string
   hexColor: string
-  minDaysBeforeReuse: number
+  minDaysBeforeItemReuse: number
 }
 
 export class PartialTagFactory implements PartialTag {
@@ -73,7 +73,7 @@ export class PartialTagFactory implements PartialTag {
     faker.seed(seed ?? undefined)
     this.name = options?.name || faker.word.noun()
     this.hexColor = options?.hexColor || faker.color.rgb({ format: 'hex' })
-    this.minDaysBeforeReuse = options?.minDaysBeforeReuse || faker.number.int({ min: -1, max: 365 })
+    this.minDaysBeforeItemReuse = options?.minDaysBeforeItemReuse || faker.number.int({ min: -1, max: 365 })
   }
 
   formatAPI(): PartialTag {
@@ -84,5 +84,5 @@ export class PartialTagFactory implements PartialTag {
 
   name: string
   hexColor: string
-  minDaysBeforeReuse: number
+  minDaysBeforeItemReuse: number
 }
