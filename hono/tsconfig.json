@@ -12,6 +12,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "downlevelIteration": true,
+    "composite": true,
   },
   "include": [
     "src/**/*",

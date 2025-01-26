@@ -42,7 +42,7 @@ export default function AuthenticatedHeader() {
   useEffect(() => {
     const fetchStreak = async () => {
       try {
-        const response = await client.outfits.streak.$get()
+        const response = await client.api.outfits.streak.$get()
         const data = await response.json()
         setStreak(data.current_streak)
       } catch (err) {

@@ -1,8 +1,7 @@
-import { Item as ItemType } from '@/types/outfit'
 import { Layers, Shirt, Footprints, Crown } from 'lucide-react'
 import { PiPantsFill } from 'react-icons/pi'
 import { DateTime } from "luxon"
-
+import { ItemsResponse } from '@/lib/client'
 export const itemTypeIcons = {
   layer: Layers,
   top: Shirt,
@@ -12,7 +11,7 @@ export const itemTypeIcons = {
 } as const
 
 interface ItemProps {
-  item: ItemType
+  item: ItemsResponse['items'][number]
   itemType: keyof typeof itemTypeIcons
   isCoreItem?: boolean
   showLastWornAt?: boolean
@@ -20,7 +19,6 @@ interface ItemProps {
 
 export function Item({ item, itemType, isCoreItem = false, showLastWornAt = false }: ItemProps) {
   const Icon = itemTypeIcons[itemType]
-
 
   return (
     <div className="flex items-start space-x-3 min-w-0 max-w-full">

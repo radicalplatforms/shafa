@@ -10,8 +10,6 @@ import { itemTypeEnum, items, itemsToOutfits, outfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
-const app = new Hono<{ Variables: Variables }>()
-
 const insertItemSchema = createInsertSchema(items, {
   name: z.string().min(1).max(60),
   brand: z.string().min(1).max(60),
@@ -28,18 +26,18 @@ const selectItemSchema = createSelectSchema(items, {
 const paginationValidationItems = z.object({
   page: z
     .string()
-    .refine((val) => !isNaN(+val) && +val >= 0, {
+    .optional()
+    .refine((val) => val === undefined || (!isNaN(+val) && +val >= 0), {
       message: 'Items page number must be a non-negative number',
-    })
-    .optional(),
+    }),
   size: z
     .string()
-    .refine((val) => !isNaN(+val) && +val > 0 && +val <= 1000, {
+    .optional()
+    .refine((val) => val === undefined || !isNaN(+val) && +val > 0 && +val <= 1000, {
       message: 'Items page size must be a positive number and less than or equal to 1000',
-    })
-    .optional(),
+    }),
   search: z.string().optional(),
-})
+}).optional()
 
 const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined) => {
   return db.query.items
@@ -86,118 +84,120 @@ const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined
     )
 }
 
-app.get('/', zValidator('query', paginationValidationItems), injectDB, async (c) => {
-  const { page, size, search } = c.req.query()
-  const pageNumber: number = page ? +page : 0
-  const pageSize: number = size ? +size : 25
+const app = new Hono<{ Variables: Variables }>()
+  .get('/', zValidator('query', paginationValidationItems), injectDB, async (c) => {
+    const { page, size, search } = c.req.query()
+    const pageNumber: number | undefined = page ? +page : undefined
+    const pageSize: number | undefined = size ? +size : undefined
 
-  const whereClause = search
-    ? and(
-        ...search
-          .toLowerCase()
-          .split(/\s+/)
-          .map((word) => or(ilike(items.name, `%${word}%`), ilike(items.brand, `%${word}%`))),
-        eq(items.authorUsername, 'rak3rman')
-      )
-    : eq(items.authorUsername, 'rak3rman')
+    const whereClause = search
+      ? and(
+          ...search
+            .toLowerCase()
+            .split(/\s+/)
+            .map((word) => or(ilike(items.name, `%${word}%`), ilike(items.brand, `%${word}%`))),
+          eq(items.authorUsername, 'rak3rman')
+        )
+      : eq(items.authorUsername, 'rak3rman')
 
-  const itemsData = await getItemQuery(c.get('db'), whereClause).then((items) => {
-    // Sort by lastWornAt (nulls first) then name
-    return items
-      .sort((a, b) => {
+    const itemsData = await getItemQuery(c.get('db'), whereClause).then((items) => {
+      // Sort by lastWornAt (nulls first) then name
+      const sortedItems = items.sort((a, b) => {
         if (!a.lastWornAt && !b.lastWornAt) return a.name.localeCompare(b.name)
         if (!a.lastWornAt) return -1
         if (!b.lastWornAt) return 1
         const dateCompare = new Date(a.lastWornAt).getTime() - new Date(b.lastWornAt).getTime()
         return dateCompare === 0 ? a.name.localeCompare(b.name) : dateCompare
       })
-      .slice(pageNumber * pageSize, pageNumber * pageSize + pageSize + 1)
-  })
 
-  const last_page = !(itemsData.length > pageSize)
-  if (!last_page) itemsData.pop()
+      // Return all items if pagination params are undefined
+      if (pageNumber === undefined || pageSize === undefined) {
+        return sortedItems
+      }
 
-  return c.json({
-    items: itemsData,
-    last_page: last_page,
-  })
-})
-
-app.get('/:id', zValidator('param', selectItemSchema.pick({ id: true })), injectDB, async (c) => {
-  const { id } = c.req.valid('param')
-
-  const itemData = await getItemQuery(
-    c.get('db'),
-    and(eq(items.id, id), eq(items.authorUsername, 'rak3rman'))
-  ) // NOTE: Aware that this is not good practice, could be more efficient
-
-  if (!itemData.length) {
-    return c.json({ message: 'Item not found' }, 404)
-  }
-
-  return c.json(itemData[0])
-})
-
-app.post(
-  '/',
-  zValidator(
-    'json',
-    insertItemSchema.required({
-      name: true,
-      type: true,
-      rating: true,
+      return sortedItems.slice(pageNumber * pageSize, pageNumber * pageSize + pageSize + 1)
     })
-  ),
-  injectDB,
-  async (c) => {
-    const body = c.req.valid('json')
 
-    return c.json(
-      (
-        await c
-          .get('db')
-          .insert(items)
-          .values({
-            ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-          })
-          .onConflictDoNothing()
-          .returning()
-      )[0]
-    )
-  }
-)
+    // Only handle pagination if params are defined
+    let last_page = true
+    if (pageNumber !== undefined && pageSize !== undefined) {
+      last_page = !(itemsData.length > pageSize)
+      if (!last_page) itemsData.pop()
+    }
 
-app.put(
-  '/:id',
-  zValidator('param', selectItemSchema.pick({ id: true })),
-  zValidator('json', insertItemSchema),
-  injectDB,
-  async (c) => {
-    const params = c.req.valid('param')
-    const body = c.req.valid('json')
+    return c.json({
+      items: itemsData,
+      last_page: last_page,
+    })
+  })
+  .get('/:id', zValidator('param', selectItemSchema.pick({ id: true })), injectDB, async (c) => {
+    const { id } = c.req.valid('param')
 
-    return c.json(
-      (
-        await c
-          .get('db')
-          .update(items)
-          .set({
-            ...body,
-            authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-          })
-          .where(eq(items.id, params.id))
-          .returning()
-      )[0]
-    )
-  }
-)
+    const itemData = await getItemQuery(
+      c.get('db'),
+      and(eq(items.id, id), eq(items.authorUsername, 'rak3rman'))
+    ) // NOTE: Aware that this is not good practice, could be more efficient
 
-app.delete(
-  '/:id',
-  zValidator('param', selectItemSchema.pick({ id: true })),
-  injectDB,
-  async (c) => {
+    if (!itemData.length) {
+      return c.json({ message: 'Item not found' }, 404)
+    }
+
+    return c.json(itemData[0])
+  })
+  .post(
+    '/',
+    zValidator(
+      'json',
+      insertItemSchema.required({
+        name: true,
+        type: true,
+        rating: true,
+      })
+    ),
+    injectDB,
+    async (c) => {
+      const body = c.req.valid('json')
+
+      return c.json(
+        (
+          await c
+            .get('db')
+            .insert(items)
+            .values({
+              ...body,
+              authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+            })
+            .onConflictDoNothing()
+            .returning()
+        )[0]
+      )
+    }
+  )
+  .put(
+    '/:id',
+    zValidator('param', selectItemSchema.pick({ id: true })),
+    zValidator('json', insertItemSchema),
+    injectDB,
+    async (c) => {
+      const params = c.req.valid('param')
+      const body = c.req.valid('json')
+
+      return c.json(
+        (
+          await c
+            .get('db')
+            .update(items)
+            .set({
+              ...body,
+              authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+            })
+            .where(eq(items.id, params.id))
+            .returning()
+        )[0]
+      )
+    }
+  )
+  .delete('/:id', zValidator('param', selectItemSchema.pick({ id: true })), injectDB, async (c) => {
     const params = c.req.valid('param')
 
     return c.json(
@@ -222,7 +222,6 @@ app.delete(
         return (await tx.delete(items).where(eq(items.id, params.id)).returning())[0]
       })
     )
-  }
-)
+  })
 
 export default app

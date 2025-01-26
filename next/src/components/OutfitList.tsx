@@ -1,73 +1,29 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Outfit } from '@/types/outfit'
 import { client } from '@/lib/client'
 import { Calendar, Star } from 'lucide-react'
 import { ItemList } from '@/components/ItemList'
 import OutfitListLoading from './OutfitListLoading'
 import Rating from '@/components/ui/rating'
-import { AddOutfitModal } from '@/components/AddOutfitModal'
-import { ScrollArea as ScrollAreaHorizontal } from "@/components/ui/scroll-area"
 import { Tag } from "@/components/ui/tag"
+import { useOutfits } from '@/lib/client'
+
 export default function OutfitList() {
-  const [outfits, setOutfits] = useState<Outfit[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
+  const { outfits, isLoading, isLoadingMore, isError, isReachingEnd, loadMore } = useOutfits()
   const observer = useRef<IntersectionObserver | null>(null)
 
   const lastOutfitElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return
+    if (isLoading || isLoadingMore) return
     if (observer.current) observer.current.disconnect()
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        setPage(prevPage => prevPage + 1)
+      if (entries[0].isIntersecting && !isReachingEnd) {
+        loadMore()
       }
     })
     if (node) observer.current.observe(node)
-  }, [loading, hasMore])
-
-  const fetchOutfits = useCallback(async () => {
-    try {
-      const response = await client.outfits.$get({
-        query: { page: page.toString(), size: 24 }
-      })
-      const data = await response.json()
-      setOutfits(prevOutfits => page === 0 ? data.outfits : [...prevOutfits, ...data.outfits])
-      setHasMore(!data.last_page)
-    } catch (err) {
-      setError('Failed to load outfits. Please try again later.')
-    } finally {
-      setLoading(false)
-    }
-  }, [page])
-
-  useEffect(() => {
-    fetchOutfits()
-  }, [page, fetchOutfits])
-
-  useEffect(() => {
-    const handleOutfitCreated = () => {
-      setPage(0)  // Reset to first page
-      setOutfits([])  // Clear existing outfits
-      setLoading(true)  // Show loading state
-      fetchOutfits() // Immediately fetch new data
-    }
-
-    window.addEventListener('outfitCreated', handleOutfitCreated)
-    return () => window.removeEventListener('outfitCreated', handleOutfitCreated)
-  }, [fetchOutfits])
-
-  if (loading && page === 0) {
-    return <OutfitListLoading />
-  }
-
-  if (error) {
-    return <div className="text-destructive">{error}</div>
-  }
+  }, [isLoading, isLoadingMore, isReachingEnd, loadMore])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -80,6 +36,14 @@ export default function OutfitList() {
     const dayOfWeek = utcDate.toLocaleDateString('en-US', { weekday: 'short' })
     const formattedDate = utcDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     return `${dayOfWeek}, ${formattedDate}`
+  }
+
+  if (isLoading && outfits.length === 0) {
+    return <OutfitListLoading />
+  }
+
+  if (isError) {
+    return <div className="text-destructive">{isError.toString()}</div>
   }
 
   return (

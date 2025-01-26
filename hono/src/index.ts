@@ -1,3 +1,4 @@
+import { clerkMiddleware } from '@hono/clerk-auth'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
@@ -61,11 +62,11 @@ app.use(
   })
 )
 
-app.get('/', async (c) => {
-  return c.text(`Shafa API v${version}`)
-})
-
+app.use('*', clerkMiddleware())
 const routes = app
+  .get('/', async (c) => {
+    return c.text(`Shafa API v${version}`)
+  })
   .route('/api/items', items)
   .route('/api/outfits', outfits)
   .route('/api/tags', tags)

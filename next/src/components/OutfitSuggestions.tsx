@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { OutfitSuggestion, ItemToOutfit } from '@/types/outfit'
 import { client } from '@/lib/client'
-import { Star, Zap } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { SuggestionScoreBar } from '@/components/SuggestionScoreBar'
 import { ItemList } from '@/components/ItemList'
 import OutfitSuggestionsLoading from './OutfitSuggestionsLoading'
@@ -36,7 +36,7 @@ export default function OutfitSuggestions() {
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
-        const response = await client.outfits.suggest.$get({
+        const response = await client.api.outfits.suggest.$get({
           query: { 
             page: page.toString(), 
             size: 12
@@ -89,7 +89,7 @@ export default function OutfitSuggestions() {
 
   return (
     <>
-      <AddOutfitModal 
+      {/* <AddOutfitModal 
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         initialItems={selectedSuggestion?.itemsToOutfits
@@ -104,7 +104,7 @@ export default function OutfitSuggestions() {
         onSuccess={() => {
           window.dispatchEvent(new Event('outfitCreated'))
         }}
-      />
+      /> */}
       
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {suggestions.map((suggestion, index) => (
