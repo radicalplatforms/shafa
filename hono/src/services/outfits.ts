@@ -5,7 +5,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { itemTypeEnum, itemsToOutfits, outfits } from '../schema'
+import { itemTypeEnum, itemsToOutfits, outfits, tagsToOutfits } from '../schema'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
@@ -26,6 +26,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
       )
       .min(1)
       .max(8),
+    tagIds: z.array(z.string()).max(8),
   })
   .omit({ id: true })
 
@@ -81,6 +82,15 @@ app.get('/', zValidator('query', paginationValidationOutfits), injectDB, async (
         },
         orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
       },
+      tagsToOutfits: {
+        columns: {
+          tagId: false,
+          outfitId: false,
+        },
+        with: {
+          tag: true,
+        },
+      },
     },
     orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
     offset: pageNumber * pageSize,
@@ -122,6 +132,17 @@ app.post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
         }))
       )
 
+      // Insert tag to outfit relationships
+      if (body.tagIds.length > 0) {
+        await tx.insert(tagsToOutfits).values(
+          body.tagIds.map((e) => ({
+            tagId: e,
+            outfitId: newOutfit.id,
+            status: 'manually_assigned',
+          }))
+        )
+      }
+
       return newOutfit
     })
   )
@@ -159,6 +180,18 @@ app.put(
             itemId: e.id,
             outfitId: updatedOutfit.id,
             itemType: e.itemType,
+          }))
+        )
+
+        // Delete all tag to outfit relationships
+        await tx.delete(tagsToOutfits).where(eq(tagsToOutfits.outfitId, params.id))
+
+        // Insert tag to outfit relationships
+        await tx.insert(tagsToOutfits).values(
+          body.tagIds.map((e) => ({
+            tagId: e,
+            outfitId: updatedOutfit.id,
+            status: 'manually_assigned',
           }))
         )
 

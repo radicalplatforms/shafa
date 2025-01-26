@@ -6,6 +6,7 @@ import { prettyJSON } from 'hono/pretty-json'
 import { version } from '../package.json'
 import items from './services/items'
 import outfits from './services/outfits'
+import tags from './services/tags'
 
 const app = new Hono()
 
@@ -64,7 +65,10 @@ app.get('/', async (c) => {
   return c.text(`Shafa API v${version}`)
 })
 
-const routes = app.route('/api/items', items).route('/api/outfits', outfits)
+const routes = app
+  .route('/api/items', items)
+  .route('/api/outfits', outfits)
+  .route('/api/tags', tags)
 
 export default app
 export type AppType = typeof routes

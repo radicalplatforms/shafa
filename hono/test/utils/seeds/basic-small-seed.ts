@@ -1,15 +1,39 @@
-import { itemTypeEnum } from '../../../src/schema'
+import { itemTypeEnum, tagStatusEnum } from '../../../src/schema'
 import { ItemFactory, type ItemType } from '../factory/items'
 import { ItemToOutfitFactory } from '../factory/items-outfits'
 import { OutfitFactory } from '../factory/outfits'
+import { TagFactory } from '../factory/tags'
+import { TagToItemFactory } from '../factory/tags-items'
+import { TagToOutfitFactory } from '../factory/tags-outfits'
 
 export default async function (
   db_name: string,
   db_port: number
-): Promise<[ItemFactory[], OutfitFactory[], ItemToOutfitFactory[]]> {
+): Promise<
+  [
+    ItemFactory[],
+    OutfitFactory[],
+    ItemToOutfitFactory[],
+    TagFactory[],
+    TagToItemFactory[],
+    TagToOutfitFactory[],
+  ]
+> {
   const items: ItemFactory[] = []
   const outfits: OutfitFactory[] = []
   const items_to_outfits: ItemToOutfitFactory[] = []
+  const tags: TagFactory[] = []
+  const tags_to_items: TagToItemFactory[] = []
+  const tags_to_outfits: TagToOutfitFactory[] = []
+
+  // Create tags
+  for (let i = 0; i < 2; i++) {
+    // Create tag and push to db
+    tags[i] = new TagFactory(i, {
+      authorUsername: 'rak3rman',
+    })
+    await tags[i].store(db_name, db_port)
+  }
 
   // Insert 5 items for user rak3rman
   for (let i = 0; i < 5; i++) {
@@ -19,6 +43,14 @@ export default async function (
       authorUsername: 'rak3rman',
     })
     await items[i].store(db_name, db_port)
+
+    // Assign tag to item
+    tags_to_items[i] = new TagToItemFactory(undefined, {
+      tagId: tags[i % tags.length].id,
+      itemId: items[i].id,
+      status: tagStatusEnum[i % 4],
+    })
+    await tags_to_items[i].store(db_name, db_port)
   }
 
   // Create outfits and map items
@@ -28,6 +60,7 @@ export default async function (
       authorUsername: 'rak3rman',
     })
     await outfits[i].store(db_name, db_port)
+
     // Add 5 items to outfit
     for (let j = 0; j < items.length; j++) {
       const newItemToOutfit = new ItemToOutfitFactory(undefined, {
@@ -38,7 +71,15 @@ export default async function (
       await newItemToOutfit.store(db_name, db_port)
       items_to_outfits.push(newItemToOutfit)
     }
+
+    // Assign tag to outfit
+    tags_to_outfits[i] = new TagToOutfitFactory(undefined, {
+      tagId: tags[i % tags.length].id,
+      outfitId: outfits[i].id,
+      status: tagStatusEnum[i % 4],
+    })
+    await tags_to_outfits[i].store(db_name, db_port)
   }
 
-  return [items, outfits, items_to_outfits]
+  return [items, outfits, items_to_outfits, tags, tags_to_items, tags_to_outfits]
 }

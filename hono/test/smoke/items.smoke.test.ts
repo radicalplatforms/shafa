@@ -9,6 +9,8 @@ import { type ItemAPI, ItemFactory, PartialItemFactory } from '../utils/factory/
 import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
 import { itemsComputeLastWornAt } from '../utils/factory/items-outfits'
 import type { OutfitFactory } from '../utils/factory/outfits'
+import type { TagFactory } from '../utils/factory/tags'
+import type { TagToItemFactory } from '../utils/factory/tags-items'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
 /**
@@ -112,9 +114,14 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
   let testItems: ItemFactory[] = []
   let testOutfits: OutfitFactory[] = []
   let testItemsToOutfits: ItemToOutfitFactory[] = []
+  let testTags: TagFactory[] = []
+  let testTagsToItems: TagToItemFactory[] = []
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits] = await basicSmallSeed(DB_NAME, DB_PORT)
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] = await basicSmallSeed(
+      DB_NAME,
+      DB_PORT
+    )
     testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
   })
 
@@ -127,7 +134,17 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: boolean }
     testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
     expect(res.status).toBe(200)
-    expect(resJSON.items).toEqual(testItems.map((item) => item.formatAPI()))
+    expect(resJSON.items).toEqual(
+      testItems.map((item) => ({
+        ...item.formatAPI(),
+        tagsToItems: testTagsToItems
+          .filter((tagToItem) => tagToItem.itemId === item.id)
+          .map((tagToItem) => ({
+            status: tagToItem.status,
+            tag: testTags.find((tag) => tagToItem.tagId === tag.id)?.formatAPI(),
+          })),
+      }))
+    )
     expect(resJSON.last_page).toEqual(true)
   }
 
@@ -182,9 +199,14 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
   let testItems: ItemFactory[] = []
   let testOutfits: OutfitFactory[] = []
   let testItemsToOutfits: ItemToOutfitFactory[] = []
+  let testTags: TagFactory[] = []
+  let testTagsToItems: TagToItemFactory[] = []
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits] = await basicSmallSeed(DB_NAME, DB_PORT)
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] = await basicSmallSeed(
+      DB_NAME,
+      DB_PORT
+    )
     testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
   })
 
@@ -197,7 +219,17 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
     const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: boolean }
     testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
     expect(res.status).toBe(200)
-    expect(resJSON.items).toEqual(testItems.map((item) => item.formatAPI()))
+    expect(resJSON.items).toEqual(
+      testItems.map((item) => ({
+        ...item.formatAPI(),
+        tagsToItems: testTagsToItems
+          .filter((tagToItem) => tagToItem.itemId === item.id)
+          .map((tagToItem) => ({
+            status: tagToItem.status,
+            tag: testTags.find((tag) => tagToItem.tagId === tag.id)?.formatAPI(),
+          })),
+      }))
+    )
     expect(resJSON.last_page).toEqual(true)
   }
 

@@ -9,7 +9,8 @@ import { ItemList } from '@/components/ItemList'
 import OutfitListLoading from './OutfitListLoading'
 import Rating from '@/components/ui/rating'
 import { AddOutfitModal } from '@/components/AddOutfitModal'
-
+import { ScrollArea as ScrollAreaHorizontal } from "@/components/ui/scroll-area"
+import { Tag } from "@/components/ui/tag"
 export default function OutfitList() {
   const [outfits, setOutfits] = useState<Outfit[]>([])
   const [loading, setLoading] = useState(true)
@@ -96,6 +97,17 @@ export default function OutfitList() {
                 <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
                   <Calendar className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                   {formatDate(outfit.wearDate)}
+                  <div className="flex gap-2 pl-3">
+                    {outfit.tagsToOutfits.map((tag) => (
+                      <Tag
+                        key={tag.tag.id}
+                        id={tag.tag.id}
+                        name={tag.tag.name}
+                        hexColor={tag.tag.hexColor}
+                        selected={true}
+                      />
+                    ))}
+                  </div>
                 </span>
                 <Rating rating={outfit.rating as 0 | 1 | 2} />
               </div>

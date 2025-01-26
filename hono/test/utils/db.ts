@@ -32,6 +32,7 @@ export async function provision(name: string, port: number = 5555, version: numb
       max: 1,
     })
     await migrate(drizzle(client), { migrationsFolder: './src/drizzle' })
+    client.end()
   } catch (e) {
     stop(port, version)
     throw e
@@ -50,6 +51,7 @@ export async function clean(name: string, port: number = 5555, version: number =
 
     const sqlString = fs.readFileSync('test/utils/clean-db.sql', 'utf8')
     await db.execute(sql.raw(sqlString))
+    db.$client.end()
   } catch (e) {
     stop(port, version)
     throw e
@@ -68,6 +70,7 @@ export async function seed(
     for (const seed of seeds) {
       const sqlString = fs.readFileSync('test/utils/seeds/' + seed, 'utf8')
       await db.execute(sql.raw(sqlString))
+      db.$client.end()
     }
   } catch (e) {
     stop(port, version)

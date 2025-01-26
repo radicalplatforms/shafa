@@ -17,6 +17,8 @@ import { ItemsResponse } from '@/lib/client'
 import { ItemTypeButtons, itemTypeIcons } from './ItemTypeButtons'
 import { Item } from '@/components/Item'
 import Rating from './ui/rating'
+import { Tag } from "@/components/ui/tag"
+import { ScrollArea as ScrollAreaHorizontal } from "@/components/ui/scroll-area"
 
 type Item = ItemType & {
   type: keyof typeof itemTypeIcons
@@ -24,6 +26,7 @@ type Item = ItemType & {
 
 interface ItemWithType extends ItemType {
   itemType: keyof typeof itemTypeIcons
+  tags?: string[]
 }
 
 interface AddOutfitModalProps {
@@ -58,6 +61,12 @@ export function AddOutfitModal({
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [tags, setTags] = useState<Array<{
+    id: string
+    name: string
+    hexColor: string
+  }>>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   useEffect(() => {
     if (initialItems?.length) {
@@ -121,6 +130,20 @@ export function AddOutfitModal({
     return () => clearTimeout(debounce)
   }, [searchTerm])
 
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await client.tags.$get()
+        const data = await response.json()
+        setTags(data.tags)
+      } catch (error) {
+        console.error('Failed to fetch tags:', error)
+      }
+    }
+
+    fetchTags()
+  }, [])
+
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setDate(getStartOfToday())
@@ -163,7 +186,8 @@ export function AddOutfitModal({
     const outfitData: OutfitCreate = {
       wearDate: date,
       rating: rating,
-      itemIdsTypes: items.map(item => ({ id: item.id, itemType: item.itemType }))
+      itemIdsTypes: items.map(item => ({ id: item.id, itemType: item.itemType })),
+      tagIds: selectedTags
     }
 
     try {
@@ -194,6 +218,14 @@ export function AddOutfitModal({
     setSelectedItem(item)
     setSearchTerm(item.name)
     setShowDropdown(false)
+  }
+
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tagId) 
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    )
   }
 
   return (
@@ -292,7 +324,24 @@ export function AddOutfitModal({
               <ItemTypeButtons onSelect={handleAddItem} disabled={!selectedItem} />
             </div>
           </div>
-          <div className="mt-6">
+          <div className="mt-4">
+            <div className="-mx-2">
+              <ScrollAreaHorizontal className="w-[calc(100%+16px)]">
+                <div className="flex gap-2 pb-4 px-2">
+                  {tags.map((tag) => (
+                    <Tag
+                      key={tag.id}
+                      id={tag.id}
+                      name={tag.name}
+                      hexColor={tag.hexColor}
+                      selected={selectedTags.includes(tag.id)}
+                      onClick={() => handleTagToggle(tag.id)}
+                      compact={false}
+                    />
+                  ))}
+                </div>
+              </ScrollAreaHorizontal>
+            </div>
             <ScrollArea className="max-h-fit min-h-[100px] sm:h-[250px] px-2">
               <div className="space-y-2">
                 {items.map((item) => (
@@ -316,6 +365,7 @@ export function AddOutfitModal({
                 ))}
               </div>
             </ScrollArea>
+            
           </div>
         </div>
         <div className="flex justify-end items-center gap-2 rounded-b-sm py-4 px-4 sm:px-6 border-t mt-4">

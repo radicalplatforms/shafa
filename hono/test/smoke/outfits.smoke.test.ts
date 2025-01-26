@@ -10,6 +10,8 @@ import type { ItemFactory } from '../utils/factory/items'
 import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
 import type { OutfitSuggestionAPI } from '../utils/factory/outfits'
 import { type OutfitAPI, OutfitFactory, PartialOutfitFactory } from '../utils/factory/outfits'
+import type { TagFactory } from '../utils/factory/tags'
+import type { TagToOutfitFactory } from '../utils/factory/tags-outfits'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
 /**
@@ -66,9 +68,12 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
   let testItems: ItemFactory[]
   let testOutfits: OutfitFactory[]
   let testItemsToOutfits: ItemToOutfitFactory[]
+  let testTags: TagFactory[]
+  let testTagsToOutfits: TagToOutfitFactory[]
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits] = await basicSmallSeed(DB_NAME, DB_PORT)
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, , testTagsToOutfits] =
+      await basicSmallSeed(DB_NAME, DB_PORT)
   })
 
   afterAll(async () => {
@@ -90,6 +95,12 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
               .find((item) => itemToOutfit.itemId === item.id)
               ?.formatAPI({ omitLastWornAt: true }),
           })),
+        tagsToOutfits: testTagsToOutfits
+          .filter((tagToOutfit) => tagToOutfit.outfitId === outfit.id)
+          .map((tagToOutfit) => ({
+            status: tagToOutfit.status,
+            tag: testTags.find((tag) => tagToOutfit.tagId === tag.id)?.formatAPI(),
+          })),
       }))
     )
     expect(resJSON.last_page).toEqual(true)
@@ -105,6 +116,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
           id: item.id,
           itemType: itemTypeEnum[(i + 1) % 5],
         })),
+        tagIds: [testTags[0].id],
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -124,6 +136,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
           id: item.id,
           itemType: itemTypeEnum[(i + 2) % 5],
         })),
+        tagIds: [testTags[1].id],
       }),
       headers: { 'Content-Type': 'application/json' },
     })

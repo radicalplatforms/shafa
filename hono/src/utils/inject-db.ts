@@ -17,7 +17,10 @@ export default async function injectDB(c: Context, next: Function) {
   const db = drizzle(client, { schema })
   c.set('db', db)
 
-  await client.connect()
-  await next()
-  await client.end()
+  try {
+    await client.connect()
+    await next()
+  } finally {
+    await client.end()
+  }
 }
