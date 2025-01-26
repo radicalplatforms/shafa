@@ -73,7 +73,8 @@ export class PartialTagFactory implements PartialTag {
     faker.seed(seed ?? undefined)
     this.name = options?.name || faker.word.noun()
     this.hexColor = options?.hexColor || faker.color.rgb({ format: 'hex' })
-    this.minDaysBeforeItemReuse = options?.minDaysBeforeItemReuse || faker.number.int({ min: -1, max: 365 })
+    this.minDaysBeforeItemReuse =
+      options?.minDaysBeforeItemReuse || faker.number.int({ min: -1, max: 365 })
   }
 
   formatAPI(): PartialTag {

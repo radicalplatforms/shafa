@@ -97,12 +97,8 @@
           "name": "items_to_outfits_item_id_items_id_fk",
           "tableFrom": "items_to_outfits",
           "tableTo": "items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -110,12 +106,8 @@
           "name": "items_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "items_to_outfits",
           "tableTo": "outfits",
-          "columnsFrom": [
-            "outfit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["outfit_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -123,10 +115,7 @@
       "compositePrimaryKeys": {
         "items_to_outfits_item_id_outfit_id_pk": {
           "name": "items_to_outfits_item_id_outfit_id_pk",
-          "columns": [
-            "item_id",
-            "outfit_id"
-          ]
+          "columns": ["item_id", "outfit_id"]
         }
       },
       "uniqueConstraints": {},
@@ -264,12 +253,8 @@
           "name": "tags_to_items_tag_id_tags_id_fk",
           "tableFrom": "tags_to_items",
           "tableTo": "tags",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -277,12 +262,8 @@
           "name": "tags_to_items_item_id_items_id_fk",
           "tableFrom": "tags_to_items",
           "tableTo": "items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -290,10 +271,7 @@
       "compositePrimaryKeys": {
         "tags_to_items_tag_id_item_id_pk": {
           "name": "tags_to_items_tag_id_item_id_pk",
-          "columns": [
-            "tag_id",
-            "item_id"
-          ]
+          "columns": ["tag_id", "item_id"]
         }
       },
       "uniqueConstraints": {},
@@ -332,12 +310,8 @@
           "name": "tags_to_outfits_tag_id_tags_id_fk",
           "tableFrom": "tags_to_outfits",
           "tableTo": "tags",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -345,12 +319,8 @@
           "name": "tags_to_outfits_outfit_id_outfits_id_fk",
           "tableFrom": "tags_to_outfits",
           "tableTo": "outfits",
-          "columnsFrom": [
-            "outfit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["outfit_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -358,10 +328,7 @@
       "compositePrimaryKeys": {
         "tags_to_outfits_tag_id_outfit_id_pk": {
           "name": "tags_to_outfits_tag_id_outfit_id_pk",
-          "columns": [
-            "tag_id",
-            "outfit_id"
-          ]
+          "columns": ["tag_id", "outfit_id"]
         }
       },
       "uniqueConstraints": {},
@@ -374,23 +341,12 @@
     "public.itemType": {
       "name": "itemType",
       "schema": "public",
-      "values": [
-        "layer",
-        "top",
-        "bottom",
-        "footwear",
-        "accessory"
-      ]
+      "values": ["layer", "top", "bottom", "footwear", "accessory"]
     },
     "public.tagStatus": {
       "name": "tagStatus",
       "schema": "public",
-      "values": [
-        "manually_assigned",
-        "suggested",
-        "suggestion_accepted",
-        "suggestion_rejected"
-      ]
+      "values": ["manually_assigned", "suggested", "suggestion_accepted", "suggestion_rejected"]
     }
   },
   "schemas": {},

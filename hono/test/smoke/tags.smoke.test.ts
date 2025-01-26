@@ -5,12 +5,8 @@ import postgres from 'postgres'
 import app from '../../src/index'
 import * as schema from '../../src/schema'
 import { clean, provision } from '../utils/db'
-import { type ItemAPI, ItemFactory, PartialItemFactory } from '../utils/factory/items'
-import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
-import { itemsComputeLastWornAt } from '../utils/factory/items-outfits'
-import type { OutfitFactory } from '../utils/factory/outfits'
-import basicSmallSeed from '../utils/seeds/basic-small-seed'
-import { PartialTagFactory, TagAPI, TagFactory } from '../utils/factory/tags'
+import type { TagAPI } from '../utils/factory/tags'
+import { PartialTagFactory, TagFactory } from '../utils/factory/tags'
 
 /**
  * Tags Smoke Tests

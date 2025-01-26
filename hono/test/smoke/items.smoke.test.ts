@@ -11,7 +11,6 @@ import { itemsComputeLastWornAt } from '../utils/factory/items-outfits'
 import type { OutfitFactory } from '../utils/factory/outfits'
 import type { TagFactory } from '../utils/factory/tags'
 import type { TagToItemFactory } from '../utils/factory/tags-items'
-import type { TagToOutfitFactory } from '../utils/factory/tags-outfits'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
 /**
@@ -117,11 +116,12 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
   let testItemsToOutfits: ItemToOutfitFactory[] = []
   let testTags: TagFactory[] = []
   let testTagsToItems: TagToItemFactory[] = []
-  let testTagsToOutfits: TagToOutfitFactory[] = []
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems, testTagsToOutfits] =
-      await basicSmallSeed(DB_NAME, DB_PORT)
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] = await basicSmallSeed(
+      DB_NAME,
+      DB_PORT
+    )
     testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
   })
 
@@ -201,11 +201,12 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
   let testItemsToOutfits: ItemToOutfitFactory[] = []
   let testTags: TagFactory[] = []
   let testTagsToItems: TagToItemFactory[] = []
-  let testTagsToOutfits: TagToOutfitFactory[] = []
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems, testTagsToOutfits] =
-      await basicSmallSeed(DB_NAME, DB_PORT)
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] = await basicSmallSeed(
+      DB_NAME,
+      DB_PORT
+    )
     testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
   })
 

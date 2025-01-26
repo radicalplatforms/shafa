@@ -65,7 +65,10 @@ app.get('/', async (c) => {
   return c.text(`Shafa API v${version}`)
 })
 
-const routes = app.route('/api/items', items).route('/api/outfits', outfits).route('/api/tags', tags)
+const routes = app
+  .route('/api/items', items)
+  .route('/api/outfits', outfits)
+  .route('/api/tags', tags)
 
 export default app
 export type AppType = typeof routes

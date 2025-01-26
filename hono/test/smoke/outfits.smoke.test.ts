@@ -11,7 +11,6 @@ import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
 import type { OutfitSuggestionAPI } from '../utils/factory/outfits'
 import { type OutfitAPI, OutfitFactory, PartialOutfitFactory } from '../utils/factory/outfits'
 import type { TagFactory } from '../utils/factory/tags'
-import type { TagToItemFactory } from '../utils/factory/tags-items'
 import type { TagToOutfitFactory } from '../utils/factory/tags-outfits'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
 
@@ -70,11 +69,10 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
   let testOutfits: OutfitFactory[]
   let testItemsToOutfits: ItemToOutfitFactory[]
   let testTags: TagFactory[]
-  let testTagsToItems: TagToItemFactory[]
   let testTagsToOutfits: TagToOutfitFactory[]
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems, testTagsToOutfits] =
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, , testTagsToOutfits] =
       await basicSmallSeed(DB_NAME, DB_PORT)
   })
 

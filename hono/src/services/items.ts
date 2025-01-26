@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
 import type { SQL } from 'drizzle-orm'
-import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, eq, ilike, inArray, or } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -77,7 +77,9 @@ const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined
         createdAt: item.createdAt,
         authorUsername: item.authorUsername,
         lastWornAt: item.itemsToOutfits.length
-          ? new Date(Math.max(...item.itemsToOutfits.map((rel) => rel.outfit.wearDate.getTime()))).toISOString().split('T')[0]
+          ? new Date(Math.max(...item.itemsToOutfits.map((rel) => rel.outfit.wearDate.getTime())))
+              .toISOString()
+              .split('T')[0]
           : null,
         tagsToItems: item.tagsToItems,
       }))
