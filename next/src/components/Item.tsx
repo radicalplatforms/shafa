@@ -36,7 +36,10 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
             {showLastWornAt && item.lastWornAt && (
               <span>
                 <span className="text-xs align-top ml-[5px] mr-[6px]">•</span>
-                Worn {DateTime.fromISO(item.lastWornAt).toRelativeCalendar()}
+                Worn {DateTime.fromISO(item.lastWornAt).toRelativeCalendar({
+                  locale: 'en-US',
+                  unit: 'days'
+                })}
               </span>
             )}
           </p>

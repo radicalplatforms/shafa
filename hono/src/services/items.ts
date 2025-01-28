@@ -55,12 +55,8 @@ const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined
         },
         tagsToItems: {
           columns: {
-            tagId: false,
             itemId: false,
-          },
-          with: {
-            tag: true,
-          },
+          }
         },
       },
     })

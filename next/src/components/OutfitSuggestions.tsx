@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { OutfitSuggestion, ItemToOutfit } from '@/types/outfit'
 import { client } from '@/lib/client'
 import { Zap } from 'lucide-react'
 import { SuggestionScoreBar } from '@/components/SuggestionScoreBar'

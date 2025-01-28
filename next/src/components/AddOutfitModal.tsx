@@ -11,12 +11,10 @@ import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import React from 'react'
-import { itemTypeIcons } from './ItemTypeButtons'
-import { Item } from '@/components/Item'
+import { Item, itemTypeIcons } from '@/components/Item'
 import Rating from './ui/rating'
 import { Tag } from "@/components/ui/tag"
-import { ScrollArea as ScrollAreaHorizontal } from "@/components/ui/scroll-area"
-import { client, useItems, useTags } from '@/lib/client'
+import { client, useItems, useTags, useOutfits } from '@/lib/client'
 
 interface AddOutfitModalProps {
   open?: boolean
@@ -61,6 +59,8 @@ export function AddOutfitModal({
   // Add ref for detecting clicks outside
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const { mutate: mutateOutfits } = useOutfits()
+
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen && selectedItems.length === 0) {
       setDate(getStartOfToday())
@@ -102,6 +102,9 @@ export function AddOutfitModal({
         json: outfitData
       })
       if (response.ok) {
+        // Refresh outfits data
+        await mutateOutfits()
+        
         // Reset all state variables
         setSelectedItems([])
         setDate(getStartOfToday())
@@ -235,7 +238,7 @@ export function AddOutfitModal({
         </DialogTrigger>
       )}
       <DialogContent
-        className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl overflow-visible [&>button]:hidden w-[95vw] max-h-[90vh] overflow-y-auto"
+        className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl overflow-hidden [&>button]:hidden w-[95vw] max-h-[90vh]"
       >
         <div className="sr-only">
           <DialogTitle>Add New Outfit</DialogTitle>
@@ -243,7 +246,7 @@ export function AddOutfitModal({
             Create a new outfit by selecting items, choosing a date, and rating your outfit.
           </DialogDescription>
         </div>
-        <div className="px-4 sm:px-6 pt-6">
+        <div className="px-4 sm:px-6 mt-6 mb-0">
           <div className="flex justify-between items-center gap-4 mb-4">
             <Popover>
               <PopoverTrigger asChild>
@@ -294,7 +297,7 @@ export function AddOutfitModal({
               {showDropdown && (searchResults?.length > 0 || isItemsLoading) && (
                 <div 
                   ref={dropdownRef}
-                  className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg"
+                  className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg max-w-[100%]"
                 >
                   <ScrollArea 
                     ref={scrollAreaRef}
@@ -350,28 +353,10 @@ export function AddOutfitModal({
             </div>
           </div>
           <div className="mt-4">
-            <div className="-mx-2">
-              <ScrollAreaHorizontal className="w-[calc(100%+16px)]">
-                <div className="flex gap-2 pb-4 px-2">
-                  {tags?.map((tag) => (
-                    <Tag
-                      key={tag.id}
-                      id={tag.id}
-                      name={tag.name}
-                      hexColor={tag.hexColor}
-                      selected={selectedTags.includes(tag.id)}
-                      onClick={() => handleTagToggle(tag.id)}
-                      compact={false}
-                    />
-                  ))}
-                </div>
-              </ScrollAreaHorizontal>
-            </div>
-            <ScrollArea className="max-h-fit min-h-[100px] sm:h-[250px] px-2">
-              <div className="space-y-2">
+            <ScrollArea className="max-h-fit min-h-[100px] px-2">
+              <div className="space-y-2 max-w-full">
                 {selectedItems
                   .sort((a, b) => {
-                    // First compare by type order
                     const orderA = typeOrder[a.type as keyof typeof typeOrder] ?? 999
                     const orderB = typeOrder[b.type as keyof typeof typeOrder] ?? 999
                     return orderA - orderB
@@ -380,8 +365,8 @@ export function AddOutfitModal({
                     const item = allItems?.find(i => i.id === selectedItem.id)
                     if (!item) return null
                     return (
-                      <div key={item.id} className="flex items-center gap-2 w-full max-w-full overflow-hidden">
-                        <div className="flex-1 min-w-0 max-w-[calc(100%-3rem)]">
+                      <div key={item.id} className="flex items-center gap-2 w-full max-w-full">
+                        <div className="flex-1 min-w-0 truncate">
                           <Item 
                             item={item} 
                             itemType={selectedItem.type as keyof typeof itemTypeIcons}
@@ -401,29 +386,45 @@ export function AddOutfitModal({
                   })}
               </div>
             </ScrollArea>
-            
           </div>
         </div>
-        <div className="flex justify-end items-center gap-2 rounded-b-sm py-4 px-4 sm:px-6 border-t mt-4">
-          {[
-            { rating: 2, label: 'Hit' },
-            { rating: 1, label: 'Mid' },
-            { rating: 0, label: 'Miss' }
-          ].map(({ rating, label }) => (
-            <Button
-              key={label}
-              onClick={() => handleSubmit(rating as 0 | 1 | 2)}
-              disabled={isSubmitting}
-              className={`w-full sm:w-auto text-black bg-white border-[1px] hover:bg-muted border-gray-200 shadow-sm transition-colors`}
-            >
-              {isSubmitting && submittingRating === rating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Rating rating={rating as 0 | 1 | 2} />
-              )}
-              {label}
-            </Button>
-          ))}
+        <div className="sm:max-w-[550px] w-[95vw] justify-end items-center">
+          <div className="overflow-x-auto no-scrollbar">
+            <div className="flex gap-2 pb-3 mx-4">
+              {tags?.map((tag) => (
+                <Tag
+                  key={tag.id}
+                  id={tag.id}
+                  name={tag.name}
+                  hexColor={tag.hexColor}
+                  selected={selectedTags.includes(tag.id)}
+                  onClick={() => handleTagToggle(tag.id)}
+                  compact={false}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 rounded-b-sm py-4 px-4 sm:px-6 border-t">
+            {[
+              { rating: 2, label: 'Hit' },
+              { rating: 1, label: 'Mid' },
+              { rating: 0, label: 'Miss' }
+            ].map(({ rating, label }) => (
+              <Button
+                key={label}
+                onClick={() => handleSubmit(rating as 0 | 1 | 2)}
+                disabled={isSubmitting}
+                className={`w-full sm:w-auto text-black bg-white border-[1px] hover:bg-muted border-gray-200 shadow-sm transition-colors`}
+              >
+                {isSubmitting && submittingRating === rating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Rating rating={rating as 0 | 1 | 2} />
+                )}
+                {label}
+              </Button>
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

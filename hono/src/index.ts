@@ -63,6 +63,7 @@ app.use(
 )
 
 app.use('*', clerkMiddleware())
+
 const routes = app
   .get('/', async (c) => {
     return c.text(`Shafa API v${version}`)

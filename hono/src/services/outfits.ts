@@ -73,21 +73,13 @@ const app = new Hono<{ Variables: Variables }>()
       with: {
         itemsToOutfits: {
           columns: {
-            itemId: false,
             outfitId: false,
-          },
-          with: {
-            item: true,
           },
           orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
         },
         tagsToOutfits: {
           columns: {
-            tagId: false,
             outfitId: false,
-          },
-          with: {
-            tag: true,
           },
         },
       },

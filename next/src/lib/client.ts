@@ -25,7 +25,7 @@ export function useOutfits() {
     return await res.json()
   }
 
-  const { data, isLoading, error, size, setSize, isValidating } = useSWRInfinite(
+  const { data, isLoading, error, size, setSize, isValidating, mutate } = useSWRInfinite(
     (pageIndex, previousPageData) => {
       // First page, no previousPageData
       if (previousPageData === null) {
@@ -54,7 +54,8 @@ export function useOutfits() {
     isError: error,
     isLoadingMore,
     isReachingEnd,
-    loadMore: () => setSize(size + 1)
+    loadMore: () => setSize(size + 1),
+    mutate
   }
 }
 
