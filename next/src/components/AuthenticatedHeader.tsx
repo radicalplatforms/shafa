@@ -22,7 +22,6 @@ const NAV_LINKS = [
 export default function AuthenticatedHeader() {
   const pathname = usePathname()
   const [greeting, setGreeting] = useState('')
-  const [streak, setStreak] = useState<number | null>(null)
   const [today] = useState(() => 
     new Date().toLocaleDateString('en-US', { 
       weekday: 'long', 
@@ -39,44 +38,12 @@ export default function AuthenticatedHeader() {
     else setGreeting('Good Evening')
   }, [])
 
-  useEffect(() => {
-    const fetchStreak = async () => {
-      try {
-        const response = await client.outfits.streak.$get()
-        const data = await response.json()
-        setStreak(data.current_streak)
-      } catch (err) {
-        console.error('Failed to fetch streak:', err)
-        setStreak(null)
-      }
-    }
-
-    fetchStreak()
-
-    // Refresh streak when new outfit is created
-    const handleOutfitCreated = () => {
-      fetchStreak()
-    }
-
-    window.addEventListener('outfitCreated', handleOutfitCreated)
-    return () => window.removeEventListener('outfitCreated', handleOutfitCreated)
-  }, [])
-
   return (
     <>
       <header className="mb-4 sm:mb-8 fade-in flex flex-col items-center gap-4 sm:gap-0 sm:flex-row sm:justify-between sm:items-start">
         <div className="text-center sm:text-left space-y-1">
           <h1 className="text-3xl sm:text-4xl font-bold linear-gradient">Shafa</h1>
-          <p className="text-base sm:text-xl text-muted-foreground">{greeting}, Radison.</p>
-        </div>
-        <div className="text-center sm:text-right space-y-1.5">
-          <p className="text-xs sm:text-sm text-muted-foreground">{today}</p>
-          {streak !== null && (
-            <div className="flex items-center justify-center sm:justify-end gap-1">
-              <Flame className="h-4 w-4 text-orange-500" />
-              <span className="text-sm sm:text-base font-medium">{streak} day streak</span>
-            </div>
-          )}
+          <p className="text-base text-muted-foreground">{today}</p>
         </div>
       </header>
       <nav className="mb-6 sm:mb-8 fade-in flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-stretch sm:items-center">

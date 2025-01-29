@@ -7,14 +7,14 @@ export interface Outfit {
   id: string
   rating: number
   wearDate: Date
-  authorUsername: string
+  userId: string
 }
 
 export interface OutfitAPI {
   id: string
   rating: number
   wearDate: string
-  authorUsername: string
+  userId: string
 }
 
 export interface OutfitSuggestionAPI extends OutfitAPI {
@@ -49,9 +49,7 @@ export class OutfitFactory implements Outfit {
     this.wearDate = options?.wearDate
       ? new Date(options.wearDate as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
-    this.authorUsername = options?.authorUsername
-      ? (options.authorUsername as string)
-      : faker.internet.userName()
+    this.userId = options?.userId ? (options.userId as string) : faker.internet.userName()
   }
 
   async store(name: string, port: number) {
@@ -69,7 +67,7 @@ export class OutfitFactory implements Outfit {
   id: string
   rating: number
   wearDate: Date
-  authorUsername: string
+  userId: string
 }
 
 export interface PartialOutfit {

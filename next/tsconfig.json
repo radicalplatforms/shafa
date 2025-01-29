@@ -27,6 +27,9 @@
     "baseUrl": ".",
     "rootDirs": [".", "../hono/src"]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../hono/src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"],
+  "references": [
+        { "path": "../hono" }
+    ]
 }

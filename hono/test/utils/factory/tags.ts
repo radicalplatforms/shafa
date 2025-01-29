@@ -9,7 +9,7 @@ export interface Tag {
   hexColor: string
   minDaysBeforeItemReuse: number
   createdAt: Date
-  authorUsername: string
+  userId: string
 }
 
 export interface TagAPI {
@@ -18,7 +18,7 @@ export interface TagAPI {
   hexColor: string
   minDaysBeforeItemReuse: number
   createdAt: string
-  authorUsername: string
+  userId: string
 }
 
 export class TagFactory implements Tag {
@@ -37,9 +37,7 @@ export class TagFactory implements Tag {
     this.createdAt = options?.createdAt
       ? new Date(options.createdAt as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
-    this.authorUsername = options?.authorUsername
-      ? (options.authorUsername as string)
-      : faker.internet.userName()
+    this.userId = options?.userId ? (options.userId as string) : faker.internet.userName()
   }
 
   async store(name: string, port: number) {
@@ -59,7 +57,7 @@ export class TagFactory implements Tag {
   hexColor: string
   minDaysBeforeItemReuse: number
   createdAt: Date
-  authorUsername: string
+  userId: string
 }
 
 export interface PartialTag {

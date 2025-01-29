@@ -30,7 +30,7 @@ export default async function (
   for (let i = 0; i < 2; i++) {
     // Create tag and push to db
     tags[i] = new TagFactory(i, {
-      authorUsername: 'rak3rman',
+      userId: 'rak3rman',
     })
     await tags[i].store(db_name, db_port)
   }
@@ -40,7 +40,7 @@ export default async function (
     // Create item and push to db
     items[i] = new ItemFactory(i, {
       type: itemTypeEnum[i % 5] as ItemType,
-      authorUsername: 'rak3rman',
+      userId: 'rak3rman',
     })
     await items[i].store(db_name, db_port)
 
@@ -57,7 +57,7 @@ export default async function (
   for (let i = 0; i < 1; i++) {
     // Create outfit and push to db
     outfits[i] = new OutfitFactory(i, {
-      authorUsername: 'rak3rman',
+      userId: 'rak3rman',
     })
     await outfits[i].store(db_name, db_port)
 

@@ -1,26 +1,38 @@
 import React from 'react'
 import { Item, itemTypeIcons } from '@/components/Item'
-import { ItemToOutfit } from '@/types/outfit'
+import { OutfitsResponse, useItems } from '@/lib/client'
+import { ItemListLoading } from './ItemListLoading'
 
 interface ItemListProps {
-  items: ItemToOutfit[]
+  itemsToOutfits: OutfitsResponse['outfits'][number]['itemsToOutfits']
   coreItems?: string[]
 }
 
-export function ItemList({ items, coreItems = [] }: ItemListProps) {
+export function ItemList({ itemsToOutfits, coreItems = [] }: ItemListProps) {
+  const { items, isLoading: isLoadingItems } = useItems()
+
+  if (isLoadingItems) {
+    return <ItemListLoading />
+  }
+
   return (
     <ul className="space-y-2">
-      {items.map((itemToOutfit, index) => (
-        itemToOutfit.item && (
+      {itemsToOutfits.map((itemToOutfit, index) => {
+        if (!itemToOutfit.itemId || !itemToOutfit.itemType) return null
+        
+        const item = items.find(item => item.id === itemToOutfit.itemId)
+        if (!item) return null
+
+        return (
           <li key={itemToOutfit.itemId || `item-${index}-${itemToOutfit.itemType}`} className="text-sm">
             <Item 
-              item={itemToOutfit.item}
+              item={item}
               itemType={itemToOutfit.itemType as keyof typeof itemTypeIcons}
-              isCoreItem={coreItems.includes(itemToOutfit.item.id)}
+              isCoreItem={coreItems.includes(item.id)}
             />
           </li>
         )
-      ))}
+      })}
     </ul>
   )
 }

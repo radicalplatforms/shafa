@@ -1,73 +1,30 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Outfit } from '@/types/outfit'
-import { client } from '@/lib/client'
 import { Calendar, Star } from 'lucide-react'
 import { ItemList } from '@/components/ItemList'
 import OutfitListLoading from './OutfitListLoading'
 import Rating from '@/components/ui/rating'
-import { AddOutfitModal } from '@/components/AddOutfitModal'
-import { ScrollArea as ScrollAreaHorizontal } from "@/components/ui/scroll-area"
 import { Tag } from "@/components/ui/tag"
+import { useOutfits, useItems, useTags } from '@/lib/client'
+
 export default function OutfitList() {
-  const [outfits, setOutfits] = useState<Outfit[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
+  const { outfits, isLoading: isLoadingOutfits, isLoadingMore, isError: isErrorOutfits, isReachingEnd, loadMore } = useOutfits()
+  const { items, isLoading: isLoadingItems, isError: isErrorItems } = useItems()
+  const { tags, isLoading: isLoadingTags, isError: isErrorTags } = useTags()
   const observer = useRef<IntersectionObserver | null>(null)
 
   const lastOutfitElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return
+    if (isLoadingOutfits || isLoadingItems || isLoadingTags || isLoadingMore) return
     if (observer.current) observer.current.disconnect()
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        setPage(prevPage => prevPage + 1)
+      if (entries[0].isIntersecting && !isReachingEnd) {
+        loadMore()
       }
     })
     if (node) observer.current.observe(node)
-  }, [loading, hasMore])
-
-  const fetchOutfits = useCallback(async () => {
-    try {
-      const response = await client.outfits.$get({
-        query: { page: page.toString(), size: 24 }
-      })
-      const data = await response.json()
-      setOutfits(prevOutfits => page === 0 ? data.outfits : [...prevOutfits, ...data.outfits])
-      setHasMore(!data.last_page)
-    } catch (err) {
-      setError('Failed to load outfits. Please try again later.')
-    } finally {
-      setLoading(false)
-    }
-  }, [page])
-
-  useEffect(() => {
-    fetchOutfits()
-  }, [page, fetchOutfits])
-
-  useEffect(() => {
-    const handleOutfitCreated = () => {
-      setPage(0)  // Reset to first page
-      setOutfits([])  // Clear existing outfits
-      setLoading(true)  // Show loading state
-      fetchOutfits() // Immediately fetch new data
-    }
-
-    window.addEventListener('outfitCreated', handleOutfitCreated)
-    return () => window.removeEventListener('outfitCreated', handleOutfitCreated)
-  }, [fetchOutfits])
-
-  if (loading && page === 0) {
-    return <OutfitListLoading />
-  }
-
-  if (error) {
-    return <div className="text-destructive">{error}</div>
-  }
+  }, [isLoadingOutfits, isLoadingItems, isLoadingTags, isLoadingMore, isReachingEnd, loadMore])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -80,6 +37,14 @@ export default function OutfitList() {
     const dayOfWeek = utcDate.toLocaleDateString('en-US', { weekday: 'short' })
     const formattedDate = utcDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     return `${dayOfWeek}, ${formattedDate}`
+  }
+
+  if (isLoadingOutfits) {
+    return <OutfitListLoading />
+  }
+
+  if (isErrorOutfits) {
+    return <div className="text-destructive">{isErrorOutfits.toString()}</div>
   }
 
   return (
@@ -95,23 +60,27 @@ export default function OutfitList() {
             <CardContent className="p-3 sm:p-4">
               <div className="flex justify-between items-center mb-3 sm:mb-4">
                 <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                  <Calendar className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                  <Calendar className="mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
                   {formatDate(outfit.wearDate)}
                   <div className="flex gap-2 pl-3">
-                    {outfit.tagsToOutfits.map((tag) => (
-                      <Tag
-                        key={tag.tag.id}
-                        id={tag.tag.id}
-                        name={tag.tag.name}
-                        hexColor={tag.tag.hexColor}
-                        selected={true}
-                      />
-                    ))}
+                    {outfit.tagsToOutfits.map((tagToOutfit) => {
+                      const tag = tags?.find(t => t.id === tagToOutfit.tagId)
+                      if (!tag) return null
+                      return (
+                        <Tag
+                          key={tag.id}
+                          id={tag.id}
+                          name={tag.name}
+                          hexColor={tag.hexColor}
+                          selected={true}
+                        />
+                      )
+                    })}
                   </div>
                 </span>
                 <Rating rating={outfit.rating as 0 | 1 | 2} />
               </div>
-              <ItemList items={outfit.itemsToOutfits} />
+              <ItemList itemsToOutfits={outfit.itemsToOutfits} />
             </CardContent>
           </Card>
         </div>

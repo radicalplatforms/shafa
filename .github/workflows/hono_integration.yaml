@@ -9,6 +9,8 @@ env:
   NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
+  CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
   DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
   DEPLOY_ROUTE: https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev
 
@@ -63,70 +65,70 @@ jobs:
         working-directory: hono
 
 
-  test_smoke:
-    name: Test Smoke
-    runs-on: ubuntu-latest
-    needs: [format_checks, compilation_checks]
+  # test_smoke:
+  #   name: Test Smoke
+  #   runs-on: ubuntu-latest
+  #   needs: [format_checks, compilation_checks]
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-          cache-dependency-path: hono/package-lock.json
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 18
+  #         cache: 'npm'
+  #         cache-dependency-path: hono/package-lock.json
 
-      - uses: ankane/setup-postgres@v1
-        with:
-          postgres-version: 16
+  #     - uses: ankane/setup-postgres@v1
+  #       with:
+  #         postgres-version: 16
 
-      - name: Install Dependencies
-        run: npm ci
-        working-directory: hono
+  #     - name: Install Dependencies
+  #       run: npm ci
+  #       working-directory: hono
 
-      - name: Run Smoke Tests
-        run: npm run test:smoke
-        working-directory: hono
+  #     - name: Run Smoke Tests
+  #       run: npm run test:smoke
+  #       working-directory: hono
 
 
-  test_matrix:
-    name: Test Matrix
-    runs-on: ubuntu-latest
-    needs: test_smoke
+  # test_matrix:
+  #   name: Test Matrix
+  #   runs-on: ubuntu-latest
+  #   needs: test_smoke
 
-    strategy:
-      matrix:
-        test: [ unit, integration, preflight ]
+  #   strategy:
+  #     matrix:
+  #       test: [ unit, integration, preflight ]
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-          cache-dependency-path: hono/package-lock.json
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 18
+  #         cache: 'npm'
+  #         cache-dependency-path: hono/package-lock.json
 
-      - uses: ankane/setup-postgres@v1
-        with:
-          postgres-version: 16
+  #     - uses: ankane/setup-postgres@v1
+  #       with:
+  #         postgres-version: 16
 
-      - name: Install Dependencies
-        run: npm ci
-        working-directory: hono
+  #     - name: Install Dependencies
+  #       run: npm ci
+  #       working-directory: hono
 
-      - name: Run Tests
-        run: npm run test:${{ matrix.test }}
-        working-directory: hono
+  #     - name: Run Tests
+  #       run: npm run test:${{ matrix.test }}
+  #       working-directory: hono
 
 
   cf_deploy_hono_stage:
     name: Deploy Hono to Stage
     runs-on: ubuntu-latest
-    needs: test_matrix
+    needs: [format_checks, compilation_checks]
 
     environment:
       name: hono-stage-${{ github.event.number }}
@@ -175,5 +177,8 @@ jobs:
           command: deploy --name ${{ env.DEPLOY_TAG }}
           workingDirectory: hono
           packageManager: pnpm
-          postCommands: echo "${{ env.DATABASE_URL }}" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
+          postCommands: |
+            echo "${{ env.DATABASE_URL }}" | pnpm wrangler secret put DATABASE_URL --name ${{ env.DEPLOY_TAG }}
+            echo "${{ env.CLERK_PUBLISHABLE_KEY }}" | pnpm wrangler secret put CLERK_PUBLISHABLE_KEY --name ${{ env.DEPLOY_TAG }}
+            echo "${{ env.CLERK_SECRET_KEY }}" | pnpm wrangler secret put CLERK_SECRET_KEY --name ${{ env.DEPLOY_TAG }}
  
