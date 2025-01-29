@@ -13,7 +13,7 @@ export interface Item {
   type: ItemType
   rating: number
   createdAt: Date
-  authorUsername: string
+  userId: string
   lastWornAt: string | null
 }
 
@@ -25,7 +25,7 @@ export interface ItemAPI {
   type: ItemType
   rating: number
   createdAt: string
-  authorUsername: string
+  userId: string
   lastWornAt?: string | null
 }
 
@@ -49,8 +49,8 @@ export class ItemFactory implements Item {
     this.createdAt = options?.createdAt
       ? new Date(options.createdAt as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
-    this.authorUsername = options?.authorUsername
-      ? (options.authorUsername as string)
+    this.userId = options?.userId
+      ? (options.userId as string)
       : faker.internet.userName()
     this.lastWornAt = options?.lastWornAt ? (options.lastWornAt as string) : null
   }
@@ -83,7 +83,7 @@ export class ItemFactory implements Item {
   type: ItemType
   rating: number
   createdAt: Date
-  authorUsername: string
+  userId: string
   lastWornAt: string | null
 }
 
