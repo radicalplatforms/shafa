@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogClose, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CalendarIcon, Star, ChevronDown, Loader2, SearchIcon } from 'lucide-react'
+import { PlusCircle, X, CalendarIcon, Loader2, SearchIcon } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
@@ -15,6 +15,7 @@ import { Item, itemTypeIcons } from '@/components/Item'
 import Rating from './ui/rating'
 import { Tag } from "@/components/ui/tag"
 import { client, useItems, useTags, useOutfits } from '@/lib/client'
+import { useAuth } from '@clerk/nextjs'
 
 interface AddOutfitModalProps {
   open?: boolean
@@ -35,6 +36,8 @@ export function AddOutfitModal({
     today.setHours(0, 0, 0, 0)
     return today
   }
+
+  const { getToken } = useAuth()
 
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState<Date>(getStartOfToday)
@@ -98,10 +101,14 @@ export function AddOutfitModal({
     }
 
     try {
-      const response = await client.api.outfits.$post({
-        json: outfitData
+      const res = await client.api.outfits.$post({ json: outfitData }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        }
       })
-      if (response.ok) {
+
+      if (res.ok) {
         // Refresh outfits data
         await mutateOutfits()
         
@@ -115,7 +122,7 @@ export function AddOutfitModal({
         onSuccess?.()
       }
     } catch (error) {
-      // Handle error silently
+      console.log(error)
     } finally {
       setIsSubmitting(false)
       setSubmittingRating(null)
