@@ -272,9 +272,9 @@ export function AddOutfitModal({
               </PopoverContent>
             </Popover>
 
-            <DialogClose asChild className="ml-auto">
-              <Button variant="ghost" size="icon" className="h-5 w-5 p-4">
-                <X className="h-5 w-5" />
+            <DialogClose asChild className="ml-auto mr-1">
+              <Button variant="ghost" size="icon" className="flex-shrink-0 p-4">
+                <X className="h-4 w-4" />
               </Button>
             </DialogClose>
           </div>
@@ -282,7 +282,7 @@ export function AddOutfitModal({
             <div className="relative">
               <Input
                 ref={searchInputRef}
-                placeholder="Search items..."
+                placeholder="Search items, brands, types..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
@@ -293,7 +293,6 @@ export function AddOutfitModal({
                 className="pl-[45px] pr-8 text-sm font-normal"
               />
               <SearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 transform font-normal" />
-              <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transform font-normal" />
               {showDropdown && (searchResults?.length > 0 || isItemsLoading) && (
                 <div 
                   ref={dropdownRef}
@@ -333,7 +332,7 @@ export function AddOutfitModal({
                               showLastWornAt
                             />
                             {highlightedIndex === index && (
-                              <div className="text-xs text-gray-500 flex items-center gap-1">
+                              <div className="hidden md:flex w-[80px] ml-[10px] text-xs text-gray-500 items-center gap-1">
                                 <kbd className="px-2 py-0.5 text-xs bg-gray-100 border border-gray-300 rounded">
                                   ↵
                                 </kbd>
@@ -354,7 +353,7 @@ export function AddOutfitModal({
           </div>
           <div className="mt-4">
             <ScrollArea className="max-h-fit min-h-[100px] px-2">
-              <div className="space-y-2 max-w-full">
+              <div className="space-y-2">
                 {selectedItems
                   .sort((a, b) => {
                     const orderA = typeOrder[a.type as keyof typeof typeOrder] ?? 999
@@ -365,8 +364,8 @@ export function AddOutfitModal({
                     const item = allItems?.find(i => i.id === selectedItem.id)
                     if (!item) return null
                     return (
-                      <div key={item.id} className="flex items-center gap-2 w-full max-w-full">
-                        <div className="flex-1 min-w-0 truncate">
+                      <div key={item.id} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
                           <Item 
                             item={item} 
                             itemType={selectedItem.type as keyof typeof itemTypeIcons}
@@ -390,7 +389,8 @@ export function AddOutfitModal({
         </div>
         <div className="sm:max-w-[550px] w-[95vw] justify-end items-center">
           <div className="overflow-x-auto no-scrollbar">
-            <div className="flex gap-2 pb-3 mx-4">
+            <div className="flex gap-2 pb-3">
+              <div className="px-1"></div>
               {tags?.map((tag) => (
                 <Tag
                   key={tag.id}
@@ -402,6 +402,7 @@ export function AddOutfitModal({
                   compact={false}
                 />
               ))}
+              <div className="px-1"></div>
             </div>
           </div>
           <div className="flex justify-end gap-2 rounded-b-sm py-4 px-4 sm:px-6 border-t">

@@ -15,32 +15,39 @@ export function useOutfits() {
   const { getToken } = useAuth()
   const $get = client.api.outfits.$get
 
-  const fetcher = async (arg: InferRequestType<typeof $get>) => {
-    const res = await $get(arg, {
+  const getKey = (pageIndex: number, previousPageData: any) => {
+    // First page, no previousPageData
+    if (previousPageData === null) {
+      return ['outfits', '0', '12']
+    }
+
+    // Reached the end
+    if (!previousPageData.outfits.length || previousPageData.last_page) {
+      return null
+    }
+
+    // Add page param to the key
+    return ['outfits', pageIndex.toString(), '48']
+  }
+
+  const fetcher = async (arg: [string, string, string]) => {
+    const res = await $get({ 
+      query: { page: arg[1], size: arg[2] } 
+    }, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${await getToken()}`
-      }
+      },
     })
     return await res.json()
   }
 
   const { data, isLoading, error, size, setSize, isValidating, mutate } = useSWRInfinite(
-    (pageIndex, previousPageData) => {
-      // First page, no previousPageData
-      if (previousPageData === null) {
-        return { query: { page: '0', size: '24' } }
-      }
-
-      // Reached the end
-      if (!previousPageData.outfits.length || previousPageData.last_page) {
-        return null
-      }
-
-      // Add page param to the key
-      return { query: { page: pageIndex.toString(), size: '24' } }
-    },
-    fetcher
+    getKey,
+    fetcher,
+    {
+      initialSize: 2,
+    }
   )
  
   const outfits = data ? data.flatMap(page => page.outfits) : []
@@ -50,6 +57,61 @@ export function useOutfits() {
   
   return {
     outfits,
+    isLoading,
+    isError: error,
+    isLoadingMore,
+    isReachingEnd,
+    loadMore: () => setSize(size + 1),
+    mutate
+  }
+}
+
+export function useSuggestedOutfits() {
+  const { getToken } = useAuth()
+  const $get = client.api.outfits.suggest.$get
+
+  const getKey = (pageIndex: number, previousPageData: any) => {
+    // First page, no previousPageData
+    if (previousPageData === null) {
+      return ['suggested-outfits', '0', '12']
+    }
+
+    // Reached the end
+    if (!previousPageData.suggestions.length || previousPageData.last_page) {
+      return null
+    }
+
+    // Add page param to the key
+    return ['suggested-outfits', pageIndex.toString(), '48']
+  }
+
+  const fetcher = async (arg: [string, string, string]) => {
+    const res = await $get({ 
+      query: { page: arg[1], size: arg[2] } 
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await getToken()}`
+      },
+    })
+    return await res.json()
+  }
+
+  const { data, isLoading, error, size, setSize, isValidating, mutate } = useSWRInfinite(
+    getKey,
+    fetcher,
+    {
+      initialSize: 2,
+    }
+  )
+ 
+  const suggestions = data ? data.flatMap(page => page.suggestions) : []
+  const isLoadingMore = isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined')
+  const isEmpty = data?.[0]?.suggestions.length === 0
+  const isReachingEnd = isEmpty || (data && data[data.length - 1]?.metadata.last_page)
+  
+  return {
+    suggestions,
     isLoading,
     isError: error,
     isLoadingMore,

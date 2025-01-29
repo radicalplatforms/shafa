@@ -22,16 +22,16 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
 
   return (
     <div className="flex items-start space-x-3 min-w-0 max-w-full">
-      <div className="flex-shrink-0 p-1 rounded bg-gray-700 text-white mt-0.5">
-        <Icon className="h-4 w-4" />
+      <div className="flex-shrink-0 p-[5px] rounded bg-gray-700 text-white mt-0.5">
+        <Icon className="h-[17.5px] w-[17.5px]" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex flex-col justify-start">
-          <p className="font-medium">
+          <p className="font-medium leading-[18px]">
             {item.name}
             {isCoreItem && <span className="ml-1 text-xs align-top">•</span>}
           </p>
-          <p className="text-xs text-muted-foreground -mt-[0.1rem]">
+          <p className="text-xs text-muted-foreground -mt-[0.05rem]">
             {item.brand || <i>Unbranded</i>}
             {showLastWornAt && item.lastWornAt && (
               <span>

@@ -29,6 +29,13 @@
       "when": 1737848481790,
       "tag": "0003_regular_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1738129595422,
+      "tag": "0004_new_stardust",
+      "breakpoints": true
     }
   ]
 }

@@ -1,18 +1,19 @@
+import { getAuth } from '@hono/clerk-auth'
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { itemTypeEnum, itemsToOutfits, outfits, tagsToOutfits } from '../schema'
+import { requireAuth } from '../utils/auth'
 import type { Variables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
 const insertOutfitSchema = createInsertSchema(outfits, {
   rating: z.number().min(0).max(2).default(1),
   wearDate: z.coerce.date(),
-  authorUsername: z.string().default(''),
 })
   .extend({
     itemIdsTypes: z
@@ -26,7 +27,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
       .max(8),
     tagIds: z.array(z.string()).max(8),
   })
-  .omit({ id: true })
+  .omit({ id: true, userId: true })
 
 const selectOutfitSchema = createSelectSchema(outfits, {
   id: z.string().refine((val) => isCuid(val)),
@@ -63,13 +64,15 @@ const suggestionsValidation = z.object({
 })
 
 const app = new Hono<{ Variables: Variables }>()
-  .get('/', zValidator('query', paginationValidationOutfits), injectDB, async (c) => {
+  .get('/', zValidator('query', paginationValidationOutfits), requireAuth, injectDB, async (c) => {
+    const auth = getAuth(c)
     const { page, size } = c.req.query()
 
     const pageNumber: number = page ? +page : 0
     const pageSize: number = size ? +size : 10
 
     const outfitsData = await c.get('db').query.outfits.findMany({
+      where: eq(outfits.userId, auth?.userId || ''),
       with: {
         itemsToOutfits: {
           columns: {
@@ -96,7 +99,8 @@ const app = new Hono<{ Variables: Variables }>()
       last_page: last_page,
     })
   })
-  .post('/', zValidator('json', insertOutfitSchema), injectDB, async (c) => {
+  .post('/', zValidator('json', insertOutfitSchema), requireAuth, injectDB, async (c) => {
+    const auth = getAuth(c)
     const body = c.req.valid('json')
 
     return c.json(
@@ -107,7 +111,7 @@ const app = new Hono<{ Variables: Variables }>()
             .insert(outfits)
             .values({
               ...body,
-              authorUsername: 'rak3rman', // TODO: remove and replace with author integration
+              userId: auth?.userId || '',
             })
             .onConflictDoNothing()
             .returning()
@@ -137,71 +141,28 @@ const app = new Hono<{ Variables: Variables }>()
       })
     )
   })
-  .put(
-    '/:id',
-    zValidator('param', selectOutfitSchema.pick({ id: true })),
-    zValidator('json', insertOutfitSchema),
-    injectDB,
-    async (c) => {
-      const params = c.req.valid('param')
-      const { itemIdsTypes, ...body } = c.req.valid('json')
-
-      return c.json(
-        await c.get('db').transaction(async (tx) => {
-          // Update outfit
-          const updatedOutfit = (
-            await tx
-              .update(outfits)
-              .set({
-                ...body,
-                authorUsername: 'rak3rman', // TODO: remove and replace with author integration
-              })
-              .where(eq(outfits.id, params.id))
-              .returning()
-          )[0]
-
-          // Delete all item to outfit relationships
-          await tx.delete(itemsToOutfits).where(eq(itemsToOutfits.outfitId, params.id))
-
-          // Insert item to outfit relationships
-          await tx.insert(itemsToOutfits).values(
-            itemIdsTypes.map((e) => ({
-              itemId: e.id,
-              outfitId: updatedOutfit.id,
-              itemType: e.itemType,
-            }))
-          )
-
-          // Delete all tag to outfit relationships
-          await tx.delete(tagsToOutfits).where(eq(tagsToOutfits.outfitId, params.id))
-
-          // Insert tag to outfit relationships
-          await tx.insert(tagsToOutfits).values(
-            body.tagIds.map((e) => ({
-              tagId: e,
-              outfitId: updatedOutfit.id,
-              status: 'manually_assigned',
-            }))
-          )
-
-          return updatedOutfit
-        })
-      )
-    }
-  )
   .delete(
     '/:id',
     zValidator('param', selectOutfitSchema.pick({ id: true })),
+    requireAuth,
     injectDB,
     async (c) => {
+      const auth = getAuth(c)
       const params = c.req.valid('param')
 
       return c.json(
-        (await c.get('db').delete(outfits).where(eq(outfits.id, params.id)).returning())[0]
+        (
+          await c
+            .get('db')
+            .delete(outfits)
+            .where(and(eq(outfits.id, params.id), eq(outfits.userId, auth?.userId || '')))
+            .returning()
+        )[0]
       )
     }
   )
-  .get('/suggest', zValidator('query', suggestionsValidation), injectDB, async (c) => {
+  .get('/suggest', zValidator('query', suggestionsValidation), requireAuth, injectDB, async (c) => {
+    const auth = getAuth(c)
     const { page, size } = c.req.query()
     const pageNumber: number = page ? +page : 0
     const pageSize: number = size ? +size : 10
@@ -236,15 +197,30 @@ const app = new Hono<{ Variables: Variables }>()
       wardrobeCounts.footwear
     )
 
-    // Fetch outfits with their wear statistics and scoring metrics
-    const outfitsWithScores = await c
+    // Add type definition for outfit scores
+    type OutfitScore = {
+      id: string
+      rating: number
+      lastWorn: string
+      wearCount: number
+      daysSinceWorn: number
+      sameDayOfWeekCount: number
+      seasonalRelevance: number
+      recentlyWornItemCount: number
+      coreItems: string[]
+      avgItemRating: number
+      itemCount: number
+    }
+
+    // Update the query results casting
+    const outfitsWithScores = (await c
       .get('db')
       .select({
         id: outfits.id,
         rating: outfits.rating,
-        lastWorn: sql`MAX(${outfits.wearDate} AT TIME ZONE 'PDT')::text`,
-        wearCount: sql`COUNT(${outfits.wearDate})::integer`,
-        daysSinceWorn: sql`EXTRACT(DAY FROM (NOW() AT TIME ZONE 'PDT' - MAX(${outfits.wearDate} AT TIME ZONE 'PDT')))::integer`,
+        lastWorn: sql<string>`MAX(${outfits.wearDate} AT TIME ZONE 'PDT')::text`,
+        wearCount: sql<number>`COUNT(${outfits.wearDate})::integer`,
+        daysSinceWorn: sql<number>`EXTRACT(DAY FROM (NOW() AT TIME ZONE 'PDT' - MAX(${outfits.wearDate} AT TIME ZONE 'PDT')))::integer`,
         sameDayOfWeekCount: sql`
         COUNT(CASE 
           WHEN EXTRACT(DOW FROM ${outfits.wearDate} AT TIME ZONE 'PDT') = EXTRACT(DOW FROM NOW() AT TIME ZONE 'PDT') 
@@ -304,7 +280,7 @@ const app = new Hono<{ Variables: Variables }>()
         WHERE io3.outfit_id = ${outfits.id}
         AND io3.item_type::text IN ('layer', 'top', 'bottom')
       )
-    )`)
+    )`)) as OutfitScore[]
 
     const calculateTimeFactorScore = (
       days: number,
@@ -368,7 +344,7 @@ const app = new Hono<{ Variables: Variables }>()
       return sameDayCount > 0 ? 10 * dayOfWeekConfidence : 0
     }
 
-    const calculateScores = (outfit: (typeof outfitsWithScores)[0]) => {
+    const calculateScores = (outfit: OutfitScore) => {
       // 1. Base Score (0-20)
       const ratingConfidence = Math.min((outfit.wearCount as number) / 5, 1)
       const base_score = Math.trunc((outfit.rating as number) * 10 * ratingConfidence)
@@ -431,23 +407,27 @@ const app = new Hono<{ Variables: Variables }>()
     }))
 
     const suggestedOutfits = await c.get('db').query.outfits.findMany({
-      where: inArray(
-        outfits.id,
-        uniqueOutfits
-          .sort((a, b) => b.score - a.score)
-          .slice(pageNumber * pageSize, pageNumber * pageSize + pageSize + 1)
-          .map((o) => o.outfitId)
+      where: and(
+        inArray(
+          outfits.id,
+          uniqueOutfits
+            .sort((a, b) => b.score - a.score)
+            .slice(pageNumber * pageSize, pageNumber * pageSize + pageSize + 1)
+            .map((o) => o.outfitId)
+        ),
+        eq(outfits.userId, auth?.userId || '')
       ),
       with: {
         itemsToOutfits: {
           columns: {
-            itemId: false,
             outfitId: false,
           },
-          with: {
-            item: true,
-          },
           orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
+        },
+        tagsToOutfits: {
+          columns: {
+            outfitId: false,
+          },
         },
       },
     })
@@ -472,12 +452,12 @@ const app = new Hono<{ Variables: Variables }>()
             ...scores,
             total_score: Math.trunc(Object.values(scores).reduce((a, b) => a + b, 0)),
             raw_data: {
-              wear_count: outfitScore?.wearCount || 0,
-              days_since_worn: outfitScore?.daysSinceWorn || 0,
-              same_day_count: outfitScore?.sameDayOfWeekCount || 0,
-              seasonal_relevance: outfitScore?.seasonalRelevance || 0,
-              recently_worn_items: outfitScore?.recentlyWornItemCount || 0,
-              core_items: outfitScore?.coreItems || [],
+              wear_count: Number(outfitScore?.wearCount ?? 0),
+              days_since_worn: Number(outfitScore?.daysSinceWorn ?? 0),
+              same_day_count: Number(outfitScore?.sameDayOfWeekCount ?? 0),
+              seasonal_relevance: Number(outfitScore?.seasonalRelevance ?? 0),
+              recently_worn_items: Number(outfitScore?.recentlyWornItemCount ?? 0),
+              core_items: outfitScore?.coreItems ?? [],
             },
           },
         }
@@ -498,67 +478,6 @@ const app = new Hono<{ Variables: Variables }>()
         wardrobe_size: wardrobeCounts.total,
         recency_threshold: recencyThreshold,
         last_page: last_page,
-      },
-    })
-  })
-  .get('/streak', injectDB, async (c) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const streakData = await c
-      .get('db')
-      .select({
-        date: sql<string>`DATE(${outfits.wearDate} AT TIME ZONE 'PDT')::text`,
-        count: sql<number>`COUNT(*)::integer`,
-      })
-      .from(outfits)
-      .groupBy(sql`DATE(${outfits.wearDate} AT TIME ZONE 'PDT')`)
-      .orderBy(sql`DATE(${outfits.wearDate} AT TIME ZONE 'PDT') DESC`)
-
-    const datesWithOutfits = new Set(
-      streakData.map((row) => new Date(row.date).toISOString().split('T')[0])
-    )
-
-    let currentStreak = 0
-    let longestStreak = 0
-    const checkDate = today
-
-    // Calculate current streak
-    while (datesWithOutfits.has(checkDate.toISOString().split('T')[0])) {
-      currentStreak++
-      checkDate.setDate(checkDate.getDate() - 1)
-    }
-
-    // Allow one day grace period for current streak
-    if (
-      currentStreak === 0 &&
-      datesWithOutfits.has(new Date(today.getTime() - 86400000).toISOString().split('T')[0])
-    ) {
-      currentStreak = 1
-    }
-
-    // Calculate longest streak
-    let tempStreak = 1 // Start at 1 since we're counting the current day
-    streakData.forEach((row, i) => {
-      const currentDate = new Date(row.date)
-      const nextDate = streakData[i + 1] ? new Date(streakData[i + 1].date) : null
-
-      if (nextDate && currentDate.getTime() - nextDate.getTime() === 86400000) {
-        tempStreak++
-      } else {
-        longestStreak = Math.max(longestStreak, tempStreak)
-        tempStreak = 1 // Reset to 1 instead of 0 since we're starting a new streak
-      }
-    })
-
-    return c.json({
-      current_streak: currentStreak,
-      longest_streak: longestStreak,
-      last_logged_date: streakData[0]?.date || null,
-      metadata: {
-        generated_at: today.toISOString(),
-        is_grace_period:
-          currentStreak === 1 && !datesWithOutfits.has(today.toISOString().split('T')[0]),
       },
     })
   })

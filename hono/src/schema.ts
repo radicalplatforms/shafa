@@ -36,7 +36,7 @@ export const items = pgTable('items', {
   type: itemTypeEnumPg('type').notNull(),
   rating: smallint('rating').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  authorUsername: text('author_username').notNull(),
+  userId: text('user_id').notNull(),
 })
 
 export const itemsRelations = relations(items, ({ many }) => ({
@@ -55,7 +55,7 @@ export const outfits = pgTable(
       .primaryKey(),
     rating: smallint('rating').notNull(),
     wearDate: date('wear_date', { mode: 'date' }).notNull().defaultNow(),
-    authorUsername: text('author_username').notNull(),
+    userId: text('user_id').notNull(),
   },
   (table) => ({
     ratingCheck: check('rating_check', sql`${table.rating} >= 0 AND ${table.rating} <= 2`),
@@ -123,7 +123,7 @@ export const tags = pgTable(
     hexColor: text('hex_color').notNull(),
     minDaysBeforeItemReuse: smallint('min_days_before_item_reuse').notNull().default(-1),
     createdAt: timestamp('created_at').notNull().defaultNow(),
-    authorUsername: text('author_username').notNull(),
+    userId: text('user_id').notNull(),
   },
   (table) => ({
     minDaysCheck: check('min_days_before_item_reuse', sql`${table.minDaysBeforeItemReuse} >= -1`),

@@ -5,6 +5,8 @@ on:
 
 env:
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+  CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
+  CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
   PAGES_PROJECT_NAME: shafa-next
   DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
   DEPLOY_ROUTE: https://shafa-next-stage-${{ github.event.number }}.shafa-next.pages.dev
@@ -62,6 +64,8 @@ jobs:
       - name: Setup Environment
         run: |
           echo "NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev/api" > next/.env.production
+          echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ env.CLERK_PUBLISHABLE_KEY }}" >> next/.env.production
+          echo "CLERK_SECRET_KEY=${{ env.CLERK_SECRET_KEY }}" >> next/.env.production
 
       - name: Build Cloudflare Next on Pages
         run: npm run pages:build
