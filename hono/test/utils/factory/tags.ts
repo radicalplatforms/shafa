@@ -37,9 +37,7 @@ export class TagFactory implements Tag {
     this.createdAt = options?.createdAt
       ? new Date(options.createdAt as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
-    this.userId = options?.userId
-      ? (options.userId as string)
-      : faker.internet.userName()
+    this.userId = options?.userId ? (options.userId as string) : faker.internet.userName()
   }
 
   async store(name: string, port: number) {
