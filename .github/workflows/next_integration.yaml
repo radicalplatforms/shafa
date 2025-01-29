@@ -6,7 +6,6 @@ on:
 env:
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
-  CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
   PAGES_PROJECT_NAME: shafa-next
   DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
   DEPLOY_ROUTE: https://shafa-next-stage-${{ github.event.number }}.shafa-next.pages.dev
@@ -75,6 +74,6 @@ jobs:
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: |
-            pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} --binding CLERK_SECRET_KEY="${{ env.CLERK_SECRET_KEY }}" \
+            pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }}
           workingDirectory: next
  
