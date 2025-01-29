@@ -75,7 +75,6 @@ jobs:
         with:
           apiToken: ${{ env.CF_API_TOKEN }}
           command: |
-            pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} \
-            --binding CLERK_SECRET_KEY="${{ env.CLERK_SECRET_KEY }}" \
+            pages deploy .vercel/output/static --project-name ${{ env.PAGES_PROJECT_NAME }} --branch ${{ env.DEPLOY_TAG }} --binding CLERK_SECRET_KEY="${{ env.CLERK_SECRET_KEY }}" \
           workingDirectory: next
  
