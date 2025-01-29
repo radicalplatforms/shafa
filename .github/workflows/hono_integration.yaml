@@ -128,7 +128,7 @@ jobs:
   cf_deploy_hono_stage:
     name: Deploy Hono to Stage
     runs-on: ubuntu-latest
-    needs: compilation_checks
+    needs: [format_checks, compilation_checks]
 
     environment:
       name: hono-stage-${{ github.event.number }}
