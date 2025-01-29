@@ -81,7 +81,7 @@ jobs:
 
       - name: Setup Environment
         run: |
-          echo "NEXT_PUBLIC_API_URL=https://api.shafa.app/api" > next/.env.production
+          echo "NEXT_PUBLIC_API_URL=https://api.shafa.app/" > next/.env.production
           echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ env.CLERK_PUBLISHABLE_KEY }}" >> next/.env.production
 
       - name: Build Cloudflare Next on Pages

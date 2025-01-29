@@ -62,7 +62,7 @@ jobs:
 
       - name: Setup Environment
         run: |
-          echo "NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev/api" > next/.env.production
+          echo "NEXT_PUBLIC_API_URL=https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev/" > next/.env.production
           echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ env.CLERK_PUBLISHABLE_KEY }}" >> next/.env.production
 
       - name: Build Cloudflare Next on Pages
