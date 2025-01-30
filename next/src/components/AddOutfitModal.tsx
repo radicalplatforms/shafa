@@ -16,6 +16,8 @@ import Rating from './ui/rating'
 import { Tag } from "@/components/ui/tag"
 import { client, useItems, useTags, useOutfits } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
+import { ItemInlineSearch } from './ItemInlineSearch'
+import { ItemsResponse } from '@/lib/client'
 
 interface AddOutfitModalProps {
   open?: boolean
@@ -117,6 +119,7 @@ export function AddOutfitModal({
         setDate(getStartOfToday())
         setSearchTerm('')
         setShowDropdown(false)
+        setSelectedTags([])
         
         handleOpenChange(false)
         onSuccess?.()
@@ -129,11 +132,11 @@ export function AddOutfitModal({
     }
   }
 
-  const handleItemSelect = (item: any) => {
+  const handleItemSelect = (itemId: string, itemType: string) => {
     const hasExistingTop = selectedItems.some(selected => selected.type === 'top')
-    const newItemType = item.type === 'top' && hasExistingTop ? 'layer' : item.type
+    const newItemType = itemType === 'top' && hasExistingTop ? 'layer' : itemType
 
-    setSelectedItems([...selectedItems, {id: item.id, type: newItemType}])
+    setSelectedItems([...selectedItems, {id: itemId, type: newItemType}])
     setSearchTerm('')
     setShowDropdown(false)
     if (searchInputRef.current) {
@@ -205,9 +208,9 @@ export function AddOutfitModal({
       case 'Enter':
         e.preventDefault()
         if (highlightedIndex >= 0) {
-          handleItemSelect(searchResults[highlightedIndex])
+          handleItemSelect(searchResults[highlightedIndex].id, searchResults[highlightedIndex].type)
         } else if (searchResults.length > 0) {
-          handleItemSelect(searchResults[0])
+          handleItemSelect(searchResults[0].id, searchResults[0].type)
         }
         break
     }
@@ -240,12 +243,12 @@ export function AddOutfitModal({
         <DialogTrigger asChild>
           <Button variant="outline">
             <PlusCircle className="mr-1 h-4 w-4" />
-            Add Outfit
+            Log Outfit
           </Button>
         </DialogTrigger>
       )}
       <DialogContent
-        className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl overflow-hidden [&>button]:hidden w-[95vw] max-h-[90vh]"
+        className="sm:max-w-[550px] p-0 bg-background border-2 shadow-2xl rounded-xl [&>button]:hidden w-[95vw] max-h-[90vh]"
       >
         <div className="sr-only">
           <DialogTitle>Add New Outfit</DialogTitle>
@@ -253,155 +256,140 @@ export function AddOutfitModal({
             Create a new outfit by selecting items, choosing a date, and rating your outfit.
           </DialogDescription>
         </div>
-        <div className="px-4 sm:px-6 mt-6 mb-0">
-          <div className="flex justify-between items-center gap-4 mb-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
+        <div className="px-4 sm:px-6 mt-5">
+          <ScrollArea className="max-h-fit">
+            <div className="space-y-2">
+              {selectedItems
+                .sort((a, b) => {
+                  const orderA = typeOrder[a.type as keyof typeof typeOrder] ?? 999
+                  const orderB = typeOrder[b.type as keyof typeof typeOrder] ?? 999
+                  return orderA - orderB
+                })
+                .map((selectedItem) => {
+                  const item = allItems?.find(i => i.id === selectedItem.id)
+                  if (!item) return null
+                  return (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <Item 
+                          item={item} 
+                          itemType={selectedItem.type as keyof typeof itemTypeIcons}
+                          showLastWornAt
+                        />
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="flex-shrink-0 p-0.5 mr-2"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                })}
+            </div>
+          </ScrollArea>
+          {selectedItems.length > 0 && <div className="mt-4"></div>}
+          <div className="relative mt-0">
+            <ItemInlineSearch
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setShowDropdown(true)
+              }}
+              onClick={() => setShowDropdown(true)}
+              onKeyDown={handleKeyDown}
+              addMode={searchResults.length < 1}
+              onNewItem={handleItemSelect}
+            />
+            {showDropdown && (searchResults?.length > 0 || isItemsLoading) && (
+              <div 
+                ref={dropdownRef}
+                className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg max-w-[100%]"
+              >
+                <ScrollArea 
+                  ref={scrollAreaRef}
                   className={cn(
-                    "w-[200px] justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
+                    "rounded-md border",
+                    // Adaptive height based on number of items
+                    searchResults && searchResults.length <= 1 ? "h-[72.5px]" :
+                    searchResults && searchResults.length <= 2 ? "h-[120px]" :
+                    searchResults && searchResults.length <= 3 ? "h-[180px]" :
+                    "h-[250px]"
                   )}
                 >
-                  <CalendarIcon className="mr-1.5 h-4 w-4" />
-                  {date ? format(date, "EEE, MMM d") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-[60]" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(day) => setDate(day || getStartOfToday())}
-                  initialFocus
-                  className="rounded-md border"
-                />
-              </PopoverContent>
-            </Popover>
-
-            <DialogClose asChild className="ml-auto mr-1">
-              <Button variant="ghost" size="icon" className="flex-shrink-0 p-4">
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogClose>
-          </div>
-          <div className="space-y-4">
-            <div className="relative">
-              <Input
-                ref={searchInputRef}
-                placeholder="Search items, brands, types..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value)
-                  setShowDropdown(true)
-                }}
-                onClick={() => setShowDropdown(true)}
-                onKeyDown={handleKeyDown}
-                className="pl-[45px] pr-8 text-sm font-normal"
-              />
-              <SearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 transform font-normal" />
-              {showDropdown && (searchResults?.length > 0 || isItemsLoading) && (
-                <div 
-                  ref={dropdownRef}
-                  className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg max-w-[100%]"
-                >
-                  <ScrollArea 
-                    ref={scrollAreaRef}
-                    className={cn(
-                      "rounded-md border",
-                      // Adaptive height based on number of items
-                      searchResults && searchResults.length <= 1 ? "h-[72.5px]" :
-                      searchResults && searchResults.length <= 2 ? "h-[120px]" :
-                      searchResults && searchResults.length <= 3 ? "h-[180px]" :
-                      "h-[250px]"
-                    )}
-                  >
-                    {isItemsLoading ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                      </div>
-                    ) : (
-                      <ul className="py-2">
-                        {searchResults?.map((item, index) => (
-                          <li
-                            key={item.id}
-                            data-index={index}
-                            className={cn(
-                              "px-4 py-2 cursor-pointer transition-colors group flex items-center justify-between",
-                              highlightedIndex === index ? "bg-gray-100" : "hover:bg-gray-50 hover:only:bg-gray-50"
-                            )}
-                            onClick={() => handleItemSelect(item)}
-                            onMouseEnter={() => setHighlightedIndex(index)}
-                          >
-                            <Item 
-                              item={item} 
-                              itemType={item.type as keyof typeof itemTypeIcons}
-                              showLastWornAt
-                            />
-                            {highlightedIndex === index && (
-                              <div className="hidden md:flex w-[80px] ml-[10px] text-xs text-gray-500 items-center gap-1">
-                                <kbd className="px-2 py-0.5 text-xs bg-gray-100 border border-gray-300 rounded">
-                                  ↵
-                                </kbd>
-                                <span>to add</span>
-                              </div>
-                            )}
-                          </li>
-                        ))}
-                        {!searchResults?.length && searchTerm.length > 1 && (
-                          <li className="px-4 py-2 text-gray-500">No items found</li>
-                        )}
-                      </ul>
-                    )}
-                  </ScrollArea>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="mt-4">
-            <ScrollArea className="max-h-fit min-h-[100px] px-2">
-              <div className="space-y-2">
-                {selectedItems
-                  .sort((a, b) => {
-                    const orderA = typeOrder[a.type as keyof typeof typeOrder] ?? 999
-                    const orderB = typeOrder[b.type as keyof typeof typeOrder] ?? 999
-                    return orderA - orderB
-                  })
-                  .map((selectedItem) => {
-                    const item = allItems?.find(i => i.id === selectedItem.id)
-                    if (!item) return null
-                    return (
-                      <div key={item.id} className="flex items-center gap-2">
-                        <div className="flex-1 min-w-0">
+                  {isItemsLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : (
+                    <ul className="py-2">
+                      {searchResults?.map((item, index) => (
+                        <li
+                          key={item.id}
+                          data-index={index}
+                          className={cn(
+                            "px-4 py-2 cursor-pointer transition-colors group flex items-center justify-between",
+                            highlightedIndex === index ? "bg-gray-100" : "hover:bg-gray-50 hover:only:bg-gray-50"
+                          )}
+                          onClick={() => handleItemSelect(item.id, item.type)}
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                        >
                           <Item 
                             item={item} 
-                            itemType={selectedItem.type as keyof typeof itemTypeIcons}
+                            itemType={item.type as keyof typeof itemTypeIcons}
                             showLastWornAt
                           />
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="flex-shrink-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )
-                  })}
+                          {highlightedIndex === index && (
+                            <div className="hidden md:flex w-[80px] ml-[10px] text-xs text-gray-500 items-center gap-1">
+                              <kbd className="px-2 py-0.5 text-xs bg-gray-100 border border-gray-300 rounded">
+                                ↵
+                              </kbd>
+                              <span>to add</span>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                      {!searchResults?.length && searchTerm.length > 1 && (
+                        <li className="px-4 py-2 text-gray-500">No items found</li>
+                      )}
+                    </ul>
+                  )}
+                </ScrollArea>
               </div>
-            </ScrollArea>
+            )}
           </div>
         </div>
         <div className="sm:max-w-[550px] w-[95vw] justify-end items-center">
           <div className="overflow-x-auto no-scrollbar">
             <div className="flex gap-2 pb-3">
               <div className="px-1"></div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "py-1 transition-colors whitespace-nowrap bg-transparent px-3 h-7 text-xs flex items-center gap-1.5 hover:bg-muted/50",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    {date ? format(date, "EEE, MMM d") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(day) => setDate(day || getStartOfToday())}
+                    initialFocus
+                    className="rounded-md border"
+                  />
+                </PopoverContent>
+              </Popover>
               {tags?.map((tag) => (
                 <Tag
                   key={tag.id}
-                  id={tag.id}
                   name={tag.name}
                   hexColor={tag.hexColor}
                   selected={selectedTags.includes(tag.id)}

@@ -50,10 +50,6 @@ jobs:
           command: deploy --env production
           workingDirectory: hono
           packageManager: pnpm
-          postCommands: |
-            echo "${{ env.DATABASE_URL }}" | pnpm wrangler secret put DATABASE_URL --env production
-            echo "${{ env.CLERK_PUBLISHABLE_KEY }}" | pnpm wrangler secret put CLERK_PUBLISHABLE_KEY --env production
-            echo "${{ env.CLERK_SECRET_KEY }}" | pnpm wrangler secret put CLERK_SECRET_KEY --env production
   
   cf_deploy_next_prod:
     name: Deploy Next to Production
