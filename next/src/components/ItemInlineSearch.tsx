@@ -1,7 +1,7 @@
 import { Plus, Search, Layers, Shirt, Crown, X } from 'lucide-react'
 import { PiPantsFill } from 'react-icons/pi'
 import { Footprints } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { client, useItems, ItemsResponse } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
 
@@ -113,7 +113,7 @@ export function ItemInlineSearch({
     }
   }
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (addMode && stage === 'type' && e.key === 'Backspace') {
       e.preventDefault()
       setStage('brand')
@@ -121,7 +121,14 @@ export function ItemInlineSearch({
       setConfirmedBrand('')
       setTimeout(() => inputRef.current?.focus(), 0)
     }
-  }
+  }, [addMode, stage, confirmedBrand])
+
+  useEffect(() => {
+    if (stage === 'type') {
+      window.addEventListener('keydown', handleKeyDown)
+      return () => window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [stage, handleKeyDown])
 
   const handleClearAll = () => {
     setStage('name')
@@ -130,13 +137,6 @@ export function ItemInlineSearch({
     setInternalValue('')
     onChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>)
   }
-
-  useEffect(() => {
-    if (stage === 'type') {
-      window.addEventListener('keydown', handleKeyDown)
-      return () => window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [stage, confirmedBrand, addMode])
 
   return (
     <div className="flex items-center space-x-3 min-w-0 max-w-full">
