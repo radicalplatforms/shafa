@@ -5,7 +5,7 @@ on:
     types: [closed]
 
 env:
-  NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
   NEON_API_TOKEN: ${{ secrets.NEON_API_TOKEN }}
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
   CF_ACCOUNT_ID: 287572e2291030d8c5e360fcc593a16b
@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Delete Staging Neon Branch
-        uses: neondatabase/delete-branch-action@v3.1.4
+        uses: neondatabase/delete-branch-action@v3.2.0
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
           branch: ${{ env.HONO_DEPLOY_TAG }}
