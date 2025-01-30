@@ -5,7 +5,7 @@ on:
 
 env:
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-  CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
+  CLERK_PUBLISHABLE_KEY: ${{ vars.DEV_CLERK_PUBLISHABLE_KEY }}
   PAGES_PROJECT_NAME: shafa-next
   DEPLOY_TAG: shafa-next-stage-${{ github.event.number }}
   DEPLOY_ROUTE: https://shafa-next-stage-${{ github.event.number }}.shafa-next.pages.dev

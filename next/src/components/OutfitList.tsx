@@ -69,7 +69,6 @@ export default function OutfitList() {
                       return (
                         <Tag
                           key={tag.id}
-                          id={tag.id}
                           name={tag.name}
                           hexColor={tag.hexColor}
                           selected={true}

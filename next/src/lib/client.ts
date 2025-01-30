@@ -135,7 +135,7 @@ export function useItems() {
     return await res.json()
   }
 
-  const { data, isLoading, error } = useSWR(
+  const { data, isLoading, error, mutate } = useSWR(
     'get-items', 
     fetcher({})
   )
@@ -143,7 +143,8 @@ export function useItems() {
   return {
     items: data?.items || [],
     isLoading,
-    isError: error
+    isError: error,
+    mutate
   }
 }
 

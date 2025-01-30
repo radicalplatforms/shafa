@@ -2,9 +2,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface TagProps {
-  id: string
   name: string
-  hexColor: string
+  hexColor?: string
   selected?: boolean
   compact?: boolean
   onClick?: () => void
@@ -25,10 +24,10 @@ export function Tag({ name, hexColor, selected = false, compact = true, onClick 
         "flex items-center gap-1.5"
       )}
     >
-      <div 
+      {hexColor && <div 
         className="w-2 h-2 rounded-full" 
-        style={{ backgroundColor: hexColor }} 
-      />
+        style={{ backgroundColor: hexColor }}
+      />}
       <span className={cn(
         "text-xs",
         selected ? "" : "text-gray-400"
