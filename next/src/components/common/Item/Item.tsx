@@ -32,6 +32,20 @@ export class Item extends LitElement {
   isCoreItem = false
 
   static styles = css`
+    @font-face {
+      font-family: "Tiempos Headline";
+      src: url("/fonts/Tiempos-Headline/Tiempos-Headline-Medium.woff2") format("woff2");
+      font-weight: 500;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: "SF Pro Display";
+      src: url("/fonts/SF-Pro-Display/SF-Pro-Display-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+    }
+
     :host {
       display: block;
     }
@@ -59,8 +73,9 @@ export class Item extends LitElement {
       min-width: 0;
     }
     .name {
+      font-family: "Tiempos Headline";
       font-weight: 500;
-      line-height: 18px;
+      line-height: 16px;
       margin: 0;
     }
     .core-indicator {
@@ -69,6 +84,7 @@ export class Item extends LitElement {
       vertical-align: top;
     }
     .brand {
+      font-family: "SF Pro Display";
       font-size: 0.75rem;
       color: #6b7280;
       margin: -0.05rem 0 0 0;
@@ -79,7 +95,7 @@ export class Item extends LitElement {
     .metadata-dot {
       font-size: 0.75rem;
       vertical-align: top;
-      margin: 0 6px 0 5px;
+      margin: 0 3px 0 2px;
     }
   `
 
