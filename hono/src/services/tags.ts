@@ -24,9 +24,10 @@ const selectTagSchema = createSelectSchema(tags, {
 const app = new Hono<{ Variables: Variables }>()
   .get('/', requireAuth, injectDB, async (c) => {
     const auth = getAuth(c)
+    const userId = auth?.userId || ''
 
     const tagsData = await c.get('db').query.tags.findMany({
-      where: eq(tags.userId, auth?.userId || ''),
+      where: eq(tags.userId, userId),
       orderBy: (tags, { asc }) => [asc(tags.name)],
     })
 
@@ -34,6 +35,7 @@ const app = new Hono<{ Variables: Variables }>()
   })
   .post('/', zValidator('json', insertTagSchema), requireAuth, injectDB, async (c) => {
     const auth = getAuth(c)
+    const userId = auth?.userId || ''
     const body = c.req.valid('json')
 
     return c.json(
@@ -43,7 +45,7 @@ const app = new Hono<{ Variables: Variables }>()
           .insert(tags)
           .values({
             ...body,
-            userId: auth?.userId || '',
+            userId,
           })
           .returning()
       )[0]
@@ -57,6 +59,7 @@ const app = new Hono<{ Variables: Variables }>()
     injectDB,
     async (c) => {
       const auth = getAuth(c)
+      const userId = auth?.userId || ''
       const params = c.req.valid('param')
       const body = c.req.valid('json')
 
@@ -67,7 +70,7 @@ const app = new Hono<{ Variables: Variables }>()
             .update(tags)
             .set({
               ...body,
-              userId: auth?.userId || '',
+              userId,
             })
             .where(eq(tags.id, params.id))
             .returning()
@@ -82,6 +85,7 @@ const app = new Hono<{ Variables: Variables }>()
     injectDB,
     async (c) => {
       const auth = getAuth(c)
+      const userId = auth?.userId || ''
       const params = c.req.valid('param')
 
       return c.json(
@@ -89,7 +93,7 @@ const app = new Hono<{ Variables: Variables }>()
           await c
             .get('db')
             .delete(tags)
-            .where(and(eq(tags.id, params.id), eq(tags.userId, auth?.userId || '')))
+            .where(and(eq(tags.id, params.id), eq(tags.userId, userId)))
             .returning()
         )[0]
       )

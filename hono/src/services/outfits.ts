@@ -1,7 +1,7 @@
 import { getAuth } from '@hono/clerk-auth'
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -61,18 +61,20 @@ const suggestionsValidation = z.object({
       message: 'Suggestions page size must be a positive number and less than or equal to 100',
     })
     .optional(),
+  tagId: z.string().optional(),
 })
 
 const app = new Hono<{ Variables: Variables }>()
   .get('/', zValidator('query', paginationValidationOutfits), requireAuth, injectDB, async (c) => {
     const auth = getAuth(c)
+    const userId = auth?.userId || ''
     const { page, size } = c.req.query()
 
     const pageNumber: number = page ? +page : 0
     const pageSize: number = size ? +size : 10
 
     const outfitsData = await c.get('db').query.outfits.findMany({
-      where: eq(outfits.userId, auth?.userId || ''),
+      where: eq(outfits.userId, userId),
       with: {
         itemsToOutfits: {
           columns: {
@@ -101,6 +103,7 @@ const app = new Hono<{ Variables: Variables }>()
   })
   .post('/', zValidator('json', insertOutfitSchema), requireAuth, injectDB, async (c) => {
     const auth = getAuth(c)
+    const userId = auth?.userId || ''
     const body = c.req.valid('json')
 
     return c.json(
@@ -111,7 +114,7 @@ const app = new Hono<{ Variables: Variables }>()
             .insert(outfits)
             .values({
               ...body,
-              userId: auth?.userId || '',
+              userId,
             })
             .onConflictDoNothing()
             .returning()
@@ -148,6 +151,7 @@ const app = new Hono<{ Variables: Variables }>()
     injectDB,
     async (c) => {
       const auth = getAuth(c)
+      const userId = auth?.userId || ''
       const params = c.req.valid('param')
 
       return c.json(
@@ -155,268 +159,467 @@ const app = new Hono<{ Variables: Variables }>()
           await c
             .get('db')
             .delete(outfits)
-            .where(and(eq(outfits.id, params.id), eq(outfits.userId, auth?.userId || '')))
+            .where(and(eq(outfits.id, params.id), eq(outfits.userId, userId)))
             .returning()
         )[0]
       )
     }
   )
-  .get('/suggest', zValidator('query', suggestionsValidation), requireAuth, injectDB, async (c) => {
+  .get('/suggest', zValidator('query', suggestionsValidation), injectDB, async (c) => {
     const auth = getAuth(c)
-    const { page, size } = c.req.query()
+    const userId = auth?.userId || ''
+    const { page, size, tagId } = c.req.query()
     const pageNumber: number = page ? +page : 0
     const pageSize: number = size ? +size : 10
     const today = new Date()
 
-    // Get total number of items in wardrobe and counts by type
-    const wardrobeCounts = await c
-      .get('db')
-      .select({
-        total: sql<number>`count(*)`,
-        layer: sql<number>`count(*) filter (where type = 'layer')`,
-        top: sql<number>`count(*) filter (where type = 'top')`,
-        bottom: sql<number>`count(*) filter (where type = 'bottom')`,
-        footwear: sql<number>`count(*) filter (where type = 'footwear')`,
-        accessory: sql<number>`count(*) filter (where type = 'accessory')`,
-      })
-      .from(sql`items`)
-      .then((result) => ({
-        total: Number(result[0].total),
-        layer: Number(result[0].layer),
-        top: Number(result[0].top),
-        bottom: Number(result[0].bottom),
-        footwear: Number(result[0].footwear),
-        accessory: Number(result[0].accessory),
-      }))
+    // STEP 1: Get all items with last worn dates in a single query
+    const allItems = await c.get('db').query.items.findMany({
+      where: eq(sql`items.user_id`, userId),
+      columns: {
+        id: true,
+        type: true,
+        rating: true,
+      },
+    })
 
-    // Calculate minimum days before suggesting an outfit again
-    const recencyThreshold = Math.min(
-      wardrobeCounts.layer,
-      wardrobeCounts.top,
-      wardrobeCounts.bottom,
-      wardrobeCounts.footwear
+    // Calculate recency threshold (min count of items per category)
+    const wardrobeCounts = {
+      total: allItems.length,
+      layer: allItems.filter((i) => i.type === 'layer').length,
+      top: allItems.filter((i) => i.type === 'top').length,
+      bottom: allItems.filter((i) => i.type === 'bottom').length,
+      footwear: allItems.filter((i) => i.type === 'footwear').length,
+    }
+
+    const recencyThreshold =
+      Math.min(
+        wardrobeCounts.layer || 0,
+        wardrobeCounts.top || 0,
+        wardrobeCounts.bottom || 0,
+        wardrobeCounts.footwear || 0
+      ) || 7 // Default to 7 days
+
+    // STEP 2: Get the last worn date for each item in a single query
+    const itemLastWorn = await c.get('db').execute(
+      sql`
+        SELECT 
+          io.item_id,
+          MAX(o.wear_date) as last_worn_date
+        FROM 
+          items_to_outfits io
+        JOIN 
+          outfits o ON o.id = io.outfit_id
+        WHERE 
+          o.user_id = ${userId}
+        GROUP BY 
+          io.item_id
+      `
     )
 
-    // Add type definition for outfit scores
-    type OutfitScore = {
-      id: string
-      rating: number
-      lastWorn: string
-      wearCount: number
-      daysSinceWorn: number
-      sameDayOfWeekCount: number
-      seasonalRelevance: number
-      recentlyWornItemCount: number
-      coreItems: string[]
-      avgItemRating: number
-      itemCount: number
+    // Create a map of item ID to last worn date
+    const itemLastWornMap = new Map()
+    for (const row of itemLastWorn.rows || []) {
+      itemLastWornMap.set(row.item_id, row.last_worn_date)
     }
 
-    // Update the query results casting
-    const outfitsWithScores = (await c
-      .get('db')
-      .select({
-        id: outfits.id,
-        rating: outfits.rating,
-        lastWorn: sql<string>`MAX(${outfits.wearDate} AT TIME ZONE 'PDT')::text`,
-        wearCount: sql<number>`COUNT(${outfits.wearDate})::integer`,
-        daysSinceWorn: sql<number>`EXTRACT(DAY FROM (NOW() AT TIME ZONE 'PDT' - MAX(${outfits.wearDate} AT TIME ZONE 'PDT')))::integer`,
-        sameDayOfWeekCount: sql`
-        COUNT(CASE 
-          WHEN EXTRACT(DOW FROM ${outfits.wearDate} AT TIME ZONE 'PDT') = EXTRACT(DOW FROM NOW() AT TIME ZONE 'PDT') 
-          THEN 1 
-        END)::integer
-      `,
-        seasonalRelevance: sql`
-        COUNT(CASE 
-          WHEN EXTRACT(MONTH FROM ${outfits.wearDate} AT TIME ZONE 'PDT') 
-            BETWEEN EXTRACT(MONTH FROM NOW() AT TIME ZONE 'PDT') - 1 AND EXTRACT(MONTH FROM NOW() AT TIME ZONE 'PDT') + 1 
-          THEN 1 
-        END)::float / NULLIF(COUNT(*), 0)::float
-      `,
-        coreItems: sql`
-        COALESCE(
-          ARRAY_AGG(DISTINCT ${itemsToOutfits.itemId}::text)
-          FILTER (WHERE ${itemsToOutfits.itemType}::text IN ('layer', 'top', 'bottom')),
-          ARRAY[]::text[]
-        )
-      `,
-        recentlyWornItemCount: sql`
-        (
-          SELECT COUNT(DISTINCT io1.item_id)
-          FROM items_to_outfits io1 
-          WHERE io1.outfit_id = ${outfits.id}
-            AND io1.item_type::text IN ('layer', 'top', 'bottom', 'footwear')
-            AND EXISTS (
-              SELECT 1
-              FROM outfits o2
-              JOIN items_to_outfits io2 ON io2.outfit_id = o2.id
-              WHERE o2.wear_date > NOW() - make_interval(days => ${recencyThreshold})
-                AND io2.item_id = io1.item_id
-            )
-        )::integer
-      `,
-        avgItemRating: sql`AVG(items.rating)::float`,
-        itemCount: sql`COUNT(DISTINCT items_to_outfits.item_id)::integer`,
+    // Calculate freshness factor for each item (0.1 to 1.0)
+    const itemFreshnessMap = new Map()
+    for (const item of allItems) {
+      const lastWornDate = itemLastWornMap.get(item.id)
+
+      if (!lastWornDate) {
+        // Item never worn - maximum freshness
+        itemFreshnessMap.set(item.id, 1.0)
+        continue
+      }
+
+      const daysSinceWorn = Math.floor(
+        (today.getTime() - new Date(lastWornDate).getTime()) / (1000 * 60 * 60 * 24)
+      )
+
+      // Parameters that control the curve shape
+      const minFreshness = 0.05 // Minimum freshness for very recently worn items
+      const maxFreshness = 1.0 // Maximum freshness
+      const risePhase = recencyThreshold // Days it takes to reach peak freshness
+      const plateauPhase = 30 // Days the freshness stays at peak
+      const degradationRate = 0.005 // How quickly freshness decreases after plateau (per day)
+
+      let freshnessFactor
+      if (daysSinceWorn <= 0) {
+        // Just worn today
+        freshnessFactor = minFreshness
+      } else if (daysSinceWorn < risePhase) {
+        // S-curve using logistic function for rising phase
+        // Has flat beginning and gradual approach to peak
+        const progress = daysSinceWorn / risePhase
+
+        // Logistic function parameters
+        const steepness = 7.0 // Slightly reduced steepness for a more gradual curve
+        const midpoint = 0.7 // Shifted further right to extend the flat beginning
+
+        // Logistic function: 1 / (1 + e^(-steepness * (x - midpoint)))
+        const logisticValue = 1 / (1 + Math.exp(-steepness * (progress - midpoint)))
+
+        // Normalize to ensure we start at minFreshness and end exactly at maxFreshness
+        // We need to calculate what the logistic function outputs at progress=0 and progress=1
+        const startValue = 1 / (1 + Math.exp(-steepness * (0 - midpoint)))
+        const endValue = 1 / (1 + Math.exp(-steepness * (1 - midpoint)))
+
+        // Normalize the output
+        const normalizedValue = (logisticValue - startValue) / (endValue - startValue)
+
+        freshnessFactor = minFreshness + (maxFreshness - minFreshness) * normalizedValue
+      } else if (daysSinceWorn < risePhase + plateauPhase) {
+        // Plateau phase: maintain maximum freshness
+        freshnessFactor = maxFreshness
+      } else {
+        // Linear degradation phase
+        const daysAfterPlateau = daysSinceWorn - (risePhase + plateauPhase)
+        const degradation = daysAfterPlateau * degradationRate
+        freshnessFactor = Math.max(minFreshness, maxFreshness - degradation)
+      }
+
+      itemFreshnessMap.set(item.id, freshnessFactor)
+    }
+
+    // STEP 3: Get all eligible outfits in a single query
+    const eligibleOutfits = await c.get('db').query.outfits.findMany({
+      where: and(eq(outfits.userId, userId), gte(outfits.rating, 1)),
+      with: {
+        itemsToOutfits: {
+          columns: {
+            outfitId: true,
+            itemId: true,
+            itemType: true,
+          },
+        },
+        tagsToOutfits: {
+          columns: {
+            outfitId: true,
+            tagId: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+    })
+
+    // If no eligible outfits, return empty result
+    if (eligibleOutfits.length === 0) {
+      return c.json({
+        suggestions: [],
+        generated_at: today,
+        metadata: {
+          wardrobe_size: allItems.length,
+          recency_threshold: recencyThreshold,
+          last_page: true,
+          algorithm_version: 'v2',
+        },
       })
-      .from(outfits)
-      .leftJoin(itemsToOutfits, eq(outfits.id, itemsToOutfits.outfitId))
-      .leftJoin(sql`items`, eq(itemsToOutfits.itemId, sql`items.id`))
-      .groupBy(outfits.id).having(sql`${outfits.rating} > 0 AND NOT EXISTS (
-      SELECT 1 FROM outfits o2 
-      JOIN items_to_outfits io2 ON io2.outfit_id = o2.id
-      WHERE io2.item_id IN (
-        SELECT io1.item_id 
-        FROM items_to_outfits io1 
-        WHERE io1.outfit_id = ${outfits.id}
-        AND io1.item_type::text IN ('layer', 'top', 'bottom')
-      )
-      AND io2.item_type::text IN ('layer', 'top', 'bottom')
-      AND o2.wear_date > CURRENT_DATE - ${recencyThreshold}::integer
-      GROUP BY o2.id
-      HAVING COUNT(DISTINCT io2.item_id) = (
-        SELECT COUNT(DISTINCT io3.item_id)
-        FROM items_to_outfits io3
-        WHERE io3.outfit_id = ${outfits.id}
-        AND io3.item_type::text IN ('layer', 'top', 'bottom')
-      )
-    )`)) as OutfitScore[]
+    }
 
-    const calculateTimeFactorScore = (
-      days: number,
-      wearCount: number,
-      recentlyWornCount: number
-    ) => {
-      if (days < recencyThreshold) return 0
+    // Filter outfits to only include those with at least one layer/top, one bottom, and one footwear
+    // And apply tag filter if provided
+    const completeOutfits = eligibleOutfits.filter((outfit) => {
+      const hasTopOrLayer = outfit.itemsToOutfits.some(
+        (io) => io.itemType === 'top' || io.itemType === 'layer'
+      )
+      const hasBottom = outfit.itemsToOutfits.some((io) => io.itemType === 'bottom')
+      const hasFootwear = outfit.itemsToOutfits.some((io) => io.itemType === 'footwear')
 
-      // Calculate ideal wear interval based on how often the outfit is worn
-      const idealInterval = (() => {
-        switch (true) {
-          case wearCount <= 1:
-            return recencyThreshold * 2.5 // New outfits: longest interval
-          case wearCount <= 3:
-            return recencyThreshold * 2.0 // Occasional outfits
-          case wearCount <= 6:
-            return recencyThreshold * 1.5 // Regular outfits
-          default:
-            return recencyThreshold * 1.2 // Favorite outfits: shortest interval
+      // If tagId is provided, check if the outfit has this tag
+      const hasTag = !tagId || outfit.tagsToOutfits.some((to) => to.tagId === tagId)
+
+      return hasTopOrLayer && hasBottom && hasFootwear && hasTag
+    })
+
+    // If no complete outfits after filtering, return empty result
+    if (completeOutfits.length === 0) {
+      return c.json({
+        suggestions: [],
+        generated_at: today,
+        metadata: {
+          wardrobe_size: allItems.length,
+          recency_threshold: recencyThreshold,
+          last_page: true,
+          algorithm_version: 'v2',
+          filter_applied: 'complete_outfits_only',
+        },
+      })
+    }
+
+    // STEP 4: Filter out outfits with identical core items, keeping only the most recent
+    // Track outfits with the same core items (layers, tops, bottoms only)
+    const coreItemsMap = new Map()
+    const mostRecentByCoreItems = new Map()
+
+    // First pass: Group outfits by core items and find the most recent for each group
+    for (const outfit of completeOutfits) {
+      // Extract only layers, tops, and bottoms - not accessories or footwear
+      const coreItems = outfit.itemsToOutfits
+        .filter((io) => ['layer', 'top', 'bottom'].includes(io.itemType))
+        .map((io) => io.itemId)
+        .sort() // Sort to ensure consistent order
+
+      // Skip if no core items
+      if (coreItems.length === 0) continue
+
+      // Create a key for this combination of core items
+      const coreItemsKey = coreItems.join('|')
+
+      // Add this outfit to the map of outfits with these core items
+      if (!coreItemsMap.has(coreItemsKey)) {
+        coreItemsMap.set(coreItemsKey, [outfit])
+        mostRecentByCoreItems.set(coreItemsKey, outfit)
+      } else {
+        coreItemsMap.get(coreItemsKey).push(outfit)
+
+        // Check if this outfit is more recent than the currently stored one
+        const currentMostRecent = mostRecentByCoreItems.get(coreItemsKey)
+        if (new Date(outfit.wearDate) > new Date(currentMostRecent.wearDate)) {
+          mostRecentByCoreItems.set(coreItemsKey, outfit)
         }
-      })()
-
-      // Score based on how close we are to the ideal interval
-      // Higher scores when closer to ideal timing
-      const timeScore = (() => {
-        const relativeDays = days / idealInterval
-        switch (true) {
-          case relativeDays < 0.35:
-            return 5 // Much too soon
-          case relativeDays < 0.7:
-            return 15 // Slightly too soon
-          case relativeDays < 1.5:
-            return 40 // Ideal timing
-          case relativeDays < 2.5:
-            return 30 // Getting a bit old
-          case relativeDays < 4.0:
-            return 20 // Rather old, last chance
-          default:
-            return 10 // Too old
-        }
-      })()
-
-      // Reduce score if similar items were worn recently
-      const similarityPenalty = recentlyWornCount * 5
-
-      return Math.max(0, timeScore - similarityPenalty)
-    }
-
-    // Score based on how often the outfit has been worn
-    const calculateFrequencyScore = (wearCount: number) => {
-      if (wearCount === 0) return 20 // Never worn
-      if (wearCount < 2) return 15 // Rarely worn
-      if (wearCount < 4) return 10 // Occasionally worn
-      if (wearCount < 8) return 5 // Regularly worn
-      return 0 // Frequently worn
-    }
-
-    // Score based on previous wear patterns for this day of week
-    const calculateDayOfWeekScore = (sameDayCount: number) => {
-      const dayOfWeekConfidence = Math.min(sameDayCount / 3, 1) // Caps at 3 same-day wears
-      return sameDayCount > 0 ? 10 * dayOfWeekConfidence : 0
-    }
-
-    const calculateScores = (outfit: OutfitScore) => {
-      // 1. Base Score (0-20)
-      const ratingConfidence = Math.min((outfit.wearCount as number) / 5, 1)
-      const base_score = Math.trunc((outfit.rating as number) * 10 * ratingConfidence)
-
-      // 2. Items Score (0-20)
-      const items_score = Math.trunc(
-        (outfit.avgItemRating as number) * 5 * Math.min((outfit.itemCount as number) / 4, 1)
-      )
-
-      // 3. Time Factor (0-40)
-      const time_factor = Math.trunc(
-        calculateTimeFactorScore(
-          outfit.daysSinceWorn as number,
-          outfit.wearCount as number,
-          outfit.recentlyWornItemCount as number
-        )
-      )
-
-      // 4. Frequency Score (0-20)
-      const frequency_score = Math.trunc(calculateFrequencyScore(outfit.wearCount as number))
-
-      // 5. Day of Week Score (0-10)
-      const day_of_week_score = Math.trunc(
-        calculateDayOfWeekScore(outfit.sameDayOfWeekCount as number)
-      )
-
-      // 6. Seasonal Score (0-8)
-      const seasonal_score = Math.trunc((outfit.seasonalRelevance as number) * 8)
-
-      return {
-        base_score,
-        items_score,
-        time_factor,
-        frequency_score,
-        day_of_week_score,
-        seasonal_score,
       }
     }
 
-    const scoredOutfits = outfitsWithScores
-      // First, group outfits by their core items and keep only the most recent one
-      .reduce((acc, outfit) => {
-        const coreItemsKey = (outfit.coreItems as string[]).filter(Boolean).sort().join('|')
+    // Second pass: Filter outfits to keep only the most recent for each core items group
+    const uniqueOutfits = completeOutfits.filter((outfit) => {
+      const coreItems = outfit.itemsToOutfits
+        .filter((io) => ['layer', 'top', 'bottom'].includes(io.itemType))
+        .map((io) => io.itemId)
+        .sort()
 
-        // Only keep this outfit if it's more recent than existing one with same core items
-        if (
-          !acc.has(coreItemsKey) ||
-          new Date(outfit.lastWorn as string) > new Date(acc.get(coreItemsKey)!.lastWorn as string)
-        ) {
-          acc.set(coreItemsKey, outfit)
+      // If this outfit has no core items, keep it (it's unique)
+      if (coreItems.length === 0) return true
+
+      const coreItemsKey = coreItems.join('|')
+      const mostRecent = mostRecentByCoreItems.get(coreItemsKey)
+
+      // Keep this outfit only if it's the most recent one with these core items
+      return outfit.id === mostRecent.id
+    })
+
+    // Calculate wear counts for the filtered outfits
+    const wearCountsMap = new Map()
+
+    // For each filtered outfit, set its wear count to the total number of outfits with the same core items
+    for (const outfit of uniqueOutfits) {
+      const coreItems = outfit.itemsToOutfits
+        .filter((io) => ['layer', 'top', 'bottom'].includes(io.itemType))
+        .map((io) => io.itemId)
+        .sort()
+
+      if (coreItems.length === 0) {
+        wearCountsMap.set(outfit.id, 1) // Unique outfit
+        continue
+      }
+
+      const coreItemsKey = coreItems.join('|')
+      const totalWithSameCoreItems = coreItemsMap.get(coreItemsKey)?.length || 1
+
+      // Set wear count to the total number of times this combination has been worn
+      wearCountsMap.set(outfit.id, totalWithSameCoreItems)
+    }
+
+    // STEP 5: Score each outfit
+    const scoredOutfits = uniqueOutfits.map((outfit) => {
+      // Rating Score (0-10)
+      const ratingScore = outfit.rating === 2 ? 10 : 3 // Rating 1 = 3, Rating 2 = 10
+
+      // Time Score (0-30)
+      const daysSinceWorn = Math.floor(
+        (today.getTime() - new Date(outfit.wearDate).getTime()) / (1000 * 60 * 60 * 24)
+      )
+
+      // Get item freshness for all items in this outfit
+      const itemIds = outfit.itemsToOutfits.map((io) => io.itemId)
+      const nonAccessoryItems = outfit.itemsToOutfits.filter((io) => io.itemType !== 'accessory')
+
+      if (itemIds.length === 0) {
+        // Empty outfit case - just return rating score
+        return {
+          outfitId: outfit.id,
+          totalScore: ratingScore,
+          scoring_details: {
+            ratingScore,
+            timeScore: 0,
+            frequencyScore: 0,
+            rawData: {
+              daysSinceWorn,
+              itemCount: 0,
+              nonAccessoryItemCount: 0,
+              wearCount: 1,
+              avgItemFreshness: 0,
+              minItemFreshness: 1.0,
+              typeWeightedFreshness: 1.0,
+              recentlyWornItems: 0,
+              outfitFreshness: 1.0,
+              wardrobeRatios: {
+                layer: (wardrobeCounts.layer || 0) / wardrobeCounts.total,
+                top: (wardrobeCounts.top || 0) / wardrobeCounts.total,
+                bottom: (wardrobeCounts.bottom || 0) / wardrobeCounts.total,
+                footwear: (wardrobeCounts.footwear || 0) / wardrobeCounts.total,
+              },
+            },
+          },
         }
-        return acc
-      }, new Map())
-      .values()
+      }
 
-    // Convert to array and calculate scores
-    const uniqueOutfits = Array.from(scoredOutfits).map((outfit) => ({
-      outfitId: outfit.id,
-      score: Object.values(calculateScores(outfit)).reduce((a, b) => a + b, 0),
-    }))
+      // Calculate average freshness of all items
+      let totalFreshness = 0
+      let minFreshness = 1.0
+      let recentlyWornCount = 0
 
-    const suggestedOutfits = await c.get('db').query.outfits.findMany({
-      where: and(
-        inArray(
-          outfits.id,
-          uniqueOutfits
-            .sort((a, b) => b.score - a.score)
-            .slice(pageNumber * pageSize, pageNumber * pageSize + pageSize + 1)
-            .map((o) => o.outfitId)
-        ),
-        eq(outfits.userId, auth?.userId || '')
-      ),
+      for (const itemId of itemIds) {
+        const itemFreshness = itemFreshnessMap.get(itemId) || 1.0
+        totalFreshness += itemFreshness
+
+        // Track minimum freshness to penalize very recently worn items
+        minFreshness = Math.min(minFreshness, itemFreshness)
+
+        // Count recently worn items (freshness < 0.4)
+        if (itemFreshness < 0.4) {
+          recentlyWornCount++
+        }
+      }
+
+      const avgFreshness = totalFreshness / itemIds.length
+
+      // NEW: Calculate type-weighted freshness
+      const typeWeightedFreshness = () => {
+        // Group outfit items by type and calculate average freshness per type
+        interface TypeGroup {
+          items: string[]
+          totalFreshness: number
+          count: number
+        }
+
+        const typeGroups: Record<string, TypeGroup> = {}
+        let totalWeight = 0
+        let weightedSum = 0
+
+        // Group items by type and calculate average freshness per type
+        for (const io of outfit.itemsToOutfits) {
+          if (!typeGroups[io.itemType]) {
+            typeGroups[io.itemType] = {
+              items: [],
+              totalFreshness: 0,
+              count: 0,
+            }
+          }
+
+          const freshness = itemFreshnessMap.get(io.itemId) || 1.0
+          typeGroups[io.itemType].items.push(io.itemId)
+          typeGroups[io.itemType].totalFreshness += freshness
+          typeGroups[io.itemType].count++
+        }
+
+        // Calculate inverse wardrobe weights (fewer items = less weight on low freshness)
+        // This means types with fewer items will penalize the score less
+        const totalItemsInWardrobe = wardrobeCounts.total || 1
+        const typeWeights: Record<string, number> = {
+          layer: Math.log(1 + (wardrobeCounts.layer || 1)) / Math.log(1 + totalItemsInWardrobe),
+          top: Math.log(1 + (wardrobeCounts.top || 1)) / Math.log(1 + totalItemsInWardrobe),
+          bottom: Math.log(1 + (wardrobeCounts.bottom || 1)) / Math.log(1 + totalItemsInWardrobe),
+          footwear:
+            Math.log(1 + (wardrobeCounts.footwear || 1)) / Math.log(1 + totalItemsInWardrobe),
+          accessory: 0.05, // Fixed low weight for accessories
+        }
+
+        // Calculate weighted freshness scores
+        for (const [type, group] of Object.entries(typeGroups)) {
+          if (group.count === 0) continue
+
+          const typeFreshness = group.totalFreshness / group.count
+          const typeWeight = typeWeights[type] || 0.1 // default weight if type is unknown
+
+          weightedSum += typeFreshness * typeWeight
+          totalWeight += typeWeight
+        }
+
+        // Return the weighted average freshness
+        return totalWeight > 0 ? weightedSum / totalWeight : avgFreshness
+      }
+
+      const typeWeightedFreshnessScore = typeWeightedFreshness()
+
+      // Calculate outfit freshness using a combined approach:
+      // - 50% weight to type-weighted freshness (accounts for wardrobe proportions)
+      // - 30% weight to average freshness (overall outfit freshness)
+      // - 20% weight to minimum freshness (still penalizes very recently worn items, but less severely)
+      const outfitFreshness =
+        0.5 * typeWeightedFreshnessScore + 0.3 * avgFreshness + 0.2 * minFreshness
+
+      // Additional penalty for multiple recently worn items (freshness < 0.4)
+      // Each additional recently worn item adds a 15% penalty
+      const recentlyWornPenaltyFactor = Math.max(0, recentlyWornCount - 1) * 0.15
+
+      // Final freshness is scaled by the penalty factor
+      const finalFreshness = Math.max(0, outfitFreshness * (1 - recentlyWornPenaltyFactor))
+
+      // Time Score (0-40) based directly on finalFreshness
+      const timeScore = Math.round(finalFreshness * 40)
+
+      // Frequency Score (0-10)
+      const wearCount = wearCountsMap.get(outfit.id) || 1
+
+      // Simplified frequency score based on wear count
+      let frequencyScore = 0
+      if (wearCount === 1)
+        frequencyScore = 10 // Worn once: maximum score
+      else if (wearCount === 2)
+        frequencyScore = 7 // Worn twice
+      else if (wearCount === 3)
+        frequencyScore = 4 // Worn three times
+      else if (wearCount === 4) frequencyScore = 2 // Worn four times
+
+      // Total score
+      const totalScore = ratingScore + timeScore + frequencyScore
+
+      return {
+        outfitId: outfit.id,
+        totalScore,
+        scoring_details: {
+          ratingScore,
+          timeScore,
+          frequencyScore,
+          rawData: {
+            daysSinceWorn,
+            itemCount: itemIds.length,
+            nonAccessoryItemCount: nonAccessoryItems.length,
+            wearCount,
+            avgItemFreshness: avgFreshness.toFixed(3),
+            minItemFreshness: minFreshness.toFixed(3),
+            typeWeightedFreshness: typeWeightedFreshnessScore.toFixed(3),
+            recentlyWornItems: recentlyWornCount,
+            outfitFreshness: finalFreshness.toFixed(3),
+            wardrobeRatios: {
+              layer: (wardrobeCounts.layer || 0) / wardrobeCounts.total,
+              top: (wardrobeCounts.top || 0) / wardrobeCounts.total,
+              bottom: (wardrobeCounts.bottom || 0) / wardrobeCounts.total,
+              footwear: (wardrobeCounts.footwear || 0) / wardrobeCounts.total,
+            },
+          },
+        },
+      }
+    })
+
+    // STEP 6: Sort by score and paginate
+    const sortedOutfits = scoredOutfits.sort((a, b) => b.totalScore - a.totalScore)
+    const paginatedOutfits = sortedOutfits.slice(
+      pageNumber * pageSize,
+      pageNumber * pageSize + pageSize + 1
+    )
+
+    // Check for last page
+    const last_page = !(paginatedOutfits.length > pageSize)
+    if (!last_page) paginatedOutfits.pop()
+
+    // STEP 7: Fetch full details for the paginated outfits in a single query
+    const outfitIds = paginatedOutfits.map((o) => o.outfitId)
+    const outfitDetails = await c.get('db').query.outfits.findMany({
+      where: inArray(outfits.id, outfitIds),
       with: {
         itemsToOutfits: {
           columns: {
@@ -432,52 +635,59 @@ const app = new Hono<{ Variables: Variables }>()
       },
     })
 
-    const outfitsWithDetails = suggestedOutfits
+    // Combine the outfit details with their scores
+    const outfitsWithScores = outfitDetails
       .map((outfit) => {
-        const outfitScore = outfitsWithScores.find((s) => s.id === outfit.id)
-        const scores = outfitScore
-          ? calculateScores(outfitScore)
-          : {
-              base_score: 0,
-              items_score: 0,
-              time_factor: 0,
-              frequency_score: 0,
-              day_of_week_score: 0,
-              seasonal_score: 0,
-            }
+        const scoreInfo = paginatedOutfits.find((s) => s.outfitId === outfit.id)
 
         return {
           ...outfit,
-          scoring_details: {
-            ...scores,
-            total_score: Math.trunc(Object.values(scores).reduce((a, b) => a + b, 0)),
-            raw_data: {
-              wear_count: Number(outfitScore?.wearCount ?? 0),
-              days_since_worn: Number(outfitScore?.daysSinceWorn ?? 0),
-              same_day_count: Number(outfitScore?.sameDayOfWeekCount ?? 0),
-              seasonal_relevance: Number(outfitScore?.seasonalRelevance ?? 0),
-              recently_worn_items: Number(outfitScore?.recentlyWornItemCount ?? 0),
-              core_items: outfitScore?.coreItems ?? [],
+          scoringDetails: scoreInfo?.scoring_details || {
+            ratingScore: 0,
+            timeScore: 0,
+            frequencyScore: 0,
+            rawData: {
+              daysSinceWorn: 0,
+              itemCount: 0,
+              nonAccessoryItemCount: 0,
+              wearCount: 0,
+              avgItemFreshness: 0,
+              minItemFreshness: 1.0,
+              typeWeightedFreshness: 1.0,
+              recentlyWornItems: 0,
+              outfitFreshness: 1.0,
+              wardrobeRatios: {
+                layer: (wardrobeCounts.layer || 0) / wardrobeCounts.total,
+                top: (wardrobeCounts.top || 0) / wardrobeCounts.total,
+                bottom: (wardrobeCounts.bottom || 0) / wardrobeCounts.total,
+                footwear: (wardrobeCounts.footwear || 0) / wardrobeCounts.total,
+              },
             },
           },
+          totalScore: scoreInfo?.totalScore || 0,
         }
       })
-      .sort((a, b) => b.scoring_details.total_score - a.scoring_details.total_score)
+      .sort((a, b) => {
+        if (b.totalScore !== a.totalScore) {
+          return b.totalScore - a.totalScore
+        }
+        return (
+          Number(b.scoringDetails.rawData.avgItemFreshness || 0) -
+          Number(a.scoringDetails.rawData.avgItemFreshness || 0)
+        )
+      })
 
-    const filteredOutfits = [...outfitsWithDetails]
-      .sort((a, b) => b.scoring_details.total_score - a.scoring_details.total_score)
-      .slice(0, pageSize + 1)
-
-    const last_page = !(filteredOutfits.length > pageSize)
-    if (!last_page) filteredOutfits.pop()
-
+    // Return the final result
     return c.json({
-      suggestions: filteredOutfits,
+      suggestions: outfitsWithScores,
       generated_at: today,
       metadata: {
-        wardrobe_size: wardrobeCounts.total,
+        wardrobe_size: allItems.length,
         recency_threshold: recencyThreshold,
-        last_page: last_page,
+        last_page,
+        algorithm_version: 'v2',
+        filter_applied: tagId ? 'tag_filter' : 'complete_outfits_only',
+        tagId: tagId || undefined,
       },
     })
   })

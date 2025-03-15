@@ -166,6 +166,9 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
         wardrobe_size: number
         recency_threshold: number
         last_page: boolean
+        algorithm_version: string
+        filter_applied: string
+        tagId?: string
       }
     }
     expect(Array.isArray(resJSON.suggestions)).toBe(true)
@@ -175,63 +178,61 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
     expect(scoringDetails).toBeDefined()
 
     // Validate score values match expected ranges and types
-    expect(scoringDetails.base_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.base_score).toBeLessThanOrEqual(60) // Max rating (4) * 15
+    expect(scoringDetails.ratingScore).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.ratingScore).toBeLessThanOrEqual(10) // Max rating 2 = 10, rating 1 = 3
 
-    expect(scoringDetails.items_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.items_score).toBeLessThanOrEqual(32) // Max rating (4) * 8
+    expect(scoringDetails.timeScore).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.timeScore).toBeLessThanOrEqual(40) // Time score is 0-40 based on freshness
 
-    expect(scoringDetails.time_factor).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.time_factor).toBeLessThanOrEqual(20)
-
-    expect(scoringDetails.frequency_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.frequency_score).toBeLessThanOrEqual(20) // Never worn bonus
-
-    expect(scoringDetails.day_of_week_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.day_of_week_score).toBeLessThanOrEqual(15) // Max confidence * 15
-
-    expect(scoringDetails.seasonal_score).toBeGreaterThanOrEqual(0)
-    expect(scoringDetails.seasonal_score).toBeLessThanOrEqual(15) // Max seasonal relevance * 15
+    expect(scoringDetails.frequencyScore).toBeGreaterThanOrEqual(0)
+    expect(scoringDetails.frequencyScore).toBeLessThanOrEqual(10) // Max 10 for items worn once
 
     // Validate total score is sum of all components
     expect(scoringDetails.total_score).toBe(
-      scoringDetails.base_score +
-        scoringDetails.items_score +
-        scoringDetails.time_factor +
-        scoringDetails.frequency_score +
-        scoringDetails.day_of_week_score +
-        scoringDetails.seasonal_score
+      scoringDetails.ratingScore + scoringDetails.timeScore + scoringDetails.frequencyScore
     )
 
     // Validate raw data structure and types
-    const rawData = scoringDetails.raw_data
+    const rawData = scoringDetails.rawData
     expect(rawData).toBeDefined()
 
-    expect(Number.isInteger(rawData.wear_count)).toBe(true)
-    expect(rawData.wear_count).toBeGreaterThanOrEqual(0)
+    expect(Number.isInteger(rawData.wearCount)).toBe(true)
+    expect(rawData.wearCount).toBeGreaterThanOrEqual(0)
 
-    expect(Number.isInteger(rawData.days_since_worn)).toBe(true)
-    expect(rawData.days_since_worn).toBeGreaterThanOrEqual(0)
+    expect(Number.isInteger(rawData.daysSinceWorn)).toBe(true)
+    expect(rawData.daysSinceWorn).toBeGreaterThanOrEqual(0)
 
-    expect(Number.isInteger(rawData.same_day_count)).toBe(true)
-    expect(rawData.same_day_count).toBeGreaterThanOrEqual(0)
+    expect(Number.isInteger(rawData.recentlyWornItems)).toBe(true)
+    expect(rawData.recentlyWornItems).toBeGreaterThanOrEqual(0)
 
-    expect(typeof rawData.seasonal_relevance).toBe('number')
-    expect(rawData.seasonal_relevance).toBeGreaterThanOrEqual(0)
-    expect(rawData.seasonal_relevance).toBeLessThanOrEqual(1)
+    // Check freshness metrics (converted to strings with fixed precision)
+    expect(typeof rawData.minItemFreshness).toBe('string')
+    const minFreshness = parseFloat(rawData.minItemFreshness)
+    expect(minFreshness).toBeGreaterThanOrEqual(0)
+    expect(minFreshness).toBeLessThanOrEqual(1.0)
 
-    expect(Number.isInteger(rawData.recently_worn_items)).toBe(true)
-    expect(rawData.recently_worn_items).toBeGreaterThanOrEqual(0)
+    expect(typeof rawData.outfitFreshness).toBe('string')
+    const outfitFreshness = parseFloat(rawData.outfitFreshness)
+    expect(outfitFreshness).toBeGreaterThanOrEqual(0)
+    expect(outfitFreshness).toBeLessThanOrEqual(1.0)
 
-    expect(Array.isArray(rawData.core_items)).toBe(true)
-    rawData.core_items.forEach((item) => {
-      expect(typeof item).toBe('string')
-      expect(item.length).toBe(24) // CUID length
-    })
+    // Check wardrobe ratios
+    expect(typeof rawData.wardrobeRatios).toBe('object')
+    expect(rawData.wardrobeRatios.layer).toBeGreaterThanOrEqual(0)
+    expect(rawData.wardrobeRatios.layer).toBeLessThanOrEqual(1)
+    expect(rawData.wardrobeRatios.top).toBeGreaterThanOrEqual(0)
+    expect(rawData.wardrobeRatios.top).toBeLessThanOrEqual(1)
+    expect(rawData.wardrobeRatios.bottom).toBeGreaterThanOrEqual(0)
+    expect(rawData.wardrobeRatios.bottom).toBeLessThanOrEqual(1)
+    expect(rawData.wardrobeRatios.footwear).toBeGreaterThanOrEqual(0)
+    expect(rawData.wardrobeRatios.footwear).toBeLessThanOrEqual(1)
 
+    // Validate new metadata fields
     expect(resJSON.generated_at).toBeDefined()
     expect(resJSON.metadata.wardrobe_size).toEqual(5)
     expect(resJSON.metadata.recency_threshold).toEqual(1)
     expect(resJSON.metadata.last_page).toBeTruthy()
+    expect(resJSON.metadata.algorithm_version).toEqual('v2')
+    expect(resJSON.metadata.filter_applied).toEqual('complete_outfits_only')
   })
 })

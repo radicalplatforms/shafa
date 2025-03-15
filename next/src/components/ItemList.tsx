@@ -6,9 +6,10 @@ import { ItemListLoading } from './ItemListLoading'
 interface ItemListProps {
   itemsToOutfits: OutfitsResponse['outfits'][number]['itemsToOutfits']
   coreItems?: string[]
+  showLastWornAt?: boolean
 }
 
-export function ItemList({ itemsToOutfits, coreItems = [] }: ItemListProps) {
+export function ItemList({ itemsToOutfits, coreItems = [], showLastWornAt = false }: ItemListProps) {
   const { items, isLoading: isLoadingItems } = useItems()
 
   if (isLoadingItems) {
@@ -29,6 +30,7 @@ export function ItemList({ itemsToOutfits, coreItems = [] }: ItemListProps) {
               item={item}
               itemType={itemToOutfit.itemType as keyof typeof itemTypeIcons}
               isCoreItem={coreItems.includes(item.id)}
+              showLastWornAt={showLastWornAt}
             />
           </li>
         )

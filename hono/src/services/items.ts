@@ -86,6 +86,7 @@ const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined
 const app = new Hono<{ Variables: Variables }>()
   .get('/', zValidator('query', paginationValidationItems), requireAuth, injectDB, async (c) => {
     const auth = getAuth(c)
+    const userId = auth?.userId || ''
     const { page, size, search } = c.req.query()
     const pageNumber: number | undefined = page ? +page : undefined
     const pageSize: number | undefined = size ? +size : undefined
@@ -96,9 +97,9 @@ const app = new Hono<{ Variables: Variables }>()
             .toLowerCase()
             .split(/\s+/)
             .map((word) => or(ilike(items.name, `%${word}%`), ilike(items.brand, `%${word}%`))),
-          eq(items.userId, auth?.userId || '')
+          eq(items.userId, userId)
         )
-      : eq(items.userId, auth?.userId || '')
+      : eq(items.userId, userId)
 
     const itemsData = await getItemQuery(c.get('db'), whereClause).then((items) => {
       // Sort by lastWornAt (nulls first) then name
@@ -137,11 +138,12 @@ const app = new Hono<{ Variables: Variables }>()
     injectDB,
     async (c) => {
       const auth = getAuth(c)
+      const userId = auth?.userId || ''
       const { id } = c.req.valid('param')
 
       const itemData = await getItemQuery(
         c.get('db'),
-        and(eq(items.id, id), eq(items.userId, auth?.userId || ''))
+        and(eq(items.id, id), eq(items.userId, userId))
       ) // NOTE: Aware that this is not good practice, could be more efficient
 
       if (!itemData.length) {
@@ -165,6 +167,7 @@ const app = new Hono<{ Variables: Variables }>()
     injectDB,
     async (c) => {
       const auth = getAuth(c)
+      const userId = auth?.userId || ''
       const body = c.req.valid('json')
 
       return c.json(
@@ -174,7 +177,7 @@ const app = new Hono<{ Variables: Variables }>()
             .insert(items)
             .values({
               ...body,
-              userId: auth?.userId || '',
+              userId,
             })
             .onConflictDoNothing()
             .returning()
@@ -190,6 +193,7 @@ const app = new Hono<{ Variables: Variables }>()
     injectDB,
     async (c) => {
       const auth = getAuth(c)
+      const userId = auth?.userId || ''
       const params = c.req.valid('param')
       const body = c.req.valid('json')
 
@@ -200,7 +204,7 @@ const app = new Hono<{ Variables: Variables }>()
             .update(items)
             .set({
               ...body,
-              userId: auth?.userId || '',
+              userId,
             })
             .where(eq(items.id, params.id))
             .returning()
@@ -215,6 +219,7 @@ const app = new Hono<{ Variables: Variables }>()
     injectDB,
     async (c) => {
       const auth = getAuth(c)
+      const userId = auth?.userId || ''
       const params = c.req.valid('param')
 
       return c.json(
@@ -222,7 +227,7 @@ const app = new Hono<{ Variables: Variables }>()
           await c
             .get('db')
             .delete(items)
-            .where(and(eq(items.id, params.id), eq(items.userId, auth?.userId || '')))
+            .where(and(eq(items.id, params.id), eq(items.userId, userId)))
             .returning()
         )[0]
       )
