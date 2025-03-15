@@ -18,7 +18,7 @@ export function useOutfits() {
   const getKey = (pageIndex: number, previousPageData: any) => {
     // First page, no previousPageData
     if (previousPageData === null) {
-      return ['outfits', '0', '12']
+      return ['outfits', '0', '48']
     }
 
     // Reached the end
@@ -46,7 +46,7 @@ export function useOutfits() {
     getKey,
     fetcher,
     {
-      initialSize: 2,
+      initialSize: 1,
     }
   )
  
@@ -66,28 +66,38 @@ export function useOutfits() {
   }
 }
 
-export function useSuggestedOutfits() {
+export function useSuggestedOutfits(tagId?: string) {
   const { getToken } = useAuth()
   const $get = client.api.outfits.suggest.$get
 
   const getKey = (pageIndex: number, previousPageData: any) => {
     // First page, no previousPageData
     if (previousPageData === null) {
-      return ['suggested-outfits', '0', '12']
+      return ['suggested-outfits', '0', '48', tagId]
     }
 
     // Reached the end
-    if (!previousPageData.suggestions.length || previousPageData.last_page) {
+    if (!previousPageData.suggestions.length || previousPageData.metadata?.last_page) {
       return null
     }
 
     // Add page param to the key
-    return ['suggested-outfits', pageIndex.toString(), '48']
+    return ['suggested-outfits', pageIndex.toString(), '48', tagId]
   }
 
-  const fetcher = async (arg: [string, string, string]) => {
+  const fetcher = async (arg: [string, string, string, string | undefined]) => {
+    const queryParams: { page: string; size: string; tagId?: string } = { 
+      page: arg[1], 
+      size: arg[2]
+    }
+    
+    // Add tagId to query params if it exists
+    if (arg[3]) {
+      queryParams.tagId = arg[3]
+    }
+    
     const res = await $get({ 
-      query: { page: arg[1], size: arg[2] } 
+      query: queryParams
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -101,14 +111,14 @@ export function useSuggestedOutfits() {
     getKey,
     fetcher,
     {
-      initialSize: 2,
+      initialSize: 1,
     }
   )
  
   const suggestions = data ? data.flatMap(page => page.suggestions) : []
   const isLoadingMore = isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined')
   const isEmpty = data?.[0]?.suggestions.length === 0
-  const isReachingEnd = isEmpty || (data && data[data.length - 1]?.metadata.last_page)
+  const isReachingEnd = isEmpty || (data && data[data.length - 1]?.metadata?.last_page)
   
   return {
     suggestions,
@@ -117,7 +127,8 @@ export function useSuggestedOutfits() {
     isLoadingMore,
     isReachingEnd,
     loadMore: () => setSize(size + 1),
-    mutate
+    mutate,
+    selectedTagId: tagId
   }
 }
 

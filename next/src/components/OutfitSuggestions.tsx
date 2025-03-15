@@ -1,15 +1,20 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Zap } from 'lucide-react'
 import { SuggestionScoreBar } from '@/components/SuggestionScoreBar'
 import { ItemList } from '@/components/ItemList'
 import OutfitSuggestionsLoading from './OutfitSuggestionsLoading'
 import Rating from '@/components/ui/rating'
-import { useSuggestedOutfits } from '@/lib/client'
+import { useSuggestedOutfits, useTags } from '@/lib/client'
+import { Tag } from '@/components/ui/tag'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export default function OutfitSuggestions() {
+  const [selectedTagId, setSelectedTagId] = useState<string | undefined>(undefined)
+  
   const { 
     suggestions, 
     isLoading, 
@@ -17,12 +22,13 @@ export default function OutfitSuggestions() {
     isLoadingMore, 
     isReachingEnd, 
     loadMore 
-  } = useSuggestedOutfits()
+  } = useSuggestedOutfits(selectedTagId)
+  const { tags, isLoading: isLoadingTags } = useTags()
 
   const observer = useRef<IntersectionObserver | null>(null)
 
   const lastSuggestionElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (isLoading || isLoadingMore) return
+    if (isLoading || isLoadingTags || isLoadingMore) return
     if (observer.current) observer.current.disconnect()
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !isReachingEnd) {
@@ -30,9 +36,23 @@ export default function OutfitSuggestions() {
       }
     })
     if (node) observer.current.observe(node)
-  }, [isLoading, isLoadingMore, isReachingEnd, loadMore])
+  }, [isLoading, isLoadingTags, isLoadingMore, isReachingEnd, loadMore])
 
-  if (isLoading && suggestions.length === 0) {
+  const handleTagClick = (tagId: string) => {
+    if (selectedTagId === tagId) {
+      // If the same tag is clicked again, clear the filter
+      setSelectedTagId(undefined)
+    } else {
+      // Otherwise set the selected tag
+      setSelectedTagId(tagId)
+    }
+  }
+
+  const clearTagFilter = () => {
+    setSelectedTagId(undefined)
+  }
+
+  if ((isLoading || isLoadingTags) && suggestions.length === 0) {
     return <OutfitSuggestionsLoading />
   }
 
@@ -40,54 +60,112 @@ export default function OutfitSuggestions() {
     return <div className="text-destructive">{isError.toString()}</div>
   }
 
-  const maxScore = suggestions[0]?.scoring_details.total_score || 0
+  const maxScore = suggestions[0]?.totalScore || 0
+  
+  // Check if any suggestions have tags
+  const hasTags = suggestions.some(suggestion => 
+    suggestion.tagsToOutfits && suggestion.tagsToOutfits.length > 0
+  );
+  
+  // For debugging - log suggestion structure
+  if (suggestions.length > 0 && process.env.NODE_ENV !== 'production') {
+    console.log("Suggestion structure:", Object.keys(suggestions[0]));
+    console.log("Has tagsToOutfits:", hasTags);
+    console.log("First suggestion:", suggestions[0]);
+  }
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-      {suggestions.map((suggestion, index) => (
-        <div
-          key={`suggestion-${suggestion.id}`}
-          ref={index === suggestions.length - 1 ? lastSuggestionElementRef : null}
-          className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500"
-          style={{ animationDelay: `${index * 50}ms` }}
-        >
-          <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex justify-between items-center mb-3 sm:mb-4">
-                <span className="suggestion-header flex items-center text-xs sm:text-sm text-muted-foreground">
-                  <Zap className="zap-icon mr-1 h-4 w-4" />
-                  Suggested Outfit
-                </span>
-                <Rating rating={suggestion.rating as 0 | 1 | 2} />
-              </div>
-              <div className="mb-4">
-                <p className="text-sm font-medium mb-2">Suggestion Score</p>
-                <SuggestionScoreBar
-                  totalScore={suggestion.scoring_details.total_score}
-                  maxScore={maxScore}
-                  categories={[
-                    { name: 'Base', score: suggestion.scoring_details.base_score, color: '#2563eb' },
-                    { name: 'Items', score: suggestion.scoring_details.items_score, color: '#15803d' },
-                    { name: 'Time', score: suggestion.scoring_details.time_factor, color: '#d97706' },
-                    { name: 'Frequency', score: suggestion.scoring_details.frequency_score, color: '#9333ea' },
-                    { name: 'Day', score: suggestion.scoring_details.day_of_week_score, color: '#dc2626' },
-                    { name: 'Season', score: suggestion.scoring_details.seasonal_score, color: '#0891b2' },
-                  ]}
-                />
-              </div>
-              <div className="divider"></div>
-              <ItemList 
-                itemsToOutfits={suggestion.itemsToOutfits}
-                coreItems={suggestion.scoring_details.raw_data.core_items as string[]}
+    <div className="space-y-6">
+      {/* Tags filter section */}
+      <div className="flex items-center">
+        <div className="flex flex-wrap gap-2 pb-1 w-full">
+          {tags && tags.length > 0 ? (
+            tags.map((tag) => (
+              <Tag
+                key={tag.id}
+                name={tag.name}
+                hexColor={tag.hexColor}
+                selected={selectedTagId === tag.id}
+                onClick={() => handleTagClick(tag.id)}
               />
-              <div className="mt-4 text-xs text-muted-foreground">
-                <p>Last worn: {suggestion.scoring_details.raw_data.days_since_worn} days ago</p>
-                <p>Wear count: {suggestion.scoring_details.raw_data.wear_count}</p>
-              </div>
-            </CardContent>
-          </Card>
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground">No tags available</p>
+          )}
         </div>
-      ))}
+      </div>
+
+      {/* Suggestions grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {suggestions.map((suggestion, index) => (
+          <div
+            key={`suggestion-${suggestion.id}`}
+            ref={index === suggestions.length - 1 ? lastSuggestionElementRef : null}
+            className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex justify-between items-center mb-3 sm:mb-4">
+                  <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex gap-2">
+                      {suggestion.tagsToOutfits.map((tagToOutfit) => {
+                        const tag = tags?.find(t => t.id === tagToOutfit.tagId)
+                        if (!tag) return null
+                        return (
+                          <Tag
+                            key={tag.id}
+                            name={tag.name}
+                            hexColor={tag.hexColor}
+                            selected={true}
+                          />
+                        )
+                      })}
+                    </div>
+                  </span>
+                  <Rating rating={suggestion.rating as 0 | 1 | 2} />
+                </div>
+                
+                <div className="mb-4">
+                  <p className="text-sm font-medium mb-2">Suggestion Score</p>
+                  <SuggestionScoreBar
+                    totalScore={suggestion.totalScore}
+                    maxScore={maxScore}
+                    categories={[
+                      { name: 'Rating', score: suggestion.scoringDetails.ratingScore, color: '#2563eb' },
+                      { name: 'Time', score: suggestion.scoringDetails.timeScore, color: '#15803d' },
+                      { name: 'Frequency', score: suggestion.scoringDetails.frequencyScore, color: '#d97706' },
+                    ]}
+                  />
+                </div>
+                <div className="divider"></div>
+                <ItemList 
+                  itemsToOutfits={suggestion.itemsToOutfits}
+                  showLastWornAt={true}
+                />
+                <div className="mt-4 text-xs text-muted-foreground">
+                  <p>Last Worn: {suggestion.scoringDetails.rawData.daysSinceWorn} days ago</p>
+                  <p>Wear Count: {suggestion.scoringDetails.rawData.wearCount}</p>
+                  <p>Avg Item Freshness: {suggestion.scoringDetails.rawData.avgItemFreshness}</p>
+                  <p>Min Item Freshness: {suggestion.scoringDetails.rawData.minItemFreshness}</p>
+                  <p>Recently Worn Items: {suggestion.scoringDetails.rawData.recentlyWornItems}</p>
+                  <p>Outfit Freshness: {suggestion.scoringDetails.rawData.outfitFreshness}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+        
+        {suggestions.length === 0 && !isLoading && (
+          <div className="col-span-3 p-8 text-center">
+            <p className="text-muted-foreground">
+              {selectedTagId 
+                ? "No suggestions found with the selected tag. Try removing the filter."
+                : "No outfit suggestions available."}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

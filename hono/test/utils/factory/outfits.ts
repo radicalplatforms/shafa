@@ -19,22 +19,29 @@ export interface OutfitAPI {
 
 export interface OutfitSuggestionAPI extends OutfitAPI {
   scoring_details: {
-    base_score: number
-    items_score: number
-    time_factor: number
-    frequency_score: number
-    day_of_week_score: number
-    seasonal_score: number
+    ratingScore: number
+    timeScore: number
+    frequencyScore: number
     total_score: number
-    raw_data: {
-      wear_count: number
-      days_since_worn: number
-      same_day_count: number
-      seasonal_relevance: number
-      recently_worn_items: number
-      core_items: string[]
+    rawData: {
+      daysSinceWorn: number
+      itemCount: number
+      nonAccessoryItemCount: number
+      wearCount: number
+      avgItemFreshness: string
+      minItemFreshness: string
+      typeWeightedFreshness: string
+      recentlyWornItems: number
+      outfitFreshness: string
+      wardrobeRatios: {
+        layer: number
+        top: number
+        bottom: number
+        footwear: number
+      }
     }
   }
+  totalScore: number
 }
 
 export class OutfitFactory implements Outfit {
