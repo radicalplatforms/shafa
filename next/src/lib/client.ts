@@ -14,6 +14,7 @@ export type TagsResponse = InferResponseType<typeof client.api.tags.$get>
 export function useOutfits() {
   const { getToken } = useAuth()
   const $get = client.api.outfits.$get
+  const $delete = client.api.outfits[':id'].$delete
 
   const getKey = (pageIndex: number, previousPageData: any) => {
     // First page, no previousPageData
@@ -54,6 +55,23 @@ export function useOutfits() {
   const isLoadingMore = isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined')
   const isEmpty = data?.[0]?.outfits.length === 0
   const isReachingEnd = isEmpty || (data && data[data.length - 1]?.last_page)
+
+  const deleteOutfit = async (outfitId: string) => {
+    try {
+      const res = await $delete({ param: { id: outfitId } }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        }
+      })
+      if (res.ok) {
+        await mutate()
+      }
+    } catch (error) {
+      console.error('Error deleting outfit:', error)
+      throw error
+    }
+  }
   
   return {
     outfits,
@@ -62,7 +80,8 @@ export function useOutfits() {
     isLoadingMore,
     isReachingEnd,
     loadMore: () => setSize(size + 1),
-    mutate
+    mutate,
+    deleteOutfit
   }
 }
 
