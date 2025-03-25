@@ -1,4 +1,3 @@
-import { getAuth } from '@hono/clerk-auth'
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
 import { and, eq, gte, inArray, sql } from 'drizzle-orm'
@@ -8,7 +7,8 @@ import { z } from 'zod'
 
 import { itemTypeEnum, itemsToOutfits, outfits, tagsToOutfits } from '../schema'
 import { requireAuth } from '../utils/auth'
-import type { Variables } from '../utils/inject-db'
+import type { AuthVariables } from '../utils/auth'
+import type { DBVariables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
 const insertOutfitSchema = createInsertSchema(outfits, {
@@ -64,9 +64,9 @@ const suggestionsValidation = z.object({
   tagId: z.string().optional(),
 })
 
-const app = new Hono<{ Variables: Variables }>()
+const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
   .get('/', zValidator('query', paginationValidationOutfits), requireAuth, injectDB, async (c) => {
-    const auth = getAuth(c)
+    const auth = c.get('auth')
     const userId = auth?.userId || ''
     const { page, size } = c.req.query()
 
@@ -102,7 +102,7 @@ const app = new Hono<{ Variables: Variables }>()
     })
   })
   .post('/', zValidator('json', insertOutfitSchema), requireAuth, injectDB, async (c) => {
-    const auth = getAuth(c)
+    const auth = c.get('auth')
     const userId = auth?.userId || ''
     const body = c.req.valid('json')
 
@@ -150,7 +150,7 @@ const app = new Hono<{ Variables: Variables }>()
     requireAuth,
     injectDB,
     async (c) => {
-      const auth = getAuth(c)
+      const auth = c.get('auth')
       const userId = auth?.userId || ''
       const params = c.req.valid('param')
 
@@ -165,8 +165,8 @@ const app = new Hono<{ Variables: Variables }>()
       )
     }
   )
-  .get('/suggest', zValidator('query', suggestionsValidation), injectDB, async (c) => {
-    const auth = getAuth(c)
+  .get('/suggest', zValidator('query', suggestionsValidation), requireAuth, injectDB, async (c) => {
+    const auth = c.get('auth')
     const userId = auth?.userId || ''
     const { page, size, tagId } = c.req.query()
     const pageNumber: number = page ? +page : 0

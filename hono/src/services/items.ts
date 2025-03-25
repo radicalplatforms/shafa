@@ -9,7 +9,8 @@ import { z } from 'zod'
 
 import { itemTypeEnum, items } from '../schema'
 import { requireAuth } from '../utils/auth'
-import type { Variables } from '../utils/inject-db'
+import type { AuthVariables } from '../utils/auth'
+import type { DBVariables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
 const insertItemSchema = createInsertSchema(items, {
@@ -42,7 +43,7 @@ const paginationValidationItems = z
   })
   .optional()
 
-const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined) => {
+const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefined) => {
   return db.query.items
     .findMany({
       where: whereClause,
@@ -83,9 +84,9 @@ const getItemQuery = (db: Variables['db'], whereClause: SQL<unknown> | undefined
     )
 }
 
-const app = new Hono<{ Variables: Variables }>()
+const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
   .get('/', zValidator('query', paginationValidationItems), requireAuth, injectDB, async (c) => {
-    const auth = getAuth(c)
+    const auth = c.get('auth')
     const userId = auth?.userId || ''
     const { page, size, search } = c.req.query()
     const pageNumber: number | undefined = page ? +page : undefined

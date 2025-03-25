@@ -1,4 +1,3 @@
-import { getAuth } from '@hono/clerk-auth'
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
 import { and, eq } from 'drizzle-orm'
@@ -8,7 +7,8 @@ import { z } from 'zod'
 
 import { tags } from '../schema'
 import { requireAuth } from '../utils/auth'
-import type { Variables } from '../utils/inject-db'
+import type { AuthVariables } from '../utils/auth'
+import type { DBVariables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
 const insertTagSchema = createInsertSchema(tags, {
@@ -21,9 +21,9 @@ const selectTagSchema = createSelectSchema(tags, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
-const app = new Hono<{ Variables: Variables }>()
+const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
   .get('/', requireAuth, injectDB, async (c) => {
-    const auth = getAuth(c)
+    const auth = c.get('auth')
     const userId = auth?.userId || ''
 
     const tagsData = await c.get('db').query.tags.findMany({
@@ -34,7 +34,7 @@ const app = new Hono<{ Variables: Variables }>()
     return c.json(tagsData)
   })
   .post('/', zValidator('json', insertTagSchema), requireAuth, injectDB, async (c) => {
-    const auth = getAuth(c)
+    const auth = c.get('auth')
     const userId = auth?.userId || ''
     const body = c.req.valid('json')
 
@@ -58,7 +58,7 @@ const app = new Hono<{ Variables: Variables }>()
     requireAuth,
     injectDB,
     async (c) => {
-      const auth = getAuth(c)
+      const auth = c.get('auth')
       const userId = auth?.userId || ''
       const params = c.req.valid('param')
       const body = c.req.valid('json')
@@ -84,7 +84,7 @@ const app = new Hono<{ Variables: Variables }>()
     requireAuth,
     injectDB,
     async (c) => {
-      const auth = getAuth(c)
+      const auth = c.get('auth')
       const userId = auth?.userId || ''
       const params = c.req.valid('param')
 
