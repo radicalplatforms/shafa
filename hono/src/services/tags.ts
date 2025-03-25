@@ -1,4 +1,3 @@
-import { getAuth } from '@hono/clerk-auth'
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
 import { and, eq } from 'drizzle-orm'

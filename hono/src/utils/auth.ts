@@ -1,4 +1,4 @@
-import { clerkMiddleware, getAuth } from '@hono/clerk-auth'
+import { getAuth } from '@hono/clerk-auth'
 import type { Context } from 'hono'
 import { env } from 'hono/adapter'
 
