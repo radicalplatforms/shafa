@@ -6,7 +6,7 @@ import { env } from 'hono/adapter'
 
 import * as schema from '../schema'
 
-export type Variables = {
+export type DBVariables = {
   db: NeonDatabase<typeof schema>
 }
 
