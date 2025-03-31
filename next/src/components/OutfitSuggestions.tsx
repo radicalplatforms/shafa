@@ -146,9 +146,8 @@ export default function OutfitSuggestions() {
                 <div className="mt-4 text-xs text-muted-foreground">
                   <p>Last Worn: {suggestion.scoringDetails.rawData.daysSinceWorn} days ago</p>
                   <p>Wear Count: {suggestion.scoringDetails.rawData.wearCount}</p>
-                  <p>Avg Item Freshness: {suggestion.scoringDetails.rawData.avgItemFreshness}</p>
-                  <p>Min Item Freshness: {suggestion.scoringDetails.rawData.minItemFreshness}</p>
                   <p>Recently Worn Items: {suggestion.scoringDetails.rawData.recentlyWornItems}</p>
+                  <p>Avg Item Freshness: {suggestion.scoringDetails.rawData.avgItemFreshness}</p>
                   <p>Outfit Freshness: {suggestion.scoringDetails.rawData.outfitFreshness}</p>
                 </div>
               </CardContent>
