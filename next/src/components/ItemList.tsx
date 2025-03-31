@@ -1,10 +1,10 @@
 import React from 'react'
 import { Item, itemTypeIcons } from '@/components/Item'
-import { OutfitsResponse, useItems } from '@/lib/client'
+import { OutfitSuggestionsResponse, useItems } from '@/lib/client'
 import { ItemListLoading } from './ItemListLoading'
 
 interface ItemListProps {
-  itemsToOutfits: OutfitsResponse['outfits'][number]['itemsToOutfits']
+  itemsToOutfits: OutfitSuggestionsResponse['suggestions'][number]['itemsToOutfits']
   coreItems?: string[]
   showLastWornAt?: boolean
 }
@@ -31,6 +31,7 @@ export function ItemList({ itemsToOutfits, coreItems = [], showLastWornAt = fals
               itemType={itemToOutfit.itemType as keyof typeof itemTypeIcons}
               isCoreItem={coreItems.includes(item.id)}
               showLastWornAt={showLastWornAt}
+              freshness={itemToOutfit.freshness}
             />
           </li>
         )

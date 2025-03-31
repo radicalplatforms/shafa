@@ -15,10 +15,14 @@ interface ItemProps {
   itemType: keyof typeof itemTypeIcons
   isCoreItem?: boolean
   showLastWornAt?: boolean
+  freshness?: number
 }
 
-export function Item({ item, itemType, isCoreItem = false, showLastWornAt = false }: ItemProps) {
+export function Item({ item, itemType, isCoreItem = false, showLastWornAt = false, freshness }: ItemProps) {
   const Icon = itemTypeIcons[itemType]
+
+  // Format freshness score as percentage
+  const freshnessDisplay = freshness !== undefined ? `${Math.round(freshness * 100)}%` : null
 
   return (
     <div className="flex items-start space-x-3 min-w-0 max-w-full">
@@ -40,6 +44,12 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
                   locale: 'en-US',
                   unit: 'days'
                 })}
+              </span>
+            )}
+            {freshnessDisplay && (
+              <span>
+                <span className="text-xs align-top ml-[5px] mr-[6px]">•</span>
+                F: {freshnessDisplay}
               </span>
             )}
           </p>

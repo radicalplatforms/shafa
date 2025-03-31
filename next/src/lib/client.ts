@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/nextjs'
 
 export const client = hc<AppType>(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787/')
 
+export type OutfitSuggestionsResponse = InferResponseType<typeof client.api.outfits.suggest.$get>
 export type OutfitsResponse = InferResponseType<typeof client.api.outfits.$get>
 export type ItemsResponse = InferResponseType<typeof client.api.items.$get>
 export type TagsResponse = InferResponseType<typeof client.api.tags.$get>

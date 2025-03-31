@@ -190,15 +190,24 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       top: allItems.filter((i) => i.type === 'top').length,
       bottom: allItems.filter((i) => i.type === 'bottom').length,
       footwear: allItems.filter((i) => i.type === 'footwear').length,
+      accessory: allItems.filter((i) => i.type === 'accessory').length,
     }
 
-    const recencyThreshold =
-      Math.min(
-        wardrobeCounts.layer || 0,
-        wardrobeCounts.top || 0,
-        wardrobeCounts.bottom || 0,
-        wardrobeCounts.footwear || 0
-      ) || 7 // Default to 7 days
+    // Global minimum threshold for very small wardrobes
+    const minRecencyThreshold = 3
+
+    // Multiplier for the threshold
+    const thresholdMultiplier = 0.75
+
+    // Calculate type-specific recency thresholds
+    const recencyThresholds = {
+      layer: Math.max(wardrobeCounts.layer * thresholdMultiplier || 7, minRecencyThreshold),
+      top: Math.max(wardrobeCounts.top * thresholdMultiplier || 7, minRecencyThreshold),
+      bottom: Math.max(wardrobeCounts.bottom * thresholdMultiplier || 7, minRecencyThreshold),
+      footwear: Math.max(wardrobeCounts.footwear * thresholdMultiplier || 7, minRecencyThreshold),
+      accessory: Math.max(wardrobeCounts.accessory * thresholdMultiplier || 7, minRecencyThreshold),
+      default: 7, // Default threshold for unknown types
+    }
 
     // STEP 2: Get the last worn date for each item in a single query
     const itemLastWorn = await c.get('db').execute(
@@ -227,6 +236,10 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const itemFreshnessMap = new Map()
     for (const item of allItems) {
       const lastWornDate = itemLastWornMap.get(item.id)
+      const itemType = item.type as keyof typeof recencyThresholds
+
+      // Use type-specific recency threshold
+      const typeRecencyThreshold = recencyThresholds[itemType] || recencyThresholds.default
 
       if (!lastWornDate) {
         // Item never worn - maximum freshness
@@ -239,11 +252,11 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       )
 
       // Parameters that control the curve shape
-      const minFreshness = 0.05 // Minimum freshness for very recently worn items
+      const minFreshness = 0.01 // Minimum freshness for very recently worn items
       const maxFreshness = 1.0 // Maximum freshness
-      const risePhase = recencyThreshold // Days it takes to reach peak freshness
-      const plateauPhase = 30 // Days the freshness stays at peak
-      const degradationRate = 0.005 // How quickly freshness decreases after plateau (per day)
+      const risePhase = typeRecencyThreshold // Days it takes to reach peak freshness - now type-specific
+      const plateauPhase = typeRecencyThreshold // Days the freshness stays at peak
+      const degradationRate = 0.05 // How quickly freshness decreases after plateau (per day)
 
       let freshnessFactor
       if (daysSinceWorn <= 0) {
@@ -312,7 +325,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         generated_at: today,
         metadata: {
           wardrobe_size: allItems.length,
-          recency_threshold: recencyThreshold,
+          recency_threshold: recencyThresholds,
           last_page: true,
           algorithm_version: 'v2',
         },
@@ -341,7 +354,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         generated_at: today,
         metadata: {
           wardrobe_size: allItems.length,
-          recency_threshold: recencyThreshold,
+          recency_threshold: recencyThresholds,
           last_page: true,
           algorithm_version: 'v2',
           filter_applied: 'complete_outfits_only',
@@ -452,7 +465,6 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
               wearCount: 1,
               avgItemFreshness: 0,
               minItemFreshness: 1.0,
-              typeWeightedFreshness: 1.0,
               recentlyWornItems: 0,
               outfitFreshness: 1.0,
               wardrobeRatios: {
@@ -486,77 +498,14 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
       const avgFreshness = totalFreshness / itemIds.length
 
-      // NEW: Calculate type-weighted freshness
-      const typeWeightedFreshness = () => {
-        // Group outfit items by type and calculate average freshness per type
-        interface TypeGroup {
-          items: string[]
-          totalFreshness: number
-          count: number
-        }
+      // Amplify the impact of low freshness items using a power function
+      // This will reduce scores more severely when freshness is low
+      const amplifiedMinFreshness = Math.pow(minFreshness, 1.5)
 
-        const typeGroups: Record<string, TypeGroup> = {}
-        let totalWeight = 0
-        let weightedSum = 0
-
-        // Group items by type and calculate average freshness per type
-        for (const io of outfit.itemsToOutfits) {
-          if (!typeGroups[io.itemType]) {
-            typeGroups[io.itemType] = {
-              items: [],
-              totalFreshness: 0,
-              count: 0,
-            }
-          }
-
-          const freshness = itemFreshnessMap.get(io.itemId) || 1.0
-          typeGroups[io.itemType].items.push(io.itemId)
-          typeGroups[io.itemType].totalFreshness += freshness
-          typeGroups[io.itemType].count++
-        }
-
-        // Calculate inverse wardrobe weights (fewer items = less weight on low freshness)
-        // This means types with fewer items will penalize the score less
-        const totalItemsInWardrobe = wardrobeCounts.total || 1
-        const typeWeights: Record<string, number> = {
-          layer: Math.log(1 + (wardrobeCounts.layer || 1)) / Math.log(1 + totalItemsInWardrobe),
-          top: Math.log(1 + (wardrobeCounts.top || 1)) / Math.log(1 + totalItemsInWardrobe),
-          bottom: Math.log(1 + (wardrobeCounts.bottom || 1)) / Math.log(1 + totalItemsInWardrobe),
-          footwear:
-            Math.log(1 + (wardrobeCounts.footwear || 1)) / Math.log(1 + totalItemsInWardrobe),
-          accessory: 0.05, // Fixed low weight for accessories
-        }
-
-        // Calculate weighted freshness scores
-        for (const [type, group] of Object.entries(typeGroups)) {
-          if (group.count === 0) continue
-
-          const typeFreshness = group.totalFreshness / group.count
-          const typeWeight = typeWeights[type] || 0.1 // default weight if type is unknown
-
-          weightedSum += typeFreshness * typeWeight
-          totalWeight += typeWeight
-        }
-
-        // Return the weighted average freshness
-        return totalWeight > 0 ? weightedSum / totalWeight : avgFreshness
-      }
-
-      const typeWeightedFreshnessScore = typeWeightedFreshness()
-
-      // Calculate outfit freshness using a combined approach:
-      // - 50% weight to type-weighted freshness (accounts for wardrobe proportions)
-      // - 30% weight to average freshness (overall outfit freshness)
-      // - 20% weight to minimum freshness (still penalizes very recently worn items, but less severely)
-      const outfitFreshness =
-        0.5 * typeWeightedFreshnessScore + 0.3 * avgFreshness + 0.2 * minFreshness
-
-      // Additional penalty for multiple recently worn items (freshness < 0.4)
-      // Each additional recently worn item adds a 15% penalty
-      const recentlyWornPenaltyFactor = Math.max(0, recentlyWornCount - 1) * 0.15
-
-      // Final freshness is scaled by the penalty factor
-      const finalFreshness = Math.max(0, outfitFreshness * (1 - recentlyWornPenaltyFactor))
+      // Calculate outfit freshness using a modified approach that emphasizes minimum freshness:
+      // - 60% weight to average freshness (overall outfit freshness)
+      // - 40% weight to amplified minimum freshness (significantly penalizes very recently worn items)
+      const finalFreshness = 0.6 * avgFreshness + 0.4 * amplifiedMinFreshness
 
       // Time Score (0-40) based directly on finalFreshness
       const timeScore = Math.round(finalFreshness * 40)
@@ -591,7 +540,6 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
             wearCount,
             avgItemFreshness: avgFreshness.toFixed(3),
             minItemFreshness: minFreshness.toFixed(3),
-            typeWeightedFreshness: typeWeightedFreshnessScore.toFixed(3),
             recentlyWornItems: recentlyWornCount,
             outfitFreshness: finalFreshness.toFixed(3),
             wardrobeRatios: {
@@ -606,7 +554,21 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     })
 
     // STEP 6: Sort by score and paginate
-    const sortedOutfits = scoredOutfits.sort((a, b) => b.totalScore - a.totalScore)
+    const sortedOutfits = scoredOutfits.sort((a, b) => {
+      // Sort by time score (higher is better)
+      if (b.scoring_details.timeScore !== a.scoring_details.timeScore) {
+        return b.scoring_details.timeScore - a.scoring_details.timeScore
+      }
+
+      // Then by rating score (higher is better)
+      if (b.scoring_details.ratingScore !== a.scoring_details.ratingScore) {
+        return b.scoring_details.ratingScore - a.scoring_details.ratingScore
+      }
+
+      // Then by frequency score (lower is better)
+      return a.scoring_details.frequencyScore - b.scoring_details.frequencyScore
+    })
+
     const paginatedOutfits = sortedOutfits.slice(
       pageNumber * pageSize,
       pageNumber * pageSize + pageSize + 1
@@ -640,8 +602,18 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       .map((outfit) => {
         const scoreInfo = paginatedOutfits.find((s) => s.outfitId === outfit.id)
 
+        // Add freshness score to each item
+        const itemsToOutfitsWithFreshness = outfit.itemsToOutfits.map((item) => {
+          const freshness = itemFreshnessMap.get(item.itemId) || 1.0
+          return {
+            ...item,
+            freshness: parseFloat(freshness.toFixed(3)),
+          }
+        })
+
         return {
           ...outfit,
+          itemsToOutfits: itemsToOutfitsWithFreshness,
           scoringDetails: scoreInfo?.scoring_details || {
             ratingScore: 0,
             timeScore: 0,
@@ -653,7 +625,6 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
               wearCount: 0,
               avgItemFreshness: 0,
               minItemFreshness: 1.0,
-              typeWeightedFreshness: 1.0,
               recentlyWornItems: 0,
               outfitFreshness: 1.0,
               wardrobeRatios: {
@@ -668,13 +639,18 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         }
       })
       .sort((a, b) => {
-        if (b.totalScore !== a.totalScore) {
-          return b.totalScore - a.totalScore
+        // Sort by time score (higher is better)
+        if (b.scoringDetails.timeScore !== a.scoringDetails.timeScore) {
+          return b.scoringDetails.timeScore - a.scoringDetails.timeScore
         }
-        return (
-          Number(b.scoringDetails.rawData.avgItemFreshness || 0) -
-          Number(a.scoringDetails.rawData.avgItemFreshness || 0)
-        )
+
+        // Then by rating score (higher is better)
+        if (b.scoringDetails.ratingScore !== a.scoringDetails.ratingScore) {
+          return b.scoringDetails.ratingScore - a.scoringDetails.ratingScore
+        }
+
+        // Then by frequency score (lower is better)
+        return a.scoringDetails.frequencyScore - b.scoringDetails.frequencyScore
       })
 
     // Return the final result
@@ -683,7 +659,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       generated_at: today,
       metadata: {
         wardrobe_size: allItems.length,
-        recency_threshold: recencyThreshold,
+        recency_threshold: recencyThresholds,
         last_page,
         algorithm_version: 'v2',
         filter_applied: tagId ? 'tag_filter' : 'complete_outfits_only',
