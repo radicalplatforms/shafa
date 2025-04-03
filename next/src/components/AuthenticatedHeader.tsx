@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Shirt, Sparkles, Calendar, Flame } from 'lucide-react'
+import { Shirt, Sparkles, Calendar, Flame, Layers } from 'lucide-react'
 import { AddOutfitModal } from '@/components/AddOutfitModal'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -16,7 +16,8 @@ const GREETING_HOURS = {
 
 const NAV_LINKS = [
   { href: '/outfits', label: 'Recent Outfits', Icon: Shirt },
-  { href: '/suggestions', label: 'Outfit Suggestions', Icon: Sparkles }
+  { href: '/suggestions', label: 'Outfit Suggestions', Icon: Sparkles },
+  { href: '/items', label: 'Items', Icon: Layers }
 ] as const
 
 export default function AuthenticatedHeader() {

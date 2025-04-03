@@ -34,7 +34,6 @@ app.use(
         'https://shafa.app',
         'https://*.shafa-next.pages.dev',
         'https://*.radicalplatforms.workers.dev',
-        'http://localhost:3000',
       ]
 
       if (process.env.NODE_ENV === 'development') {
@@ -54,7 +53,7 @@ app.use(
 
       return matched ? origin : allowedOrigins[0]
     },
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['X-Total-Count'],
     maxAge: 60,

@@ -18,6 +18,7 @@ import { client, useItems, useTags, useOutfits } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
 import { ItemInlineSearch } from './ItemInlineSearch'
 import { ItemsResponse } from '@/lib/client'
+import { useItemSearch } from '@/lib/hooks/useItemSearch'
 
 interface AddOutfitModalProps {
   open?: boolean
@@ -43,7 +44,6 @@ export function AddOutfitModal({
 
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState<Date>(getStartOfToday)
-  const [searchTerm, setSearchTerm] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittingRating, setSubmittingRating] = useState<number | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -55,9 +55,6 @@ export function AddOutfitModal({
   const { tags, isLoading: isTagsLoading, isError: isTagsError } = useTags()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
-  // Add state for highlighted index
-  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
-
   // Add ref for the scroll area
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
@@ -65,6 +62,39 @@ export function AddOutfitModal({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const { mutate: mutateOutfits } = useOutfits()
+
+  // Use our custom hook for search functionality
+  const {
+    searchTerm,
+    setSearchTerm,
+    addMode,
+    highlightedIndex,
+    setHighlightedIndex,
+    handleSearchChange: baseHandleSearchChange,
+    handleKeyDown: baseHandleKeyDown,
+    handleNewItem: baseHandleNewItem
+  } = useItemSearch({
+    items: allItems || [],
+  })
+
+  // Filter items to exclude already selected items
+  const searchResults = addMode ? [] : allItems?.filter(item => {
+    // First check if item is already selected
+    const isAlreadySelected = selectedItems.some(selected => selected.id === item.id)
+    if (isAlreadySelected) return false
+
+    const searchTerms = searchTerm.toLowerCase().split(/\s+/)
+    const itemName = item.name.toLowerCase()
+    const itemBrand = (item.brand || '').toLowerCase()
+    const itemType = item.type.toLowerCase()
+    
+    // Then check if it matches search terms
+    return searchTerms.every(term => 
+      itemName.includes(term) || 
+      itemBrand.includes(term) ||
+      itemType.includes(term)
+    )
+  })
 
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen && selectedItems.length === 0) {
@@ -133,11 +163,14 @@ export function AddOutfitModal({
   }
 
   const handleItemSelect = (itemId: string, itemType: string) => {
+    // Call the base handler for the new item
+    baseHandleNewItem(itemId, itemType)
+    
+    // Additional logic specific to AddOutfitModal
     const hasExistingTop = selectedItems.some(selected => selected.type === 'top')
     const newItemType = itemType === 'top' && hasExistingTop ? 'layer' : itemType
 
     setSelectedItems([...selectedItems, {id: itemId, type: newItemType}])
-    setSearchTerm('')
     setShowDropdown(false)
     if (searchInputRef.current) {
       searchInputRef.current.focus()
@@ -152,25 +185,6 @@ export function AddOutfitModal({
     )
   }
 
-  // Filter items locally based on search term and exclude already selected items
-  const searchResults = allItems?.filter(item => {
-      const searchTerms = searchTerm.toLowerCase().split(/\s+/)
-      const itemName = item.name.toLowerCase()
-      const itemBrand = (item.brand || '').toLowerCase()
-      const itemType = item.type.toLowerCase()
-      
-      // First check if item is already selected
-      const isAlreadySelected = selectedItems.some(selected => selected.id === item.id)
-      if (isAlreadySelected) return false
-
-      // Then check if it matches search terms
-      return searchTerms.every(term => 
-        itemName.includes(term) || 
-        itemBrand.includes(term) ||
-        itemType.includes(term)
-      )
-    })
-
   // Add this type order mapping
   const typeOrder = {
     'layer': 0,
@@ -180,14 +194,23 @@ export function AddOutfitModal({
     'accessory': 4
   }
 
-  // Update handleKeyDown to handle scrolling
+  // Custom search change handler
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    baseHandleSearchChange(e)
+    setShowDropdown(true)
+  }
+
+  // Custom key down handler
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!searchResults?.length) return
+    if (!searchResults?.length) {
+      baseHandleKeyDown(e)
+      return
+    }
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setHighlightedIndex(prev => {
+        setHighlightedIndex((prev: number) => {
           const newIndex = prev < searchResults.length - 1 ? prev + 1 : prev
           // Scroll item into view
           const itemElement = scrollAreaRef.current?.querySelector(`[data-index="${newIndex}"]`)
@@ -197,7 +220,7 @@ export function AddOutfitModal({
         break
       case 'ArrowUp':
         e.preventDefault()
-        setHighlightedIndex(prev => {
+        setHighlightedIndex((prev: number) => {
           const newIndex = prev > 0 ? prev - 1 : 0
           // Scroll item into view
           const itemElement = scrollAreaRef.current?.querySelector(`[data-index="${newIndex}"]`)
@@ -212,6 +235,11 @@ export function AddOutfitModal({
         } else if (searchResults.length > 0) {
           handleItemSelect(searchResults[0].id, searchResults[0].type)
         }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setSearchTerm('')
+        setShowDropdown(false)
         break
     }
   }
@@ -294,13 +322,10 @@ export function AddOutfitModal({
           <div className="relative mt-0">
             <ItemInlineSearch
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setShowDropdown(true)
-              }}
+              onChange={handleSearchChange}
               onClick={() => setShowDropdown(true)}
               onKeyDown={handleKeyDown}
-              addMode={searchResults.length < 1}
+              addMode={searchResults?.length < 1 && searchTerm.length >= 2}
               onNewItem={handleItemSelect}
             />
             {showDropdown && (searchResults?.length > 0 || isItemsLoading) && (

@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import { relations, sql } from 'drizzle-orm'
 import {
+  boolean,
   check,
   date,
   pgEnum,
@@ -35,6 +36,7 @@ export const items = pgTable('items', {
   photoUrl: text('photo_url'),
   type: itemTypeEnumPg('type').notNull(),
   rating: smallint('rating').notNull(),
+  isArchived: boolean('is_archived').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   userId: text('user_id').notNull(),
 })

@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import {
   ClerkProvider,
 } from '@clerk/nextjs'
+import { cn } from '@/lib/utils'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,7 +23,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <div className="max-w-4xl mx-auto">
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>

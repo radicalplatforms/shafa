@@ -140,7 +140,7 @@ export function ItemInlineSearch({
 
   return (
     <div className="flex items-center space-x-3 min-w-0 max-w-full">
-      <div className="flex-shrink-0 p-[5px] rounded bg-gray-300 text-white mt-0.5">
+      <div className="flex-shrink-0 p-[4px] rounded bg-gray-300 text-white border-2 border-gray-300 mt-0.5">
         {addMode ? <Plus className="h-[17.5px] w-[17.5px]" /> : <Search className="h-[17.5px] w-[17.5px]" />}
       </div>
       <div className="flex-1 min-w-0">

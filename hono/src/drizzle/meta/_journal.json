@@ -36,6 +36,13 @@
       "when": 1738129595422,
       "tag": "0004_new_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1743658312222,
+      "tag": "0005_talented_warpath",
+      "breakpoints": true
     }
   ]
 }

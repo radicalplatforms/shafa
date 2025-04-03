@@ -155,6 +155,7 @@ export function useSuggestedOutfits(tagId?: string) {
 export function useItems() {
   const { getToken } = useAuth()
   const $get = client.api.items.$get
+  const $patch = client.api.items.archive[':id'].$patch
 
   const fetcher = (arg: InferRequestType<typeof $get>) => async () => {
     const res = await $get(arg, {
@@ -171,11 +172,31 @@ export function useItems() {
     fetcher({})
   )
  
+  const archiveItem = async (itemId: string, archive: boolean) => {
+    try {
+      const res = await $patch({ param: { id: itemId }, json: { isArchived: archive } }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        },
+      })
+      
+      if (res.ok) {
+        await mutate()
+      }
+      return res.ok
+    } catch (error) {
+      console.error('Error updating item archive status:', error)
+      return false
+    }
+  }
+
   return {
     items: data?.items || [],
     isLoading,
     isError: error,
-    mutate
+    mutate,
+    archiveItem
   }
 }
 
