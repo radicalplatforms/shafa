@@ -5,7 +5,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { itemTypeEnum, itemsToOutfits, outfits, tagsToOutfits } from '../schema'
+import { itemTypeEnum, items, itemsToOutfits, outfits, tagsToOutfits } from '../schema'
 import { requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
 import type { DBVariables } from '../utils/inject-db'
@@ -108,6 +108,34 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
     return c.json(
       await c.get('db').transaction(async (tx) => {
+        // Check if any of the items being used are archived
+        const itemIds = body.itemIdsTypes.map((e) => e.id)
+
+        if (itemIds.length > 0) {
+          // Find which of these items (if any) are currently archived
+          const archivedItems = await tx.query.items.findMany({
+            where: and(
+              inArray(items.id, itemIds),
+              eq(items.isArchived, true),
+              eq(items.userId, userId)
+            ),
+            columns: {
+              id: true,
+            },
+          })
+
+          // If any archived items were found, unarchive them
+          if (archivedItems.length > 0) {
+            const archivedItemIds = archivedItems.map((item) => item.id)
+
+            // Unarchive the items
+            await tx
+              .update(items)
+              .set({ isArchived: false })
+              .where(inArray(items.id, archivedItemIds))
+          }
+        }
+
         // Create outfit
         const newOutfit = (
           await tx
@@ -173,15 +201,29 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const pageSize: number = size ? +size : 10
     const today = new Date()
 
-    // STEP 1: Get all items with last worn dates in a single query
+    // STEP 1: Get all non-archived items with last worn dates in a single query
     const allItems = await c.get('db').query.items.findMany({
-      where: eq(sql`items.user_id`, userId),
+      where: and(
+        eq(sql`items.user_id`, userId),
+        eq(items.isArchived, false) // Exclude archived items from suggestions
+      ),
       columns: {
         id: true,
         type: true,
         rating: true,
       },
     })
+
+    // Get a list of archived item IDs for checking if outfits contain archived items
+    const archivedItems = await c.get('db').query.items.findMany({
+      where: and(eq(sql`items.user_id`, userId), eq(items.isArchived, true)),
+      columns: {
+        id: true,
+      },
+    })
+
+    // Create a Set of archived item IDs for efficient lookup
+    const archivedItemIds = new Set(archivedItems.map((item) => item.id))
 
     // Calculate recency threshold (min count of items per category)
     const wardrobeCounts = {
@@ -318,8 +360,14 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
     })
 
-    // If no eligible outfits, return empty result
-    if (eligibleOutfits.length === 0) {
+    // Filter out outfits that contain any archived items
+    const nonArchivedOutfits = eligibleOutfits.filter((outfit) => {
+      // Return true only if no items in the outfit are archived
+      return !outfit.itemsToOutfits.some((io) => archivedItemIds.has(io.itemId))
+    })
+
+    // If no eligible outfits after filtering archived items, return empty result
+    if (nonArchivedOutfits.length === 0) {
       return c.json({
         suggestions: [],
         generated_at: today,
@@ -328,13 +376,14 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           recency_threshold: recencyThresholds,
           last_page: true,
           algorithm_version: 'v2',
+          filter_applied: 'no_eligible_outfits_or_all_contain_archived_items',
         },
       })
     }
 
     // Filter outfits to only include those with at least one layer/top, one bottom, and one footwear
     // And apply tag filter if provided
-    const completeOutfits = eligibleOutfits.filter((outfit) => {
+    const completeOutfits = nonArchivedOutfits.filter((outfit) => {
       const hasTopOrLayer = outfit.itemsToOutfits.some(
         (io) => io.itemType === 'top' || io.itemType === 'layer'
       )

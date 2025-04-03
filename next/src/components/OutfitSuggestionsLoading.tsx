@@ -12,7 +12,7 @@ export default function OutfitListLoading() {
       </div>
       
       {/* Suggestions grid loading state */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {[...Array(9)].map((_, index) => (
           <OutfitSuggestionsCardLoading key={`suggestion-skeleton-${index}`}/>
         ))}

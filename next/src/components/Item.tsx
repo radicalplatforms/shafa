@@ -2,9 +2,11 @@ import { Layers, Shirt, Footprints, Crown } from 'lucide-react'
 import { PiPantsFill } from 'react-icons/pi'
 import { DateTime } from "luxon"
 import { ItemsResponse } from '@/lib/client'
+import { cn } from '@/lib/utils'
+
 export const itemTypeIcons = {
   layer: Layers,
-  top: Shirt,
+  top: Shirt, 
   bottom: PiPantsFill,
   footwear: Footprints,
   accessory: Crown,
@@ -26,7 +28,7 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
 
   return (
     <div className="flex items-start space-x-3 min-w-0 max-w-full">
-      <div className="flex-shrink-0 p-[5px] rounded bg-gray-700 text-white mt-0.5">
+      <div className={cn("flex-shrink-0 p-[4px] rounded mt-0.5 border-2", item.isArchived ? "text-gray-700 bg-white border-gray-700" : "text-white bg-gray-700 border-gray-700")}>
         <Icon className="h-[17.5px] w-[17.5px]" />
       </div>
       <div className="flex-1 min-w-0">
@@ -36,14 +38,20 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
             {isCoreItem && <span className="ml-1 text-xs align-top">•</span>}
           </p>
           <p className="text-xs text-muted-foreground -mt-[0.05rem]">
-            {item.brand || <i>Unbranded</i>}
-            {showLastWornAt && item.lastWornAt && (
+            {item.isArchived ? <i>Archived</i> : item.brand || <i>Unbranded</i>}
+            {showLastWornAt && (
               <span>
                 <span className="text-xs align-top ml-[5px] mr-[6px]">•</span>
-                Worn {DateTime.fromISO(item.lastWornAt).toRelativeCalendar({
-                  locale: 'en-US',
-                  unit: 'days'
-                })}
+                {item.lastWornAt ? (
+                  <>
+                    Worn {DateTime.fromISO(item.lastWornAt).toRelativeCalendar({
+                      locale: 'en-US',
+                      unit: 'days'
+                    })} 
+                  </>
+                ) : (
+                  <i>Never worn!</i>
+                )}
               </span>
             )}
             {freshnessDisplay && (

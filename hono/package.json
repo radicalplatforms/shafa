@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev --port 8787",
+    "dev": "NODE_ENV=development wrangler dev --port 8787",
     "migrate": "tsx migrate.ts",
     "generate": "drizzle-kit generate",
     "test": "jest --detectOpenHandles --testPathIgnorePatterns='neon.preflight' --testPathIgnorePatterns='remote.preflight' --testPathIgnorePatterns='/preflight'",

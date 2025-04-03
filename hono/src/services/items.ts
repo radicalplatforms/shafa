@@ -72,6 +72,7 @@ const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefin
         photoUrl: item.photoUrl,
         type: item.type,
         rating: item.rating,
+        isArchived: item.isArchived,
         createdAt: item.createdAt,
         userId: item.userId,
         lastWornAt: item.itemsToOutfits.length
@@ -103,8 +104,12 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       : eq(items.userId, userId)
 
     const itemsData = await getItemQuery(c.get('db'), whereClause).then((items) => {
-      // Sort by lastWornAt (nulls first) then name
+      // Sort by isArchived (non-archived first), then lastWornAt (nulls first), then name
       const sortedItems = items.sort((a, b) => {
+        // First sort by archive status
+        if (a.isArchived !== b.isArchived) return a.isArchived ? 1 : -1
+
+        // Then use the existing sort logic for items with the same archive status
         if (!a.lastWornAt && !b.lastWornAt) return a.name.localeCompare(b.name)
         if (!a.lastWornAt) return -1
         if (!b.lastWornAt) return 1
@@ -138,7 +143,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     requireAuth,
     injectDB,
     async (c) => {
-      const auth = getAuth(c)
+      const auth = c.get('auth')
       const userId = auth?.userId || ''
       const { id } = c.req.valid('param')
 
@@ -167,7 +172,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     requireAuth,
     injectDB,
     async (c) => {
-      const auth = getAuth(c)
+      const auth = c.get('auth')
       const userId = auth?.userId || ''
       const body = c.req.valid('json')
 
@@ -193,7 +198,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     requireAuth,
     injectDB,
     async (c) => {
-      const auth = getAuth(c)
+      const auth = c.get('auth')
       const userId = auth?.userId || ''
       const params = c.req.valid('param')
       const body = c.req.valid('json')
@@ -213,13 +218,39 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       )
     }
   )
+  .patch(
+    '/archive/:id',
+    zValidator('param', selectItemSchema.pick({ id: true })),
+    zValidator('json', z.object({ isArchived: z.boolean() })),
+    requireAuth,
+    injectDB,
+    async (c) => {
+      const auth = c.get('auth')
+      const userId = auth?.userId || ''
+      const { id } = c.req.valid('param')
+      const { isArchived } = c.req.valid('json')
+
+      const updatedItem = await c
+        .get('db')
+        .update(items)
+        .set({ isArchived })
+        .where(and(eq(items.id, id), eq(items.userId, userId)))
+        .returning()
+
+      if (!updatedItem.length) {
+        return c.json({ message: 'Item not found' }, 404)
+      }
+
+      return c.json(updatedItem[0])
+    }
+  )
   .delete(
     '/:id',
     zValidator('param', selectItemSchema.pick({ id: true })),
     requireAuth,
     injectDB,
     async (c) => {
-      const auth = getAuth(c)
+      const auth = c.get('auth')
       const userId = auth?.userId || ''
       const params = c.req.valid('param')
 
