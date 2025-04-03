@@ -247,7 +247,7 @@ export function AddOutfitModal({
   // Reset highlighted index when search term changes
   useEffect(() => {
     setHighlightedIndex(0)
-  }, [searchTerm])
+  })
 
   // Add effect to handle clicks outside
   useEffect(() => {
