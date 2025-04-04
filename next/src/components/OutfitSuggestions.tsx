@@ -90,67 +90,72 @@ export default function OutfitSuggestions() {
 
       {/* Suggestions grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-        {suggestions.map((suggestion, index) => (
-          <div
-            key={`suggestion-${suggestion.id}`}
-            ref={index === suggestions.length - 1 ? lastSuggestionElementRef : null}
-            className={`h-full animate-in fade-in slide-in-from-bottom-4 ${index === 4 ? "duration-1000" : "duration-700"}`}
-            style={{ 
-              animationDelay: `${index * 50}ms`, 
-              animationFillMode: 'forwards',
-              ...(index === 4 && { filter: 'blur(0) !important', opacity: '1 !important' })
-            }}
-          >
-            <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex justify-between items-center mb-3 sm:mb-4">
-                  <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                    <div className="flex gap-2">
-                      {suggestion.tagsToOutfits.map((tagToOutfit) => {
-                        const tag = tags?.find(t => t.id === tagToOutfit.tagId)
-                        if (!tag) return null
-                        return (
-                          <Tag
-                            key={tag.id}
-                            name={tag.name}
-                            hexColor={tag.hexColor}
-                            selected={true}
-                          />
-                        )
-                      })}
-                    </div>
-                  </span>
-                  <Rating rating={suggestion.rating as 0 | 1 | 2} />
-                </div>
-                
-                <div className="mb-4">
-                  <p className="text-sm font-medium mb-2">Suggestion Score</p>
-                  <SuggestionScoreBar
-                    totalScore={suggestion.totalScore}
-                    maxScore={maxScore}
-                    categories={[
-                      { name: 'Rating', score: suggestion.scoringDetails.ratingScore, color: '#2563eb' },
-                      { name: 'Time', score: suggestion.scoringDetails.timeScore, color: '#15803d' },
-                      { name: 'Frequency', score: suggestion.scoringDetails.frequencyScore, color: '#d97706' },
-                    ]}
+        {suggestions.map((suggestion, index) => {
+          // Use longer duration for the last few items
+          const isLongerDuration = index >= Math.max(0, suggestions.length - 2);
+          
+          return (
+            <div
+              key={`suggestion-${suggestion.id}`}
+              ref={index === suggestions.length - 1 ? lastSuggestionElementRef : null}
+              className={`h-full animate-in fade-in slide-in-from-bottom-4 ${isLongerDuration ? "duration-1000" : "duration-700"}`}
+              style={{ 
+                animationDelay: `${index * 50}ms`, 
+                animationFillMode: 'forwards',
+                ...(isLongerDuration && { filter: 'blur(0) !important', opacity: '1 !important' })
+              }}
+            >
+              <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex justify-between items-center mb-3 sm:mb-4">
+                    <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                      <div className="flex gap-2">
+                        {suggestion.tagsToOutfits.map((tagToOutfit) => {
+                          const tag = tags?.find(t => t.id === tagToOutfit.tagId)
+                          if (!tag) return null
+                          return (
+                            <Tag
+                              key={tag.id}
+                              name={tag.name}
+                              hexColor={tag.hexColor}
+                              selected={true}
+                            />
+                          )
+                        })}
+                      </div>
+                    </span>
+                    <Rating rating={suggestion.rating as 0 | 1 | 2} />
+                  </div>
+                  
+                  <div className="mb-4">
+                    <p className="text-sm font-medium mb-2">Suggestion Score</p>
+                    <SuggestionScoreBar
+                      totalScore={suggestion.totalScore}
+                      maxScore={maxScore}
+                      categories={[
+                        { name: 'Rating', score: suggestion.scoringDetails.ratingScore, color: '#2563eb' },
+                        { name: 'Time', score: suggestion.scoringDetails.timeScore, color: '#15803d' },
+                        { name: 'Frequency', score: suggestion.scoringDetails.frequencyScore, color: '#d97706' },
+                      ]}
+                    />
+                  </div>
+                  <div className="divider"></div>
+                  <ItemList 
+                    itemsToOutfits={suggestion.itemsToOutfits}
+                    showLastWornAt={true}
                   />
-                </div>
-                <div className="divider"></div>
-                <ItemList 
-                  itemsToOutfits={suggestion.itemsToOutfits}
-                  showLastWornAt={true}
-                />
-                <div className="mt-4 text-xs text-muted-foreground">
-                  <p>Last Worn: {suggestion.wearDate ? `${suggestion.scoringDetails.rawData.daysSinceWorn} days ago` : 'Never'}</p>
-                  <p>Wear Count: {suggestion.scoringDetails.rawData.wearCount}</p>
-                  <p>Recently Worn Items: {suggestion.scoringDetails.rawData.recentlyWornItems}</p>
-                  <p>Avg Item Freshness: {suggestion.scoringDetails.rawData.avgItemFreshness}</p>
-                  <p>Outfit Freshness: {suggestion.scoringDetails.rawData.outfitFreshness}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ))}
+                  <div className="mt-4 text-xs text-muted-foreground">
+                    <p>Last Worn: {suggestion.wearDate ? `${suggestion.scoringDetails.rawData.daysSinceWorn} days ago` : 'Never'}</p>
+                    <p>Wear Count: {suggestion.scoringDetails.rawData.wearCount}</p>
+                    <p>Recently Worn Items: {suggestion.scoringDetails.rawData.recentlyWornItems}</p>
+                    <p>Avg Item Freshness: {suggestion.scoringDetails.rawData.avgItemFreshness}</p>
+                    <p>Outfit Freshness: {suggestion.scoringDetails.rawData.outfitFreshness}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )
+        })}
         
         {suggestions.length === 0 && !isLoading && (
           <div className="col-span-3 p-8 text-center">
