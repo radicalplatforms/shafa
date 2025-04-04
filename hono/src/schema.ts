@@ -56,7 +56,7 @@ export const outfits = pgTable(
       .$defaultFn(() => createId())
       .primaryKey(),
     rating: smallint('rating').notNull(),
-    wearDate: date('wear_date', { mode: 'date' }).notNull().defaultNow(),
+    wearDate: date('wear_date', { mode: 'date' }),
     userId: text('user_id').notNull(),
   },
   (table) => ({

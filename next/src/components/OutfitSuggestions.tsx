@@ -66,13 +66,6 @@ export default function OutfitSuggestions() {
   const hasTags = suggestions.some(suggestion => 
     suggestion.tagsToOutfits && suggestion.tagsToOutfits.length > 0
   );
-  
-  // For debugging - log suggestion structure
-  if (suggestions.length > 0 && process.env.NODE_ENV !== 'production') {
-    console.log("Suggestion structure:", Object.keys(suggestions[0]));
-    console.log("Has tagsToOutfits:", hasTags);
-    console.log("First suggestion:", suggestions[0]);
-  }
 
   return (
     <div className="space-y-6">
@@ -101,8 +94,12 @@ export default function OutfitSuggestions() {
           <div
             key={`suggestion-${suggestion.id}`}
             ref={index === suggestions.length - 1 ? lastSuggestionElementRef : null}
-            className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500"
-            style={{ animationDelay: `${index * 50}ms` }}
+            className={`h-full animate-in fade-in slide-in-from-bottom-4 ${index === 4 ? "duration-1000" : "duration-700"}`}
+            style={{ 
+              animationDelay: `${index * 50}ms`, 
+              animationFillMode: 'forwards',
+              ...(index === 4 && { filter: 'blur(0) !important', opacity: '1 !important' })
+            }}
           >
             <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
               <CardContent className="p-3 sm:p-4">
@@ -144,7 +141,7 @@ export default function OutfitSuggestions() {
                   showLastWornAt={true}
                 />
                 <div className="mt-4 text-xs text-muted-foreground">
-                  <p>Last Worn: {suggestion.scoringDetails.rawData.daysSinceWorn} days ago</p>
+                  <p>Last Worn: {suggestion.wearDate ? `${suggestion.scoringDetails.rawData.daysSinceWorn} days ago` : 'Never'}</p>
                   <p>Wear Count: {suggestion.scoringDetails.rawData.wearCount}</p>
                   <p>Recently Worn Items: {suggestion.scoringDetails.rawData.recentlyWornItems}</p>
                   <p>Avg Item Freshness: {suggestion.scoringDetails.rawData.avgItemFreshness}</p>

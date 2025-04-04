@@ -67,8 +67,12 @@ export default function OutfitList() {
         <div
           key={`outfit-${outfit.id}`}
           ref={index === outfits.length - 1 ? lastOutfitElementRef : null}
-          className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500"
-          style={{ animationDelay: `${index * 50}ms` }}
+          className={`h-full animate-in fade-in slide-in-from-bottom-4 ${index === 9 ? "duration-1000" : "duration-700"}`}
+          style={{ 
+            animationDelay: `${index * 50}ms`, 
+            animationFillMode: 'forwards',
+            ...(index === 9 && { filter: 'blur(0) !important', opacity: '1 !important' })
+          }}
         >
           <ContextMenu>
             <ContextMenuTrigger>
@@ -77,7 +81,7 @@ export default function OutfitList() {
                   <div className="flex justify-between items-center mb-3 sm:mb-4">
                     <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
                       <Calendar className="mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
-                      {formatDate(outfit.wearDate)}
+                      {outfit.wearDate ? formatDate(outfit.wearDate) : 'Never'}
                       <div className="flex gap-2 pl-3">
                         {outfit.tagsToOutfits.map((tagToOutfit) => {
                           const tag = tags?.find(t => t.id === tagToOutfit.tagId)

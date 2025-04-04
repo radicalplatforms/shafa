@@ -43,6 +43,13 @@
       "when": 1743658312222,
       "tag": "0005_talented_warpath",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1743730809368,
+      "tag": "0006_exotic_absorbing_man",
+      "breakpoints": true
     }
   ]
 }

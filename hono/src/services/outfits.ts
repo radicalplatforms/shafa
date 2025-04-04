@@ -10,10 +10,11 @@ import { requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
 import type { DBVariables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
+import { VIRTUAL_TAGS, getApplicableVirtualTags, isVirtualTag } from './tags'
 
 const insertOutfitSchema = createInsertSchema(outfits, {
   rating: z.number().min(0).max(2).default(1),
-  wearDate: z.coerce.date(),
+  wearDate: z.coerce.date().optional(),
 })
   .extend({
     itemIdsTypes: z
@@ -74,7 +75,10 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const pageSize: number = size ? +size : 10
 
     const outfitsData = await c.get('db').query.outfits.findMany({
-      where: eq(outfits.userId, userId),
+      where: and(
+        eq(outfits.userId, userId),
+        sql`${outfits.wearDate} IS NOT NULL` // Exclude ghost outfits
+      ),
       with: {
         itemsToOutfits: {
           columns: {
@@ -136,16 +140,13 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           }
         }
 
-        // Create outfit
+        const outfitData = {
+          ...body,
+          userId,
+        }
+
         const newOutfit = (
-          await tx
-            .insert(outfits)
-            .values({
-              ...body,
-              userId,
-            })
-            .onConflictDoNothing()
-            .returning()
+          await tx.insert(outfits).values(outfitData).onConflictDoNothing().returning()
         )[0]
 
         // Insert item to outfit relationships
@@ -159,13 +160,18 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
         // Insert tag to outfit relationships
         if (body.tagIds.length > 0) {
-          await tx.insert(tagsToOutfits).values(
-            body.tagIds.map((e) => ({
-              tagId: e,
-              outfitId: newOutfit.id,
-              status: 'manually_assigned',
-            }))
-          )
+          // Filter out virtual tags
+          const realTagIds = body.tagIds.filter((tagId) => !isVirtualTag(tagId))
+
+          if (realTagIds.length > 0) {
+            await tx.insert(tagsToOutfits).values(
+              realTagIds.map((e) => ({
+                tagId: e,
+                outfitId: newOutfit.id,
+                status: 'manually_assigned',
+              }))
+            )
+          }
         }
 
         return newOutfit
@@ -200,6 +206,11 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const pageNumber: number = page ? +page : 0
     const pageSize: number = size ? +size : 10
     const today = new Date()
+
+    // Handle filtering by virtual tags
+    const isVirtualTagFilter = tagId ? isVirtualTag(tagId) : false
+    const virtualTag = isVirtualTagFilter ? VIRTUAL_TAGS[tagId!] : undefined
+    const regularTagId = isVirtualTagFilter ? undefined : tagId
 
     // STEP 1: Get all non-archived items with last worn dates in a single query
     const allItems = await c.get('db').query.items.findMany({
@@ -390,10 +401,14 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       const hasBottom = outfit.itemsToOutfits.some((io) => io.itemType === 'bottom')
       const hasFootwear = outfit.itemsToOutfits.some((io) => io.itemType === 'footwear')
 
-      // If tagId is provided, check if the outfit has this tag
-      const hasTag = !tagId || outfit.tagsToOutfits.some((to) => to.tagId === tagId)
+      // Check for virtual tag filter
+      const matchesVirtualTagFilter =
+        !virtualTag || (virtualTag.appliesTo && virtualTag.appliesTo(outfit))
 
-      return hasTopOrLayer && hasBottom && hasFootwear && hasTag
+      // If regular tagId is provided, check if the outfit has this tag
+      const hasTag = !regularTagId || outfit.tagsToOutfits.some((to) => to.tagId === regularTagId)
+
+      return hasTopOrLayer && hasBottom && hasFootwear && hasTag && matchesVirtualTagFilter
     })
 
     // If no complete outfits after filtering, return empty result
@@ -439,7 +454,11 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
         // Check if this outfit is more recent than the currently stored one
         const currentMostRecent = mostRecentByCoreItems.get(coreItemsKey)
-        if (new Date(outfit.wearDate) > new Date(currentMostRecent.wearDate)) {
+        const outfitDate = outfit.wearDate ? new Date(outfit.wearDate) : new Date(0)
+        const currentMostRecentDate = currentMostRecent.wearDate
+          ? new Date(currentMostRecent.wearDate)
+          : new Date(0)
+        if (outfitDate > currentMostRecentDate) {
           mostRecentByCoreItems.set(coreItemsKey, outfit)
         }
       }
@@ -490,8 +509,9 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       const ratingScore = outfit.rating === 2 ? 10 : 3 // Rating 1 = 3, Rating 2 = 10
 
       // Time Score (0-30)
+      const outfitDate = outfit.wearDate ? new Date(outfit.wearDate) : new Date(0)
       const daysSinceWorn = Math.floor(
-        (today.getTime() - new Date(outfit.wearDate).getTime()) / (1000 * 60 * 60 * 24)
+        (today.getTime() - outfitDate.getTime()) / (1000 * 60 * 60 * 24)
       )
 
       // Get item freshness for all items in this outfit
@@ -660,9 +680,22 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           }
         })
 
+        // Add applicable virtual tags to the outfit
+        const tagsToOutfits = [...outfit.tagsToOutfits]
+        const applicableVirtualTags = getApplicableVirtualTags(outfit)
+
+        // Add all applicable virtual tags to this outfit
+        for (const virtualTag of applicableVirtualTags) {
+          tagsToOutfits.push({
+            tagId: virtualTag.id,
+            status: 'manually_assigned',
+          })
+        }
+
         return {
           ...outfit,
           itemsToOutfits: itemsToOutfitsWithFreshness,
+          tagsToOutfits,
           scoringDetails: scoreInfo?.scoring_details || {
             ratingScore: 0,
             timeScore: 0,
@@ -711,7 +744,12 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         recency_threshold: recencyThresholds,
         last_page,
         algorithm_version: 'v2',
-        filter_applied: tagId ? 'tag_filter' : 'complete_outfits_only',
+        filter_applied: isVirtualTagFilter
+          ? 'virtual_tag_filter'
+          : regularTagId
+            ? 'tag_filter'
+            : 'complete_outfits_only',
+        virtual_tag_name: isVirtualTagFilter ? VIRTUAL_TAGS[tagId!]?.name : undefined,
         tagId: tagId || undefined,
       },
     })
