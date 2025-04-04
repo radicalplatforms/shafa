@@ -1,3 +1,5 @@
 .idea
 .vscode
 logfile
+.turbo
+node_modules

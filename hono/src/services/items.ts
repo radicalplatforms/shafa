@@ -75,9 +75,17 @@ const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefin
         createdAt: item.createdAt,
         userId: item.userId,
         lastWornAt: item.itemsToOutfits.length
-          ? new Date(Math.max(...item.itemsToOutfits.map((rel) => rel.outfit.wearDate.getTime())))
-              .toISOString()
-              .split('T')[0]
+          ? item.itemsToOutfits.filter((rel) => rel.outfit.wearDate !== null).length > 0
+            ? new Date(
+                Math.max(
+                  ...item.itemsToOutfits
+                    .filter((rel) => rel.outfit.wearDate !== null)
+                    .map((rel) => rel.outfit.wearDate!.getTime())
+                )
+              )
+                .toISOString()
+                .split('T')[0]
+            : null
           : null,
         tagsToItems: item.tagsToItems,
       }))

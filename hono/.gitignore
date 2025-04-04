@@ -3,3 +3,4 @@ test/tmp-d1-db
 .wrangler
 .idea
 .dev.vars
+tsconfig.tsbuildinfo
