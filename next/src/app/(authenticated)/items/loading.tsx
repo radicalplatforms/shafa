@@ -42,7 +42,7 @@ export default function ItemsLoading() {
           {/* Search input skeleton - ItemInlineSearch style */}
           <div className="mb-4">
             <div className="flex items-start space-x-3 min-w-0 max-w-full">
-              <div className="flex-shrink-0 p-[5px] rounded bg-gray-300 text-white mt-0.5 opacity-70">
+              <div className="flex-shrink-0 p-[5px] rounded bg-muted-foreground text-background mt-0.5 opacity-70">
                 <Search className="h-[17.5px] w-[17.5px]" />
               </div>
               <div className="flex-1 min-w-0">

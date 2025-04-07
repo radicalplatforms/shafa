@@ -7,6 +7,7 @@ import { AddOutfitModal } from '@/components/AddOutfitModal'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { client } from '@/lib/client'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 // Move static data outside component
 const GREETING_HOURS = {
@@ -41,10 +42,13 @@ export default function AuthenticatedHeader() {
 
   return (
     <>
-      <header className="mb-4 sm:mb-8 fade-in flex flex-col items-center gap-4 sm:gap-0 sm:flex-row sm:justify-between sm:items-start">
+      <header className="mb-4 sm:mb-8 fade-in flex flex-col items-center gap-4 sm:gap-0 sm:flex-row sm:justify-between sm:items-center">
         <div className="text-center sm:text-left space-y-1">
           <h1 className="text-3xl sm:text-4xl font-bold linear-gradient">Shafa</h1>
           <p className="text-base text-muted-foreground">{today}</p>
+        </div>
+        <div className="transition-colors duration-300">
+          <ThemeToggle />
         </div>
       </header>
       <nav className="mb-6 sm:mb-8 fade-in flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-stretch sm:items-center">
