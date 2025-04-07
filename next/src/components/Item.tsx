@@ -28,7 +28,10 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
 
   return (
     <div className="flex items-start space-x-3 min-w-0 max-w-full">
-      <div className={cn("flex-shrink-0 p-[4px] rounded mt-0.5 border-2", item.isArchived ? "text-gray-700 bg-white border-gray-700" : "text-white bg-gray-700 border-gray-700")}>
+      <div className={cn("flex-shrink-0 p-[4px] rounded mt-0.5 border-2", 
+        item.isArchived 
+          ? "text-muted-foreground bg-background border-muted-foreground" 
+          : "text-background bg-muted-foreground border-muted-foreground")}>
         <Icon className="h-[17.5px] w-[17.5px]" />
       </div>
       <div className="flex-1 min-w-0">

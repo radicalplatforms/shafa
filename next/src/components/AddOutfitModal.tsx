@@ -323,7 +323,7 @@ export function AddOutfitModal({
             {showDropdown && (searchResults?.length > 0 || isItemsLoading) && (
               <div 
                 ref={dropdownRef}
-                className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg max-w-[100%]"
+                className="absolute z-10 mt-1 w-full rounded-md bg-card shadow-lg max-w-[100%]"
               >
                 <ScrollArea 
                   ref={scrollAreaRef}
@@ -348,7 +348,7 @@ export function AddOutfitModal({
                           data-index={index}
                           className={cn(
                             "px-4 py-2 cursor-pointer transition-colors group flex items-center justify-between",
-                            highlightedIndex === index ? "bg-gray-100" : "hover:bg-gray-50 hover:only:bg-gray-50"
+                            highlightedIndex === index ? "bg-accent" : "hover:bg-accent/50"
                           )}
                           onClick={() => handleItemSelect(item.id, item.type)}
                           onMouseEnter={() => setHighlightedIndex(index)}
@@ -359,8 +359,8 @@ export function AddOutfitModal({
                             showLastWornAt
                           />
                           {highlightedIndex === index && (
-                            <div className="hidden md:flex w-[80px] ml-[10px] text-xs text-gray-500 items-center gap-1">
-                              <kbd className="px-2 py-0.5 text-xs bg-gray-100 border border-gray-300 rounded">
+                            <div className="hidden md:flex w-[80px] ml-[10px] text-xs text-muted-foreground items-center gap-1">
+                              <kbd className="px-2 py-0.5 text-xs bg-muted border border-border rounded">
                                 ↵
                               </kbd>
                               <span>to add</span>
@@ -369,7 +369,7 @@ export function AddOutfitModal({
                         </li>
                       ))}
                       {!searchResults?.length && searchTerm.length > 1 && (
-                        <li className="px-4 py-2 text-gray-500">No items found</li>
+                        <li className="px-4 py-2 text-muted-foreground">No items found</li>
                       )}
                     </ul>
                   )}
@@ -433,7 +433,7 @@ export function AddOutfitModal({
                 key={label}
                 onClick={() => handleSubmit(rating as 0 | 1 | 2)}
                 disabled={isSubmitting}
-                className={`w-full sm:w-auto text-black bg-white border-[1px] hover:bg-muted border-gray-200 shadow-sm transition-colors`}
+                className={`w-full sm:w-auto bg-background text-foreground border-[1px] hover:bg-muted border-border shadow-sm transition-colors`}
               >
                 {isSubmitting && submittingRating === rating ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
