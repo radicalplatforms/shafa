@@ -20,7 +20,7 @@ import ItemsLoading from './loading'
 
 // Separate component for Items content to use with Suspense
 function ItemsContent() {
-  const { items, isLoading, archiveItem, mutate } = useItems()
+  const { items, isLoading, archiveItem, mutate, updateItem } = useItems()
   const [selectedType, setSelectedType] = useState<keyof typeof itemTypeIcons | null>(null)
   
   const {
@@ -171,6 +171,10 @@ function ItemsContent() {
     await archiveItem(itemId, !currentStatus)
   }
 
+  const handleItemUpdate = async (itemId: string, updates: { name?: string; brand?: string; type?: string }) => {
+    return await updateItem(itemId, updates)
+  }
+
   const handleNewItem = (itemId: string, itemType: string) => {
     // Call the base handler
     baseHandleNewItem(itemId, itemType)
@@ -214,84 +218,61 @@ function ItemsContent() {
         </div>
       </div>
 
-      {/* Items list */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
-          {/* Search input */}
-          <div className="mb-4 ml-1">
-            <ItemInlineSearch
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onClick={() => {}}
-              onKeyDown={handleKeyDown}
-              addMode={addMode}
-              onNewItem={handleNewItem}
-            />
-          </div>
+      {/* Search input */}
+      <div className="mb-4 ml-1">
+        <ItemInlineSearch
+          value={searchTerm}
+          onChange={handleSearchChange}
+          onClick={() => {}}
+          onKeyDown={handleKeyDown}
+          addMode={addMode}
+          onNewItem={handleNewItem}
+        />
+      </div>
 
-          {!addMode && filteredItems.length > 0 ? (
-            <ul className="space-y-1">
-              {sortedCategories.map((category, categoryIndex) => {
-                return (
-                  <React.Fragment key={category}>
-                    <li className={`${categoryIndex > 0 ? 'mt-4' : ''} pb-1`}>
-                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide border-t pt-2 mt-4">
-                        {getCategoryTitle(category)}
+      {!addMode && filteredItems.length > 0 ? (
+        <ul className="space-y-1">
+          {sortedCategories.map((category, categoryIndex) => {
+            return (
+              <React.Fragment key={category}>
+                <li className={`${categoryIndex > 0 ? 'mt-4' : ''} pb-1`}>
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide border-t pt-2 mt-4">
+                    {getCategoryTitle(category)}
+                  </div>
+                </li>
+                {itemsByCategory[category].map((item, itemIndex) => {
+                  return (
+                    <li 
+                      key={item.id}
+                      className={`text-sm block ${isHighlighted(categoryIndex, itemIndex) ? 'bg-accent rounded-md' : ''} 
+                                  ${item.isArchived ? 'opacity-70' : ''}`}
+                    >
+                      <div className={`p-1 ${isHighlighted(categoryIndex, itemIndex) ? 'bg-accent rounded-md' : ''}`}>
+                        <Item
+                          item={item}
+                          itemType={item.type as keyof typeof itemTypeIcons}
+                          showLastWornAt={true}
+                          isInteractive={true}
+                          onArchiveToggle={handleArchiveToggle}
+                          onItemUpdate={handleItemUpdate}
+                        />
                       </div>
                     </li>
-                    {itemsByCategory[category].map((item, itemIndex) => {
-                      return (
-                        <li 
-                          key={item.id}
-                          className={`text-sm block ${isHighlighted(categoryIndex, itemIndex) ? 'bg-accent rounded-md' : ''} 
-                                     ${item.isArchived ? 'opacity-70' : ''}`}
-                        >
-                          <ContextMenu>
-                            <ContextMenuTrigger className="block w-full">
-                              <div className={`p-1 ${isHighlighted(categoryIndex, itemIndex) ? 'bg-accent rounded-md' : ''}`}>
-                                <Item
-                                  item={item}
-                                  itemType={item.type as keyof typeof itemTypeIcons}
-                                  showLastWornAt={true}
-                                />
-                              </div>
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                              <ContextMenuItem
-                                onClick={() => handleArchiveToggle(item.id, item.isArchived)}
-                              >
-                                {item.isArchived ? (
-                                  <>
-                                    <ArchiveRestore className="mr-2 h-4 w-4" />
-                                    <span>Unarchive Item</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Archive className="mr-2 h-4 w-4" />
-                                    <span>Archive Item</span>
-                                  </>
-                                )}
-                              </ContextMenuItem>
-                            </ContextMenuContent>
-                          </ContextMenu>
-                        </li>
-                      )
-                    })}
-                  </React.Fragment>
-                )
-              })}
-            </ul>
-          ) : !addMode ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">
-                {searchTerm 
-                  ? "No items found matching your search criteria. Keep typing to create a new item."
-                  : "No items found with the selected filter."}
-              </p>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+                  )
+                })}
+              </React.Fragment>
+            )
+          })}
+        </ul>
+      ) : !addMode ? (
+        <div className="p-8 text-center">
+          <p className="text-muted-foreground">
+            {searchTerm 
+              ? "No items found matching your search criteria. Keep typing to create a new item."
+              : "No items found with the selected filter."}
+          </p>
+        </div>
+      ) : null}
     </div>
   )
 }

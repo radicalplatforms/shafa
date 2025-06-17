@@ -99,7 +99,10 @@ export default function OutfitList() {
                     </span>
                     <Rating rating={outfit.rating as 0 | 1 | 2} />
                   </div>
-                  <ItemList itemsToOutfits={outfit.itemsToOutfits} />
+                  <ItemList 
+                    itemsToOutfits={outfit.itemsToOutfits} 
+                    isInteractive={true}
+                  />
                 </CardContent>
               </Card>
             </ContextMenuTrigger>

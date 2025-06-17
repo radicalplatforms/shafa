@@ -156,6 +156,7 @@ export function useItems() {
   const { getToken } = useAuth()
   const $get = client.api.items.$get
   const $patch = client.api.items.archive[':id'].$patch
+  const $put = client.api.items[':id'].$put
 
   const fetcher = (arg: InferRequestType<typeof $get>) => async () => {
     const res = await $get(arg, {
@@ -191,12 +192,46 @@ export function useItems() {
     }
   }
 
+  const updateItem = async (itemId: string, updates: { name?: string; brand?: string; type?: string }) => {
+    try {
+      // Find the current item to preserve other fields
+      const item = data?.items.find(item => item.id === itemId)
+      if (!item) return false
+
+      const res = await $put({ 
+        param: { id: itemId }, 
+        json: { 
+          ...item,
+          ...updates,
+          // Ensure these required fields are present
+          name: updates.name || item.name,
+          type: updates.type || item.type,
+          rating: item.rating
+        } 
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        },
+      })
+      
+      if (res.ok) {
+        await mutate()
+      }
+      return res.ok
+    } catch (error) {
+      console.error('Error updating item:', error)
+      return false
+    }
+  }
+
   return {
     items: data?.items || [],
     isLoading,
     isError: error,
     mutate,
-    archiveItem
+    archiveItem,
+    updateItem
   }
 }
 

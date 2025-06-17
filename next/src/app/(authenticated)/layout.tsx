@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import AuthenticatedHeader from '@/components/AuthenticatedHeader'
+import { ItemExpandProvider } from '@/lib/context/ItemExpandContext'
 
 export default function AuthenticatedLayout({
   children,
@@ -12,7 +13,9 @@ export default function AuthenticatedLayout({
         <Suspense>
           <AuthenticatedHeader />
         </Suspense>
-        {children}
+        <ItemExpandProvider>
+          {children}
+        </ItemExpandProvider>
       </div>
     </div>
   )

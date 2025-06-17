@@ -76,6 +76,31 @@
   }
 }
 
+/* Animation Utilities */
+@layer utilities {
+  .animate-in {
+    animation-duration: 150ms;
+    animation-timing-function: cubic-bezier(0.1, 0.5, 0.3, 1);
+    animation-fill-mode: forwards;
+  }
+
+  .slide-in-from-top-2 {
+    animation-name: slideInFromTop;
+    transform-origin: top;
+  }
+
+  @keyframes slideInFromTop {
+    from {
+      transform: translateY(-0.5rem) scale(0.98);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+}
+
 .fade-in {
   @apply opacity-0 filter blur-sm;
   animation: fadeIn 0.5s ease-out forwards;
@@ -169,12 +194,27 @@
 }
 
 @layer utilities {
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
   }
-
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+  
+  .transform {
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    perspective: 1000px;
+    will-change: transform, opacity;
+  }
+  
+  .transform-gpu {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    will-change: transform, opacity;
   }
 }
+
+/* No longer needed item animation classes have been removed */
