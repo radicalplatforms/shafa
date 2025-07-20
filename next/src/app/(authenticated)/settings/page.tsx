@@ -55,29 +55,40 @@ export default function SettingsPage() {
               Manage your account information, security settings, and personal details.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border bg-background/50 p-1">
-              <UserProfile
-                appearance={{
-                  elements: {
-                    rootBox: "w-full",
-                    cardBox: "shadow-none border-none bg-transparent",
-                    navbar: "hidden",
-                    pageScrollBox: "p-0",
-                    page: "bg-transparent shadow-none",
-                    profileSection: "bg-transparent",
-                    profileSectionPrimaryButton: "bg-primary text-primary-foreground hover:bg-primary/90",
-                    formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
-                    footerActionLink: "text-primary hover:text-primary/80",
-                  },
-                  variables: {
-                    borderRadius: "0.5rem",
-                  },
-                }}
-                routing="path"
-                path="/settings"
-              />
-            </div>
+          <CardContent className="p-0">
+            <UserProfile
+              appearance={{
+                elements: {
+                  rootBox: "w-full",
+                  cardBox: "shadow-none border-none bg-transparent rounded-lg",
+                  navbar: "hidden",
+                  pageScrollBox: "p-6",
+                  page: "bg-transparent shadow-none",
+                  profileSection: "bg-transparent",
+                  profileSectionPrimaryButton: "bg-primary text-primary-foreground hover:bg-primary/90",
+                  formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
+                  footerActionLink: "text-primary hover:text-primary/80",
+                  card: "bg-transparent shadow-none border-none",
+                  headerTitle: "text-foreground",
+                  headerSubtitle: "text-muted-foreground",
+                  socialButtonsBlockButton: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                  formFieldLabel: "text-foreground",
+                  formFieldInput: "bg-background border-border text-foreground",
+                  identityPreview: "bg-background/50 border-border",
+                  profileSectionContent: "text-foreground",
+                },
+                variables: {
+                  borderRadius: "0.5rem",
+                  colorBackground: "transparent",
+                  colorInputBackground: "hsl(var(--background))",
+                  colorInputText: "hsl(var(--foreground))",
+                  colorText: "hsl(var(--foreground))",
+                  colorTextSecondary: "hsl(var(--muted-foreground))",
+                },
+              }}
+              routing="path"
+              path="/settings"
+            />
           </CardContent>
         </Card>
       </div>

@@ -103,9 +103,12 @@ export function TagManager() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
+        <div className="flex flex-wrap gap-2 mb-6 min-h-[40px]">
           {userTags.length === 0 ? (
-            <span className="text-muted-foreground text-sm">No custom tags yet. Create your first tag!</span>
+            <div className="w-full text-center py-8">
+              <div className="text-muted-foreground text-sm mb-2">No custom tags yet</div>
+              <div className="text-xs text-muted-foreground">Create your first tag to get started with outfit organization!</div>
+            </div>
           ) : (
             userTags.map(tag => (
               <div
@@ -143,7 +146,7 @@ export function TagManager() {
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Create New Tag
             </Button>
