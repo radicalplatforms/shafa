@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { TagManager } from "@/components/TagManager"
 import { useUser } from "@clerk/nextjs"
 import Link from "next/link"
+import Image from "next/image"
 import { Palette, User, Monitor } from "lucide-react"
 
 export default function SettingsPage() {
@@ -66,9 +67,11 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border bg-background/50">
                   <div className="flex items-center gap-4">
                     {user.imageUrl ? (
-                      <img 
+                      <Image 
                         src={user.imageUrl} 
                         alt="Profile" 
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
