@@ -203,6 +203,9 @@ export function useItems() {
 export function useTags() {
   const { getToken } = useAuth()
   const $get = client.api.tags.$get
+  const $post = client.api.tags.$post
+  const $put = client.api.tags[':id'].$put
+  const $delete = client.api.tags[':id'].$delete
 
   const fetcher = (arg: InferRequestType<typeof $get>) => async () => {
     const res = await $get(arg, {
@@ -214,15 +217,89 @@ export function useTags() {
     return await res.json()
   }
 
-  const { data, isLoading, error } = useSWR(
+  const { data, isLoading, error, mutate } = useSWR(
     'get-tags', 
     fetcher({})
   )
+
+  const createTag = async (tag: { name: string; hexColor: string; minDaysBeforeItemReuse?: number }) => {
+    try {
+      const res = await $post({ 
+        json: {
+          name: tag.name,
+          hexColor: tag.hexColor,
+          minDaysBeforeItemReuse: tag.minDaysBeforeItemReuse ?? -1
+        }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        },
+      })
+      
+      if (res.ok) {
+        await mutate()
+      }
+      return res.ok
+    } catch (error) {
+      console.error('Error creating tag:', error)
+      return false
+    }
+  }
+
+  const updateTag = async (tagId: string, tag: { name: string; hexColor: string; minDaysBeforeItemReuse?: number }) => {
+    try {
+      const res = await $put({ 
+        param: { id: tagId },
+        json: {
+          name: tag.name,
+          hexColor: tag.hexColor,
+          minDaysBeforeItemReuse: tag.minDaysBeforeItemReuse ?? -1
+        }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        },
+      })
+      
+      if (res.ok) {
+        await mutate()
+      }
+      return res.ok
+    } catch (error) {
+      console.error('Error updating tag:', error)
+      return false
+    }
+  }
+
+  const deleteTag = async (tagId: string) => {
+    try {
+      const res = await $delete({ param: { id: tagId } }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        },
+      })
+      
+      if (res.ok) {
+        await mutate()
+      }
+      return res.ok
+    } catch (error) {
+      console.error('Error deleting tag:', error)
+      return false
+    }
+  }
  
   return {
-    tags: data,
+    tags: data || [],
     isLoading,
-    isError: error
+    isError: error,
+    mutate,
+    createTag,
+    updateTag,
+    deleteTag
   }
 }
 

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Moon, Sun } from "lucide-react"
+import { Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
@@ -47,5 +47,45 @@ export function ThemeToggle() {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  )
+}
+
+export function ThemeSelector() {
+  const { theme, setTheme, themes } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <div className="flex gap-2">
+      <div className="w-20 h-9 bg-muted rounded" />
+      <div className="w-20 h-9 bg-muted rounded" />
+      <div className="w-20 h-9 bg-muted rounded" />
+    </div>
+  }
+
+  const themeOptions = [
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'system', label: 'System', icon: Monitor },
+  ]
+
+  return (
+    <div className="flex gap-2">
+      {themeOptions.map(({ value, label, icon: Icon }) => (
+        <Button
+          key={value}
+          variant={theme === value ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTheme(value)}
+          className="flex items-center gap-2 min-w-[80px]"
+        >
+          <Icon className="h-4 w-4" />
+          {label}
+        </Button>
+      ))}
+    </div>
   )
 } 
