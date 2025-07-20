@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { X, Edit, Plus, Palette, MoreVertical, Trash2 } from "lucide-react"
+import { X, Edit, Plus, Palette, MoreVertical, Trash2, Minus } from "lucide-react"
 import { useTags } from "@/lib/client"
 
 interface Tag {
@@ -239,18 +239,46 @@ export function TagManager() {
                     <Label htmlFor="min-days" className="text-sm font-medium">
                       Minimum Days Before Item Reuse
                     </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="min-days"
-                        type="number"
-                        min="-1"
-                        max="365"
-                        value={newTag.minDaysBeforeItemReuse}
-                        onChange={(e) => setNewTag({ ...newTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">days</span>
-                    </div>
+                                         <div className="flex items-center gap-2">
+                       <div className="flex items-center border rounded-md">
+                         <Button
+                           type="button"
+                           variant="ghost"
+                           size="sm"
+                           className="h-8 w-8 p-0 rounded-r-none border-r"
+                           onClick={() => setNewTag({ 
+                             ...newTag, 
+                             minDaysBeforeItemReuse: Math.max(-1, newTag.minDaysBeforeItemReuse - 1) 
+                           })}
+                           disabled={newTag.minDaysBeforeItemReuse <= -1}
+                         >
+                           <Minus className="h-3 w-3" />
+                         </Button>
+                         <Input
+                           id="min-days"
+                           type="number"
+                           min="-1"
+                           max="365"
+                           value={newTag.minDaysBeforeItemReuse}
+                           onChange={(e) => setNewTag({ ...newTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
+                           className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0"
+                         />
+                         <Button
+                           type="button"
+                           variant="ghost"
+                           size="sm"
+                           className="h-8 w-8 p-0 rounded-l-none border-l"
+                           onClick={() => setNewTag({ 
+                             ...newTag, 
+                             minDaysBeforeItemReuse: Math.min(365, newTag.minDaysBeforeItemReuse + 1) 
+                           })}
+                           disabled={newTag.minDaysBeforeItemReuse >= 365}
+                         >
+                           <Plus className="h-3 w-3" />
+                         </Button>
+                       </div>
+                       <span className="text-sm text-muted-foreground">days</span>
+                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       Prevents reusing items with this tag too frequently. Set to -1 for no restriction.
                     </p>
@@ -371,18 +399,46 @@ export function TagManager() {
                       <Label htmlFor="edit-min-days" className="text-sm font-medium">
                         Minimum Days Before Item Reuse
                       </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id="edit-min-days"
-                          type="number"
-                          min="-1"
-                          max="365"
-                          value={editingTag.minDaysBeforeItemReuse}
-                          onChange={(e) => setEditingTag({ ...editingTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                          className="w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">days</span>
-                      </div>
+                                             <div className="flex items-center gap-2">
+                         <div className="flex items-center border rounded-md">
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="sm"
+                             className="h-8 w-8 p-0 rounded-r-none border-r"
+                             onClick={() => setEditingTag({ 
+                               ...editingTag, 
+                               minDaysBeforeItemReuse: Math.max(-1, editingTag.minDaysBeforeItemReuse - 1) 
+                             })}
+                             disabled={editingTag.minDaysBeforeItemReuse <= -1}
+                           >
+                             <Minus className="h-3 w-3" />
+                           </Button>
+                           <Input
+                             id="edit-min-days"
+                             type="number"
+                             min="-1"
+                             max="365"
+                             value={editingTag.minDaysBeforeItemReuse}
+                             onChange={(e) => setEditingTag({ ...editingTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
+                             className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0"
+                           />
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="sm"
+                             className="h-8 w-8 p-0 rounded-l-none border-l"
+                             onClick={() => setEditingTag({ 
+                               ...editingTag, 
+                               minDaysBeforeItemReuse: Math.min(365, editingTag.minDaysBeforeItemReuse + 1) 
+                             })}
+                             disabled={editingTag.minDaysBeforeItemReuse >= 365}
+                           >
+                             <Plus className="h-3 w-3" />
+                           </Button>
+                         </div>
+                         <span className="text-sm text-muted-foreground">days</span>
+                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Prevents reusing items with this tag too frequently. Set to -1 for no restriction.
                       </p>
