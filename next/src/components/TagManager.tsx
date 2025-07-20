@@ -254,15 +254,15 @@ export function TagManager() {
                          >
                            <Minus className="h-3 w-3" />
                          </Button>
-                         <Input
-                           id="min-days"
-                           type="number"
-                           min="-1"
-                           max="365"
-                           value={newTag.minDaysBeforeItemReuse}
-                           onChange={(e) => setNewTag({ ...newTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                           className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0"
-                         />
+                                                    <Input
+                             id="min-days"
+                             type="number"
+                             min="-1"
+                             max="365"
+                             value={newTag.minDaysBeforeItemReuse}
+                             onChange={(e) => setNewTag({ ...newTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
+                             className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                           />
                          <Button
                            type="button"
                            variant="ghost"
@@ -414,15 +414,15 @@ export function TagManager() {
                            >
                              <Minus className="h-3 w-3" />
                            </Button>
-                           <Input
-                             id="edit-min-days"
-                             type="number"
-                             min="-1"
-                             max="365"
-                             value={editingTag.minDaysBeforeItemReuse}
-                             onChange={(e) => setEditingTag({ ...editingTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                             className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0"
-                           />
+                                                        <Input
+                               id="edit-min-days"
+                               type="number"
+                               min="-1"
+                               max="365"
+                               value={editingTag.minDaysBeforeItemReuse}
+                               onChange={(e) => setEditingTag({ ...editingTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
+                               className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                             />
                            <Button
                              type="button"
                              variant="ghost"
