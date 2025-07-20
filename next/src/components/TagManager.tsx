@@ -171,68 +171,130 @@ export function TagManager() {
               Create New Tag
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Create New Tag</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Tag Name */}
               <div className="space-y-2">
-                <Label htmlFor="tag-name">Tag Name</Label>
+                <Label htmlFor="tag-name" className="text-sm font-medium">Tag Name</Label>
                 <Input
                   id="tag-name"
-                  placeholder="Enter tag name"
+                  placeholder="e.g., Work, Casual, Date Night"
                   value={newTag.name}
                   onChange={(e) => setNewTag({ ...newTag, name: e.target.value })}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreateTag()
+                    if (e.key === "Enter" && newTag.name.trim()) handleCreateTag()
                   }}
+                  className="text-base"
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label>Color</Label>
-                <div className="flex flex-wrap gap-2 mb-2">
+              {/* Color Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Choose Color</Label>
+                <div className="grid grid-cols-10 gap-2">
                   {DEFAULT_COLORS.map(color => (
                     <button
                       key={color}
                       type="button"
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${
-                        newTag.hexColor === color ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'
+                      className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                        newTag.hexColor === color 
+                          ? 'border-foreground ring-2 ring-foreground/20 scale-110' 
+                          : 'border-white/20 hover:border-white/40'
                       }`}
                       style={{ backgroundColor: color }}
                       onClick={() => setNewTag({ ...newTag, hexColor: color })}
-                      aria-label={`Select color ${color}`}
+                      aria-label={`Select ${color} color`}
                     />
                   ))}
                 </div>
-                <Input
-                  type="color"
-                  value={newTag.hexColor}
-                  onChange={(e) => setNewTag({ ...newTag, hexColor: e.target.value })}
-                  className="w-full h-10"
-                />
+                <div className="flex items-center gap-2 mt-3">
+                  <Label className="text-sm text-muted-foreground">Custom:</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      value={newTag.hexColor}
+                      onChange={(e) => setNewTag({ ...newTag, hexColor: e.target.value })}
+                      className="w-12 h-8 p-1 border rounded cursor-pointer"
+                    />
+                    <span className="text-sm text-muted-foreground font-mono">
+                      {newTag.hexColor.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
               </div>
 
+              {/* Advanced Options - Collapsible */}
+              <details className="group">
+                <summary className="flex items-center gap-2 text-sm font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                  <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Advanced Options
+                </summary>
+                <div className="mt-3 space-y-3 pl-6 border-l-2 border-muted">
+                  <div className="space-y-2">
+                    <Label htmlFor="min-days" className="text-sm font-medium">
+                      Minimum Days Before Item Reuse
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="min-days"
+                        type="number"
+                        min="-1"
+                        max="365"
+                        value={newTag.minDaysBeforeItemReuse}
+                        onChange={(e) => setNewTag({ ...newTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">days</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Prevents reusing items with this tag too frequently. Set to -1 for no restriction.
+                    </p>
+                  </div>
+                </div>
+              </details>
+
+              {/* Preview */}
               <div className="space-y-2">
-                <Label htmlFor="min-days">Minimum Days Before Item Reuse</Label>
-                <Input
-                  id="min-days"
-                  type="number"
-                  min="-1"
-                  max="365"
-                  value={newTag.minDaysBeforeItemReuse}
-                  onChange={(e) => setNewTag({ ...newTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Set to -1 for no restriction, or specify days to prevent reusing items too frequently.
-                </p>
+                <Label className="text-sm font-medium">Preview</Label>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border"
+                    style={{ 
+                      backgroundColor: newTag.hexColor + "15", 
+                      borderColor: newTag.hexColor + "30",
+                      color: newTag.hexColor 
+                    }}
+                  >
+                    <span>{newTag.name || "Tag Name"}</span>
+                    <MoreVertical className="w-3 h-3 opacity-60" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    This is how your tag will appear
+                  </span>
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+            <DialogFooter className="flex gap-2 pt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsCreateDialogOpen(false)
+                  setNewTag({ name: "", hexColor: "#6b7280", minDaysBeforeItemReuse: -1 })
+                }}
+                className="flex-1 sm:flex-initial"
+              >
                 Cancel
               </Button>
-              <Button onClick={handleCreateTag} disabled={!newTag.name.trim()}>
+              <Button 
+                onClick={handleCreateTag} 
+                disabled={!newTag.name.trim()}
+                className="flex-1 sm:flex-initial"
+              >
                 Create Tag
               </Button>
             </DialogFooter>
@@ -240,70 +302,129 @@ export function TagManager() {
         </Dialog>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit Tag</DialogTitle>
             </DialogHeader>
             {editingTag && (
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Tag Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="edit-tag-name">Tag Name</Label>
+                  <Label htmlFor="edit-tag-name" className="text-sm font-medium">Tag Name</Label>
                   <Input
                     id="edit-tag-name"
-                    placeholder="Enter tag name"
+                    placeholder="e.g., Work, Casual, Date Night"
                     value={editingTag.name}
                     onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleUpdateTag()
+                      if (e.key === "Enter" && editingTag.name.trim()) handleUpdateTag()
                     }}
+                    className="text-base"
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>Color</Label>
-                  <div className="flex flex-wrap gap-2 mb-2">
+                {/* Color Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Choose Color</Label>
+                  <div className="grid grid-cols-10 gap-2">
                     {DEFAULT_COLORS.map(color => (
                       <button
                         key={color}
                         type="button"
-                        className={`w-8 h-8 rounded-full border-2 transition-all ${
-                          editingTag.hexColor === color ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'
+                        className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                          editingTag.hexColor === color 
+                            ? 'border-foreground ring-2 ring-foreground/20 scale-110' 
+                            : 'border-white/20 hover:border-white/40'
                         }`}
                         style={{ backgroundColor: color }}
                         onClick={() => setEditingTag({ ...editingTag, hexColor: color })}
-                        aria-label={`Select color ${color}`}
+                        aria-label={`Select ${color} color`}
                       />
                     ))}
                   </div>
-                  <Input
-                    type="color"
-                    value={editingTag.hexColor}
-                    onChange={(e) => setEditingTag({ ...editingTag, hexColor: e.target.value })}
-                    className="w-full h-10"
-                  />
+                  <div className="flex items-center gap-2 mt-3">
+                    <Label className="text-sm text-muted-foreground">Custom:</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={editingTag.hexColor}
+                        onChange={(e) => setEditingTag({ ...editingTag, hexColor: e.target.value })}
+                        className="w-12 h-8 p-1 border rounded cursor-pointer"
+                      />
+                      <span className="text-sm text-muted-foreground font-mono">
+                        {editingTag.hexColor.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
+                {/* Advanced Options - Collapsible */}
+                <details className="group">
+                  <summary className="flex items-center gap-2 text-sm font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                    <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    Advanced Options
+                  </summary>
+                  <div className="mt-3 space-y-3 pl-6 border-l-2 border-muted">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-min-days" className="text-sm font-medium">
+                        Minimum Days Before Item Reuse
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="edit-min-days"
+                          type="number"
+                          min="-1"
+                          max="365"
+                          value={editingTag.minDaysBeforeItemReuse}
+                          onChange={(e) => setEditingTag({ ...editingTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">days</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Prevents reusing items with this tag too frequently. Set to -1 for no restriction.
+                      </p>
+                    </div>
+                  </div>
+                </details>
+
+                {/* Preview */}
                 <div className="space-y-2">
-                  <Label htmlFor="edit-min-days">Minimum Days Before Item Reuse</Label>
-                  <Input
-                    id="edit-min-days"
-                    type="number"
-                    min="-1"
-                    max="365"
-                    value={editingTag.minDaysBeforeItemReuse}
-                    onChange={(e) => setEditingTag({ ...editingTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Set to -1 for no restriction, or specify days to prevent reusing items too frequently.
-                  </p>
+                  <Label className="text-sm font-medium">Preview</Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border"
+                      style={{ 
+                        backgroundColor: editingTag.hexColor + "15", 
+                        borderColor: editingTag.hexColor + "30",
+                        color: editingTag.hexColor 
+                      }}
+                    >
+                      <span>{editingTag.name || "Tag Name"}</span>
+                      <MoreVertical className="w-3 h-3 opacity-60" />
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      This is how your tag will appear
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <DialogFooter className="flex gap-2 pt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                className="flex-1 sm:flex-initial"
+              >
                 Cancel
               </Button>
-              <Button onClick={handleUpdateTag} disabled={!editingTag?.name.trim()}>
+              <Button 
+                onClick={handleUpdateTag} 
+                disabled={!editingTag?.name.trim()}
+                className="flex-1 sm:flex-initial"
+              >
                 Save Changes
               </Button>
             </DialogFooter>
