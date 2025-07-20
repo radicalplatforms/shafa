@@ -6,7 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { X, Edit, Plus, Palette } from "lucide-react"
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { X, Edit, Plus, Palette, MoreVertical, Trash2 } from "lucide-react"
 import { useTags } from "@/lib/client"
 
 interface Tag {
@@ -113,7 +118,7 @@ export function TagManager() {
             userTags.map(tag => (
               <div
                 key={tag.id}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border group"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border"
                 style={{ 
                   backgroundColor: tag.hexColor + "15", 
                   borderColor: tag.hexColor + "30",
@@ -121,24 +126,39 @@ export function TagManager() {
                 }}
               >
                 <span>{tag.name}</span>
-                <div className="ml-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-blue-600 transition-colors"
-                    onClick={() => openEditDialog(tag)}
-                    aria-label={`Edit tag ${tag.name}`}
-                  >
-                    <Edit className="w-3 h-3" />
-                  </button>
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                    onClick={() => handleDeleteTag(tag.id)}
-                    aria-label={`Remove tag ${tag.name}`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="ml-1 p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
+                      aria-label={`Manage tag ${tag.name}`}
+                    >
+                      <MoreVertical className="w-3 h-3" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-32 p-1" align="end">
+                    <div className="flex flex-col">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start h-8 px-2"
+                        onClick={() => openEditDialog(tag)}
+                      >
+                        <Edit className="w-3 h-3 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteTag(tag.id)}
+                      >
+                        <Trash2 className="w-3 h-3 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             ))
           )}
