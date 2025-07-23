@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/popover"
 import { X, Edit, Plus, Palette, MoreVertical, Trash2, Minus } from "lucide-react"
 import { useTags } from "@/lib/client"
+import { Tag } from "@/components/ui/tag"
 
-interface Tag {
+interface TagType {
   id: string
   name: string
   hexColor: string
@@ -33,7 +34,7 @@ const DEFAULT_COLORS = [
 export function TagManager() {
   const { tags, isLoading, createTag, updateTag, deleteTag } = useTags()
   const [newTag, setNewTag] = useState({ name: "", hexColor: "#6b7280", minDaysBeforeItemReuse: -1 })
-  const [editingTag, setEditingTag] = useState<Tag | null>(null)
+  const [editingTag, setEditingTag] = useState<TagType | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
@@ -67,13 +68,13 @@ export function TagManager() {
     }
   }
 
-  const openEditDialog = (tag: Tag) => {
+  const openEditDialog = (tag: TagType) => {
     setEditingTag({ ...tag })
     setIsEditDialogOpen(true)
   }
 
   // Filter out virtual tags (they can't be edited/deleted)
-  const userTags = tags.filter(tag => tag.userId !== 'system')
+  const userTags = tags.filter((tag: TagType) => tag.userId !== 'system')
 
   if (isLoading) {
     return (
@@ -116,50 +117,20 @@ export function TagManager() {
             </div>
           ) : (
             userTags.map(tag => (
-              <div
-                key={tag.id}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border"
-                style={{ 
-                  backgroundColor: tag.hexColor + "15", 
-                  borderColor: tag.hexColor + "30",
-                  color: tag.hexColor 
-                }}
-              >
-                <span>{tag.name}</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="ml-1 p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
-                      aria-label={`Manage tag ${tag.name}`}
-                    >
-                      <MoreVertical className="w-3 h-3" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-32 p-1" align="end">
-                    <div className="flex flex-col">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start h-8 px-2"
-                        onClick={() => openEditDialog(tag)}
-                      >
-                        <Edit className="w-3 h-3 mr-2" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteTag(tag.id)}
-                      >
-                        <Trash2 className="w-3 h-3 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <span key={tag.id} className="inline-flex items-center">
+                <button
+                  type="button"
+                  className="focus:outline-none cursor-pointer"
+                  onClick={() => openEditDialog(tag)}
+                  aria-label={`Edit tag ${tag.name}`}
+                >
+                  <Tag
+                    name={tag.name}
+                    hexColor={tag.hexColor}
+                    compact={false}
+                  />
+                </button>
+              </span>
             ))
           )}
         </div>
@@ -226,81 +197,16 @@ export function TagManager() {
                 </div>
               </div>
 
-              {/* Advanced Options - Collapsible */}
-              <details className="group">
-                <summary className="flex items-center gap-2 text-sm font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-                  <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  Advanced Options
-                </summary>
-                <div className="mt-3 space-y-3 pl-6 border-l-2 border-muted">
-                  <div className="space-y-2">
-                    <Label htmlFor="min-days" className="text-sm font-medium">
-                      Minimum Days Before Item Reuse
-                    </Label>
-                                         <div className="flex items-center gap-2">
-                       <div className="flex items-center border rounded-md">
-                         <Button
-                           type="button"
-                           variant="ghost"
-                           size="sm"
-                           className="h-8 w-8 p-0 rounded-r-none border-r"
-                           onClick={() => setNewTag({ 
-                             ...newTag, 
-                             minDaysBeforeItemReuse: Math.max(-1, newTag.minDaysBeforeItemReuse - 1) 
-                           })}
-                           disabled={newTag.minDaysBeforeItemReuse <= -1}
-                         >
-                           <Minus className="h-3 w-3" />
-                         </Button>
-                                                    <Input
-                             id="min-days"
-                             type="number"
-                             min="-1"
-                             max="365"
-                             value={newTag.minDaysBeforeItemReuse}
-                             onChange={(e) => setNewTag({ ...newTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                             className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                           />
-                         <Button
-                           type="button"
-                           variant="ghost"
-                           size="sm"
-                           className="h-8 w-8 p-0 rounded-l-none border-l"
-                           onClick={() => setNewTag({ 
-                             ...newTag, 
-                             minDaysBeforeItemReuse: Math.min(365, newTag.minDaysBeforeItemReuse + 1) 
-                           })}
-                           disabled={newTag.minDaysBeforeItemReuse >= 365}
-                         >
-                           <Plus className="h-3 w-3" />
-                         </Button>
-                       </div>
-                       <span className="text-sm text-muted-foreground">days</span>
-                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Prevents reusing items with this tag too frequently. Set to -1 for no restriction.
-                    </p>
-                  </div>
-                </div>
-              </details>
 
               {/* Preview */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Preview</Label>
                 <div className="flex items-center gap-2">
-                  <div
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border"
-                    style={{ 
-                      backgroundColor: newTag.hexColor + "15", 
-                      borderColor: newTag.hexColor + "30",
-                      color: newTag.hexColor 
-                    }}
-                  >
-                    <span>{newTag.name || "Tag Name"}</span>
-                    <MoreVertical className="w-3 h-3 opacity-60" />
-                  </div>
+                  <Tag
+                    name={newTag.name || "Tag Name"}
+                    hexColor={newTag.hexColor}
+                    compact={false}
+                  />
                   <span className="text-xs text-muted-foreground">
                     This is how your tag will appear
                   </span>
@@ -386,81 +292,16 @@ export function TagManager() {
                   </div>
                 </div>
 
-                {/* Advanced Options - Collapsible */}
-                <details className="group">
-                  <summary className="flex items-center gap-2 text-sm font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-                    <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    Advanced Options
-                  </summary>
-                  <div className="mt-3 space-y-3 pl-6 border-l-2 border-muted">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-min-days" className="text-sm font-medium">
-                        Minimum Days Before Item Reuse
-                      </Label>
-                                             <div className="flex items-center gap-2">
-                         <div className="flex items-center border rounded-md">
-                           <Button
-                             type="button"
-                             variant="ghost"
-                             size="sm"
-                             className="h-8 w-8 p-0 rounded-r-none border-r"
-                             onClick={() => setEditingTag({ 
-                               ...editingTag, 
-                               minDaysBeforeItemReuse: Math.max(-1, editingTag.minDaysBeforeItemReuse - 1) 
-                             })}
-                             disabled={editingTag.minDaysBeforeItemReuse <= -1}
-                           >
-                             <Minus className="h-3 w-3" />
-                           </Button>
-                                                        <Input
-                               id="edit-min-days"
-                               type="number"
-                               min="-1"
-                               max="365"
-                               value={editingTag.minDaysBeforeItemReuse}
-                               onChange={(e) => setEditingTag({ ...editingTag, minDaysBeforeItemReuse: parseInt(e.target.value) || -1 })}
-                               className="w-16 text-center border-0 rounded-none focus:ring-0 focus:border-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                             />
-                           <Button
-                             type="button"
-                             variant="ghost"
-                             size="sm"
-                             className="h-8 w-8 p-0 rounded-l-none border-l"
-                             onClick={() => setEditingTag({ 
-                               ...editingTag, 
-                               minDaysBeforeItemReuse: Math.min(365, editingTag.minDaysBeforeItemReuse + 1) 
-                             })}
-                             disabled={editingTag.minDaysBeforeItemReuse >= 365}
-                           >
-                             <Plus className="h-3 w-3" />
-                           </Button>
-                         </div>
-                         <span className="text-sm text-muted-foreground">days</span>
-                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Prevents reusing items with this tag too frequently. Set to -1 for no restriction.
-                      </p>
-                    </div>
-                  </div>
-                </details>
 
                 {/* Preview */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Preview</Label>
                   <div className="flex items-center gap-2">
-                    <div
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border"
-                      style={{ 
-                        backgroundColor: editingTag.hexColor + "15", 
-                        borderColor: editingTag.hexColor + "30",
-                        color: editingTag.hexColor 
-                      }}
-                    >
-                      <span>{editingTag.name || "Tag Name"}</span>
-                      <MoreVertical className="w-3 h-3 opacity-60" />
-                    </div>
+                    <Tag
+                      name={editingTag.name || "Tag Name"}
+                      hexColor={editingTag.hexColor}
+                      compact={false}
+                    />
                     <span className="text-xs text-muted-foreground">
                       This is how your tag will appear
                     </span>
@@ -468,21 +309,30 @@ export function TagManager() {
                 </div>
               </div>
             )}
-            <DialogFooter className="flex gap-2 pt-6">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsEditDialogOpen(false)}
-                className="flex-1 sm:flex-initial"
+            <DialogFooter className="w-full flex justify-between items-center pt-6">
+              <Button
+                variant="destructive"
+                onClick={() => { if (editingTag) { handleDeleteTag(editingTag.id); setIsEditDialogOpen(false); } }}
+                className=""
               >
-                Cancel
+                Delete
               </Button>
-              <Button 
-                onClick={handleUpdateTag} 
-                disabled={!editingTag?.name.trim()}
-                className="flex-1 sm:flex-initial"
-              >
-                Save Changes
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditDialogOpen(false)}
+                  className=""
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleUpdateTag} 
+                  disabled={!editingTag?.name.trim()}
+                  className=""
+                >
+                  Save Changes
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
