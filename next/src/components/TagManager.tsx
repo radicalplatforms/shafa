@@ -309,7 +309,7 @@ export function TagManager() {
                 </div>
               </div>
             )}
-            <DialogFooter className="w-full flex justify-between items-center pt-6">
+            <DialogFooter className="w-full flex items-center pt-6">
               <Button
                 variant="destructive"
                 onClick={() => { if (editingTag) { handleDeleteTag(editingTag.id); setIsEditDialogOpen(false); } }}
@@ -317,6 +317,7 @@ export function TagManager() {
               >
                 Delete
               </Button>
+              <div className="flex-1" />
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
