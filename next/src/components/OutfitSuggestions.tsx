@@ -80,6 +80,7 @@ export default function OutfitSuggestions() {
                 hexColor={tag.hexColor}
                 selected={selectedTagId === tag.id}
                 onClick={() => handleTagClick(tag.id)}
+                compact={false}
               />
             ))
           ) : (
@@ -119,6 +120,7 @@ export default function OutfitSuggestions() {
                               name={tag.name}
                               hexColor={tag.hexColor}
                               selected={true}
+                              compact={false}
                             />
                           )
                         })}
