@@ -6,12 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { X, Edit, Plus, Palette, MoreVertical, Trash2, Minus } from "lucide-react"
+import { Plus, Palette } from "lucide-react"
 import { useTags } from "@/lib/client"
 import { Tag } from "@/components/ui/tag"
 
@@ -37,6 +32,8 @@ export function TagManager() {
   const [editingTag, setEditingTag] = useState<TagType | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [tagToDelete, setTagToDelete] = useState<string | null>(null)
 
   const handleCreateTag = async () => {
     if (!newTag.name.trim()) return
@@ -62,9 +59,16 @@ export function TagManager() {
     }
   }
 
-  const handleDeleteTag = async (tagId: string) => {
-    if (confirm("Are you sure you want to delete this tag? This action cannot be undone.")) {
-      await deleteTag(tagId)
+  const openDeleteDialog = (tagId: string) => {
+    setTagToDelete(tagId)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleDeleteTag = async () => {
+    if (tagToDelete) {
+      await deleteTag(tagToDelete)
+      setTagToDelete(null)
+      setIsDeleteDialogOpen(false)
     }
   }
 
@@ -100,16 +104,121 @@ export function TagManager() {
   return (
     <Card className="bg-card/80 shadow-md border border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-          <Palette className="h-5 w-5" />
-          Manage Tags
-        </CardTitle>
-        <CardDescription>
-          Create and manage your personal tags for outfit organization and suggestions.
-        </CardDescription>
+        <div className="flex items-center justify-between w-full">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Palette className="h-5 w-5" />
+              Manage Tags
+            </CardTitle>
+            <CardDescription>
+              Create and manage your personal tags for outfit organization and suggestions.
+            </CardDescription>
+          </div>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-medium transition-colors duration-150 hover:bg-accent hover:text-accent-foreground" 
+                aria-label="Create New Tag"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Tag
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Create New Tag</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                {/* Tag Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="tag-name" className="text-sm font-medium">Tag Name</Label>
+                  <Input
+                    id="tag-name"
+                    placeholder="e.g., Work, Casual, Date Night"
+                    value={newTag.name}
+                    onChange={(e) => setNewTag({ ...newTag, name: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTag.name.trim()) handleCreateTag()
+                    }}
+                    className="text-base"
+                  />
+                </div>
+                {/* Color Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Choose Color</Label>
+                  <div className="grid grid-cols-10 gap-2">
+                    {DEFAULT_COLORS.map(color => (
+                      <button
+                        key={color}
+                        type="button"
+                        className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                          newTag.hexColor === color 
+                            ? 'border-foreground ring-2 ring-foreground/20 scale-110' 
+                            : 'border-white/20 hover:border-white/40'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setNewTag({ ...newTag, hexColor: color })}
+                        aria-label={`Select ${color} color`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Label className="text-sm text-muted-foreground">Custom:</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={newTag.hexColor}
+                        onChange={(e) => setNewTag({ ...newTag, hexColor: e.target.value })}
+                        className="w-12 h-8 p-1 border rounded cursor-pointer"
+                      />
+                      <span className="text-sm text-muted-foreground font-mono">
+                        {newTag.hexColor.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {/* Preview */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Preview</Label>
+                  <div className="flex items-center gap-2">
+                    <Tag
+                      name={newTag.name || "Tag Name"}
+                      hexColor={newTag.hexColor}
+                      compact={false}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      This is how your tag will appear
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="flex gap-2 pt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsCreateDialogOpen(false)
+                    setNewTag({ name: "", hexColor: "#6b7280", minDaysBeforeItemReuse: -1 })
+                  }}
+                  className="flex-1 sm:flex-initial"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCreateTag} 
+                  disabled={!newTag.name.trim()}
+                  className="flex-1 sm:flex-initial"
+                >
+                  Create Tag
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-2 mb-6 min-h-[40px]">
+        <div className="flex flex-wrap gap-2 mb-2">
           {userTags.length === 0 ? (
             <div className="w-full text-center py-8">
               <div className="text-muted-foreground text-sm mb-2">No custom tags yet</div>
@@ -135,106 +244,6 @@ export function TagManager() {
           )}
         </div>
         
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Create New Tag
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create New Tag</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              {/* Tag Name */}
-              <div className="space-y-2">
-                <Label htmlFor="tag-name" className="text-sm font-medium">Tag Name</Label>
-                <Input
-                  id="tag-name"
-                  placeholder="e.g., Work, Casual, Date Night"
-                  value={newTag.name}
-                  onChange={(e) => setNewTag({ ...newTag, name: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newTag.name.trim()) handleCreateTag()
-                  }}
-                  className="text-base"
-                />
-              </div>
-              
-              {/* Color Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Choose Color</Label>
-                <div className="grid grid-cols-10 gap-2">
-                  {DEFAULT_COLORS.map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
-                        newTag.hexColor === color 
-                          ? 'border-foreground ring-2 ring-foreground/20 scale-110' 
-                          : 'border-white/20 hover:border-white/40'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setNewTag({ ...newTag, hexColor: color })}
-                      aria-label={`Select ${color} color`}
-                    />
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <Label className="text-sm text-muted-foreground">Custom:</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="color"
-                      value={newTag.hexColor}
-                      onChange={(e) => setNewTag({ ...newTag, hexColor: e.target.value })}
-                      className="w-12 h-8 p-1 border rounded cursor-pointer"
-                    />
-                    <span className="text-sm text-muted-foreground font-mono">
-                      {newTag.hexColor.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-
-              {/* Preview */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Preview</Label>
-                <div className="flex items-center gap-2">
-                  <Tag
-                    name={newTag.name || "Tag Name"}
-                    hexColor={newTag.hexColor}
-                    compact={false}
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    This is how your tag will appear
-                  </span>
-                </div>
-              </div>
-            </div>
-            <DialogFooter className="flex gap-2 pt-6">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setIsCreateDialogOpen(false)
-                  setNewTag({ name: "", hexColor: "#6b7280", minDaysBeforeItemReuse: -1 })
-                }}
-                className="flex-1 sm:flex-initial"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleCreateTag} 
-                disabled={!newTag.name.trim()}
-                className="flex-1 sm:flex-initial"
-              >
-                Create Tag
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -312,7 +321,7 @@ export function TagManager() {
             <DialogFooter className="w-full flex items-center pt-6">
               <Button
                 variant="destructive"
-                onClick={() => { if (editingTag) { handleDeleteTag(editingTag.id); setIsEditDialogOpen(false); } }}
+                onClick={() => { if (editingTag) { openDeleteDialog(editingTag.id); setIsEditDialogOpen(false); } }}
                 className=""
               >
                 Delete
@@ -334,6 +343,39 @@ export function TagManager() {
                   Save Changes
                 </Button>
               </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Tag</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this tag? This action cannot be undone.
+              </p>
+            </div>
+            <DialogFooter className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsDeleteDialogOpen(false)
+                  setTagToDelete(null)
+                }}
+                className="flex-1 sm:flex-initial"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleDeleteTag}
+                className="flex-1 sm:flex-initial"
+              >
+                Delete Tag
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
