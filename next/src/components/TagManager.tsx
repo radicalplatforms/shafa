@@ -77,6 +77,21 @@ export function TagManager() {
     setIsEditDialogOpen(true)
   }
 
+  const handleColorSelect = (color: string, isEditing: boolean = false) => {
+    if (isEditing && editingTag) {
+      setEditingTag({ ...editingTag, hexColor: color })
+    } else {
+      setNewTag({ ...newTag, hexColor: color })
+    }
+  }
+
+  const handleColorKeyDown = (e: React.KeyboardEvent, color: string, isEditing: boolean = false) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      handleColorSelect(color, isEditing)
+    }
+  }
+
   // Filter out virtual tags (they can't be edited/deleted)
   const userTags = tags.filter((tag: TagType) => tag.userId !== 'system')
 
@@ -159,7 +174,8 @@ export function TagManager() {
                             : 'border-white/20 hover:border-white/40'
                         }`}
                         style={{ backgroundColor: color }}
-                        onClick={() => setNewTag({ ...newTag, hexColor: color })}
+                        onClick={() => handleColorSelect(color)}
+                        onKeyDown={(e) => handleColorKeyDown(e, color)}
                         aria-label={`Select ${color} color`}
                       />
                     ))}
@@ -280,7 +296,8 @@ export function TagManager() {
                             : 'border-white/20 hover:border-white/40'
                         }`}
                         style={{ backgroundColor: color }}
-                        onClick={() => setEditingTag({ ...editingTag, hexColor: color })}
+                        onClick={() => handleColorSelect(color, true)}
+                        onKeyDown={(e) => handleColorKeyDown(e, color, true)}
                         aria-label={`Select ${color} color`}
                       />
                     ))}
