@@ -12,6 +12,12 @@ export type OutfitsResponse = InferResponseType<typeof client.api.outfits.$get>
 export type ItemsResponse = InferResponseType<typeof client.api.items.$get>
 export type TagsResponse = InferResponseType<typeof client.api.tags.$get>
 
+export interface TagInput {
+  name: string
+  hexColor: string
+  minDaysBeforeItemReuse?: number
+}
+
 export function useOutfits() {
   const { getToken } = useAuth()
   const $get = client.api.outfits.$get
@@ -222,7 +228,7 @@ export function useTags() {
     fetcher({})
   )
 
-  const createTag = async (tag: { name: string; hexColor: string; minDaysBeforeItemReuse?: number }) => {
+  const createTag = async (tag: TagInput) => {
     try {
       const res = await $post({ 
         json: {
@@ -247,7 +253,7 @@ export function useTags() {
     }
   }
 
-  const updateTag = async (tagId: string, tag: { name: string; hexColor: string; minDaysBeforeItemReuse?: number }) => {
+  const updateTag = async (tagId: string, tag: TagInput) => {
     try {
       const res = await $put({ 
         param: { id: tagId },
