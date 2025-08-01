@@ -243,18 +243,12 @@ export function TagManager() {
           ) : (
             userTags.map(tag => (
               <span key={tag.id} className="inline-flex items-center">
-                <button
-                  type="button"
-                  className="focus:outline-none cursor-pointer"
+                <Tag
+                  name={tag.name}
+                  hexColor={tag.hexColor}
+                  compact={false}
                   onClick={() => openEditDialog(tag)}
-                  aria-label={`Edit tag ${tag.name}`}
-                >
-                  <Tag
-                    name={tag.name}
-                    hexColor={tag.hexColor}
-                    compact={false}
-                  />
-                </button>
+                />
               </span>
             ))
           )}

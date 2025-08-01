@@ -62,7 +62,7 @@ export default function SettingsPage() {
             <div className="space-y-6">
               {/* Current User Info */}
               {user && (
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-background/50">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border bg-background/50 gap-4">
                   <div className="flex items-center gap-4">
                     {user.imageUrl ? (
                       <Image 
@@ -70,23 +70,23 @@ export default function SettingsPage() {
                         alt="Profile" 
                         width={48}
                         height={48}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <User className="h-6 w-6 text-primary" />
                       </div>
                     )}
-                    <div>
-                      <h3 className="font-medium text-foreground">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium text-foreground truncate">
                         {user.fullName || user.firstName || 'Your Profile'}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground truncate">
                         {user.primaryEmailAddress?.emailAddress || 'Signed in with Clerk'}
                       </p>
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground text-center sm:text-right">
                     Account managed via Clerk
                   </div>
                 </div>
