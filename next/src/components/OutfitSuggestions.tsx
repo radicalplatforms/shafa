@@ -120,7 +120,7 @@ export default function OutfitSuggestions() {
                               name={tag.name}
                               hexColor={tag.hexColor}
                               selected={true}
-                              compact={false}
+                              compact={true}
                             />
                           )
                         })}
