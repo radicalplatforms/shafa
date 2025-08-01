@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const { user } = useUser()
   
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4 space-y-8">
+    <div className="max-w-4xl mx-auto py-10 space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
