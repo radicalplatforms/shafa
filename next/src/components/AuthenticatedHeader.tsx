@@ -46,7 +46,12 @@ export default function AuthenticatedHeader() {
         </div>
         <div className="transition-colors duration-300">
           <Link href="/settings">
-            <Button variant="outline" size="icon" aria-label="Settings" className="rounded-full w-9 h-9 border-none">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              aria-label="Settings" 
+              className="rounded-full w-9 h-9 bg-transparent hover:bg-muted/50 border-border"
+            >
               <Settings className="h-[1.2rem] w-[1.2rem]" />
               <span className="sr-only">Settings</span>
             </Button>
@@ -58,8 +63,10 @@ export default function AuthenticatedHeader() {
           {NAV_LINKS.map(({ href, label, Icon }) => (
             <Link key={href} href={href} className="w-full sm:w-auto">
               <Button 
-                variant={pathname === href ? "default" : "secondary"}
-                className="w-full sm:w-auto"
+                variant="outline"
+                className={`w-full sm:w-auto bg-transparent hover:bg-muted/50 border-border transition-colors ${
+                  pathname === href ? "bg-muted/30 text-foreground" : "text-muted-foreground"
+                }`}
               >
                 <Icon className="mr-1 h-4 w-4 sm:h-5 sm:w-5" />
                 {label}

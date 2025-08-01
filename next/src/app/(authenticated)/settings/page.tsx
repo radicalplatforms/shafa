@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { TagManager } from "@/components/TagManager"
 import { useUser } from "@clerk/nextjs"
 import Image from "next/image"
-import { Palette, User, Monitor } from "lucide-react"
+import { User, Monitor } from "lucide-react"
 
 export default function SettingsPage() {
   const { user } = useUser()
