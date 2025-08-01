@@ -1,15 +1,12 @@
 'use client'
 
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Shirt, Sparkles, Calendar, Flame, Layers, Settings } from 'lucide-react'
+import { Shirt, Sparkles, Layers, Settings } from 'lucide-react'
 import { AddOutfitModal } from '@/components/AddOutfitModal'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { client } from '@/lib/client'
-// import { ThemeToggle } from '@/components/ui/theme-toggle'
 
-// Move static data outside component
 const GREETING_HOURS = {
   MORNING: 12,
   AFTERNOON: 18
@@ -48,7 +45,6 @@ export default function AuthenticatedHeader() {
           <p className="text-base text-muted-foreground">{today}</p>
         </div>
         <div className="transition-colors duration-300">
-          {/* <ThemeToggle /> */}
           <Link href="/settings">
             <Button variant="outline" size="icon" aria-label="Settings" className="rounded-full w-9 h-9 border-none">
               <Settings className="h-[1.2rem] w-[1.2rem]" />
