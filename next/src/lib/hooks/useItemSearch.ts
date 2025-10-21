@@ -61,7 +61,7 @@ export function useItemSearch({
         setAddMode(true)
       }
     }
-  }, [searchTerm, filteredItems, addMode])
+  }, [searchTerm, items, typeFilter, addMode])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
