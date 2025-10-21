@@ -50,6 +50,13 @@
       "when": 1743730809368,
       "tag": "0006_exotic_absorbing_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1761019026797,
+      "tag": "0007_handy_smasher",
+      "breakpoints": true
     }
   ]
 }

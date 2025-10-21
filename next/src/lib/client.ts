@@ -4,6 +4,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client'
 import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
 import { useAuth } from '@clerk/nextjs'
+import type { ItemStatus } from './types'
 
 export const client = hc<AppType>(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787/')
 
@@ -155,7 +156,7 @@ export function useSuggestedOutfits(tagId?: string) {
 export function useItems() {
   const { getToken } = useAuth()
   const $get = client.api.items.$get
-  const $patch = client.api.items.archive[':id'].$patch
+  const $put = client.api.items[':id'].$put
 
   const fetcher = (arg: InferRequestType<typeof $get>) => async () => {
     const res = await $get(arg, {
@@ -172,9 +173,9 @@ export function useItems() {
     fetcher({})
   )
  
-  const archiveItem = async (itemId: string, archive: boolean) => {
+  const updateItemStatus = async (itemId: string, status: ItemStatus) => {
     try {
-      const res = await $patch({ param: { id: itemId }, json: { isArchived: archive } }, {
+      const res = await $put({ param: { id: itemId }, json: { status } }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${await getToken()}`
@@ -186,7 +187,7 @@ export function useItems() {
       }
       return res.ok
     } catch (error) {
-      console.error('Error updating item archive status:', error)
+      console.error('Error updating item status:', error)
       return false
     }
   }
@@ -196,7 +197,7 @@ export function useItems() {
     isLoading,
     isError: error,
     mutate,
-    archiveItem
+    updateItemStatus
   }
 }
 

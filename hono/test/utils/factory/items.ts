@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker'
 
-import { itemTypeEnum, items } from '../../../src/schema'
+import { itemStatusEnum, itemTypeEnum, items } from '../../../src/schema'
 import { instance } from '../db'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
@@ -12,6 +12,7 @@ export interface Item {
   photoUrl: string
   type: ItemType
   rating: number
+  status: typeof itemStatusEnum[number]
   createdAt: Date
   userId: string
   lastWornAt: string | null
@@ -24,6 +25,7 @@ export interface ItemAPI {
   photoUrl: string
   type: ItemType
   rating: number
+  status: typeof itemStatusEnum[number]
   createdAt: string
   userId: string
   lastWornAt?: string | null
@@ -46,6 +48,9 @@ export class ItemFactory implements Item {
     this.rating = options?.rating
       ? (options.rating as number)
       : faker.number.int({ min: 0, max: 4 })
+    this.status = options?.status
+      ? (options.status as typeof itemStatusEnum[number])
+      : 'available'
     this.createdAt = options?.createdAt
       ? new Date(options.createdAt as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
@@ -80,6 +85,7 @@ export class ItemFactory implements Item {
   photoUrl: string
   type: ItemType
   rating: number
+  status: typeof itemStatusEnum[number]
   createdAt: Date
   userId: string
   lastWornAt: string | null

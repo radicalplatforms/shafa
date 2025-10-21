@@ -5,7 +5,6 @@ import { itemTypeIcons } from '@/components/Item'
 interface UseItemSearchProps {
   items: ItemsResponse['items']
   typeFilter?: keyof typeof itemTypeIcons | null
-  archiveFilter?: boolean | null
 }
 
 interface UseItemSearchResult {
@@ -23,19 +22,15 @@ interface UseItemSearchResult {
 
 export function useItemSearch({
   items,
-  typeFilter = null,
-  archiveFilter = null
+  typeFilter = null
 }: UseItemSearchProps): UseItemSearchResult {
   const [searchTerm, setSearchTerm] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [addMode, setAddMode] = useState(false)
 
-  // Filter items based on search term, type filter, and archive filter
+  // Filter items based on search term and type filter
   const filteredItems = items.filter(item => {
     const typeMatch = typeFilter ? item.type === typeFilter : true
-    
-    // Archive match - only filter by archive status if archiveFilter is not null
-    const archiveMatch = archiveFilter === null ? true : (archiveFilter ? item.isArchived : !item.isArchived)
     
     // Search match - check if search term is in name, brand, or type
     let searchMatch = true
@@ -52,36 +47,21 @@ export function useItemSearch({
       )
     }
     
-    return typeMatch && archiveMatch && searchMatch
+    return typeMatch && searchMatch
   })
 
   // Automatically switch to add mode when no search results are found
   useEffect(() => {
     if (searchTerm && !addMode) {
-      const hasSearchResults = items.some(item => {
-        const typeMatch = typeFilter ? item.type === typeFilter : true
-        const archiveMatch = archiveFilter === null ? true : (archiveFilter ? item.isArchived : !item.isArchived)
-        
-        const searchTerms = searchTerm.toLowerCase().split(/\s+/)
-        const itemName = item.name.toLowerCase()
-        const itemBrand = (item.brand || '').toLowerCase()
-        const itemType = item.type.toLowerCase()
-        
-        const searchMatch = searchTerms.every(term => 
-          itemName.includes(term) || 
-          itemBrand.includes(term) ||
-          itemType.includes(term)
-        )
-        
-        return typeMatch && archiveMatch && searchMatch
-      })
+      // Use the already computed filteredItems to check for results
+      const hasSearchResults = filteredItems.length > 0
       
       // If we have a search term and no results, switch to add mode
       if (!hasSearchResults && searchTerm.trim().length >= 2) {
         setAddMode(true)
       }
     }
-  }, [searchTerm, items, typeFilter, archiveFilter, addMode])
+  }, [searchTerm, filteredItems, addMode])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)

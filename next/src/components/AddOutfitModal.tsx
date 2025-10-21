@@ -1,28 +1,25 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Dialog, DialogContent, DialogClose, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CalendarIcon, Loader2, SearchIcon, Lightbulb } from 'lucide-react'
+import { PlusCircle, X, Loader2 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import React from 'react'
 import { Item, itemTypeIcons } from '@/components/Item'
 import Rating from './ui/rating'
 import { Tag } from "@/components/ui/tag"
 import { client, useItems, useTags, useOutfits } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
 import { ItemInlineSearch } from './ItemInlineSearch'
-import { ItemsResponse } from '@/lib/client'
+import { useLocation } from '@/lib/hooks/useLocation'
 
 interface AddOutfitModalProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  initialItems?: Array<string>
   showTrigger?: boolean
   onSuccess?: () => void
 }
@@ -40,6 +37,7 @@ export function AddOutfitModal({
   }
 
   const { getToken } = useAuth()
+  const { data: locationData, status: locationStatus, requestLocation, clearLocation } = useLocation()
 
   const [open, setOpen] = useState(false)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
@@ -50,10 +48,10 @@ export function AddOutfitModal({
   const [showDropdown, setShowDropdown] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const { items: allItems, isLoading: isItemsLoading, isError: isItemsError } = useItems()
+  const { items: allItems, isLoading: isItemsLoading } = useItems()
   const [selectedItems, setSelectedItems] = useState<Array<{id: string, type: string}>>([])
 
-  const { tags, isLoading: isTagsLoading, isError: isTagsError } = useTags()
+  const { tags } = useTags()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // Add state for highlighted index
@@ -75,6 +73,11 @@ export function AddOutfitModal({
     onOpenChange?.(newOpen)
     setSearchTerm('')
     setShowDropdown(false)
+
+    // Request location when modal opens
+    if (newOpen) {
+      requestLocation()
+    }
 
     // Focus the search input when modal opens
     setTimeout(() => {
@@ -100,7 +103,11 @@ export function AddOutfitModal({
       wearDate: date,
       rating: rating,
       itemIdsTypes: selectedItems.map(item => ({ id: item.id, itemType: item.type })),
-      tagIds: selectedTags
+      tagIds: selectedTags,
+      ...(locationData && {
+        locationLatitude: locationData.latitude,
+        locationLongitude: locationData.longitude,
+      })
     }
 
     try {
@@ -124,9 +131,11 @@ export function AddOutfitModal({
         
         handleOpenChange(false)
         onSuccess?.()
+      } else {
+        console.error('API Error:', res.status, await res.text())
       }
     } catch (error) {
-      console.log(error)
+      console.error('Request Error:', error)
     } finally {
       setIsSubmitting(false)
       setSubmittingRating(null)
@@ -409,6 +418,27 @@ export function AddOutfitModal({
                     </div>
                   </PopoverContent>
                 </Popover>
+              )}
+              {/* Location indicator */}
+              {locationStatus !== 'denied' && (
+                <Button
+                  variant="outline"
+                  className="py-1 transition-colors whitespace-nowrap bg-transparent px-3 h-7 text-xs flex items-center gap-1.5 hover:bg-muted/50"
+                  onClick={() => {
+                    if (locationStatus === 'success' && locationData) {
+                      clearLocation()
+                    } else {
+                      requestLocation()
+                    }
+                  }}
+                >
+                  {locationStatus === 'loading' && 'Locating...'}
+                  {locationStatus === 'success' && locationData && (
+                    `${locationData.latitude.toFixed(4)}, ${locationData.longitude.toFixed(4)}`
+                  )}
+                  {locationStatus === 'error' && 'Error'}
+                  {locationStatus === 'idle' && 'Locate'}
+                </Button>
               )}
               {tags?.map((tag) => (
                 <Tag

@@ -6,7 +6,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { itemTypeEnum, items } from '../schema'
+import { itemStatusEnum, itemTypeEnum, items } from '../schema'
 import { requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
 import type { DBVariables } from '../utils/inject-db'
@@ -18,6 +18,7 @@ const insertItemSchema = createInsertSchema(items, {
   photoUrl: z.string().url(),
   type: z.enum(itemTypeEnum),
   rating: z.number().min(0).max(4).default(2),
+  status: z.enum(itemStatusEnum).default('available'),
 }).omit({ id: true, createdAt: true, userId: true })
 
 const selectItemSchema = createSelectSchema(items, {
@@ -71,7 +72,7 @@ const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefin
         photoUrl: item.photoUrl,
         type: item.type,
         rating: item.rating,
-        isArchived: item.isArchived,
+        status: item.status,
         createdAt: item.createdAt,
         userId: item.userId,
         lastWornAt: item.itemsToOutfits.length
@@ -111,12 +112,14 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       : eq(items.userId, userId)
 
     const itemsData = await getItemQuery(c.get('db'), whereClause).then((items) => {
-      // Sort by isArchived (non-archived first), then lastWornAt (nulls first), then name
+      // Sort by status (available first, then withheld, then retired), then lastWornAt (nulls first), then name
       const sortedItems = items.sort((a, b) => {
-        // First sort by archive status
-        if (a.isArchived !== b.isArchived) return a.isArchived ? 1 : -1
+        // First sort by status
+        const statusOrder: Record<string, number> = { available: 0, withheld: 1, retired: 2 }
+        const statusCompare = statusOrder[a.status] - statusOrder[b.status]
+        if (statusCompare !== 0) return statusCompare
 
-        // Then use the existing sort logic for items with the same archive status
+        // Then use the existing sort logic for items with the same status
         if (!a.lastWornAt && !b.lastWornAt) return a.name.localeCompare(b.name)
         if (!a.lastWornAt) return -1
         if (!b.lastWornAt) return 1
@@ -201,7 +204,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
   .put(
     '/:id',
     zValidator('param', selectItemSchema.pick({ id: true })),
-    zValidator('json', insertItemSchema),
+    zValidator('json', insertItemSchema.partial()),
     requireAuth,
     injectDB,
     async (c) => {
@@ -219,36 +222,10 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
               ...body,
               userId,
             })
-            .where(eq(items.id, params.id))
+            .where(and(eq(items.id, params.id), eq(items.userId, userId)))
             .returning()
         )[0]
       )
-    }
-  )
-  .patch(
-    '/archive/:id',
-    zValidator('param', selectItemSchema.pick({ id: true })),
-    zValidator('json', z.object({ isArchived: z.boolean() })),
-    requireAuth,
-    injectDB,
-    async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const { id } = c.req.valid('param')
-      const { isArchived } = c.req.valid('json')
-
-      const updatedItem = await c
-        .get('db')
-        .update(items)
-        .set({ isArchived })
-        .where(and(eq(items.id, id), eq(items.userId, userId)))
-        .returning()
-
-      if (!updatedItem.length) {
-        return c.json({ message: 'Item not found' }, 404)
-      }
-
-      return c.json(updatedItem[0])
     }
   )
   .delete(

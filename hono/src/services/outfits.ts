@@ -15,6 +15,8 @@ import { VIRTUAL_TAGS, getApplicableVirtualTags, isVirtualTag } from './tags'
 const insertOutfitSchema = createInsertSchema(outfits, {
   rating: z.number().min(0).max(2).default(1),
   wearDate: z.coerce.date().optional(),
+  locationLatitude: z.number().min(-90).max(90).optional(),
+  locationLongitude: z.number().min(-180).max(180).optional(),
 })
   .extend({
     itemIdsTypes: z
@@ -116,11 +118,11 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         const itemIds = body.itemIdsTypes.map((e) => e.id)
 
         if (itemIds.length > 0) {
-          // Find which of these items (if any) are currently archived
-          const archivedItems = await tx.query.items.findMany({
+          // Find which of these items (if any) are currently withheld or retired
+          const unavailableItems = await tx.query.items.findMany({
             where: and(
               inArray(items.id, itemIds),
-              eq(items.isArchived, true),
+              sql`items.status != 'available'`,
               eq(items.userId, userId)
             ),
             columns: {
@@ -128,15 +130,15 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
             },
           })
 
-          // If any archived items were found, unarchive them
-          if (archivedItems.length > 0) {
-            const archivedItemIds = archivedItems.map((item) => item.id)
+          // If any unavailable items were found, make them available
+          if (unavailableItems.length > 0) {
+            const unavailableItemIds = unavailableItems.map((item) => item.id)
 
-            // Unarchive the items
+            // Make the items available
             await tx
               .update(items)
-              .set({ isArchived: false })
-              .where(inArray(items.id, archivedItemIds))
+              .set({ status: 'available' })
+              .where(inArray(items.id, unavailableItemIds))
           }
         }
 
@@ -212,11 +214,11 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const virtualTag = isVirtualTagFilter ? VIRTUAL_TAGS[tagId!] : undefined
     const regularTagId = isVirtualTagFilter ? undefined : tagId
 
-    // STEP 1: Get all non-archived items with last worn dates in a single query
+    // STEP 1: Get all available items with last worn dates in a single query
     const allItems = await c.get('db').query.items.findMany({
       where: and(
         eq(sql`items.user_id`, userId),
-        eq(items.isArchived, false) // Exclude archived items from suggestions
+        eq(items.status, 'available') // Exclude non-available items from suggestions
       ),
       columns: {
         id: true,
@@ -225,16 +227,16 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       },
     })
 
-    // Get a list of archived item IDs for checking if outfits contain archived items
-    const archivedItems = await c.get('db').query.items.findMany({
-      where: and(eq(sql`items.user_id`, userId), eq(items.isArchived, true)),
+    // Get a list of non-available item IDs for checking if outfits contain unavailable items
+    const unavailableItems = await c.get('db').query.items.findMany({
+      where: and(eq(sql`items.user_id`, userId), sql`items.status != 'available'`),
       columns: {
         id: true,
       },
     })
 
-    // Create a Set of archived item IDs for efficient lookup
-    const archivedItemIds = new Set(archivedItems.map((item) => item.id))
+    // Create a Set of unavailable item IDs for efficient lookup
+    const unavailableItemIds = new Set(unavailableItems.map((item) => item.id))
 
     // Calculate recency threshold (min count of items per category)
     const wardrobeCounts = {
@@ -371,14 +373,14 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
     })
 
-    // Filter out outfits that contain any archived items
-    const nonArchivedOutfits = eligibleOutfits.filter((outfit) => {
-      // Return true only if no items in the outfit are archived
-      return !outfit.itemsToOutfits.some((io) => archivedItemIds.has(io.itemId))
+    // Filter out outfits that contain any unavailable items
+    const availableOutfits = eligibleOutfits.filter((outfit) => {
+      // Return true only if no items in the outfit are unavailable
+      return !outfit.itemsToOutfits.some((io) => unavailableItemIds.has(io.itemId))
     })
 
-    // If no eligible outfits after filtering archived items, return empty result
-    if (nonArchivedOutfits.length === 0) {
+    // If no eligible outfits after filtering unavailable items, return empty result
+    if (availableOutfits.length === 0) {
       return c.json({
         suggestions: [],
         generated_at: today,
@@ -387,14 +389,14 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           recency_threshold: recencyThresholds,
           last_page: true,
           algorithm_version: 'v2',
-          filter_applied: 'no_eligible_outfits_or_all_contain_archived_items',
+          filter_applied: 'no_eligible_outfits_or_all_contain_unavailable_items',
         },
       })
     }
 
     // Filter outfits to only include those with at least one layer/top, one bottom, and one footwear
     // And apply tag filter if provided
-    const completeOutfits = nonArchivedOutfits.filter((outfit) => {
+    const completeOutfits = availableOutfits.filter((outfit) => {
       const hasTopOrLayer = outfit.itemsToOutfits.some(
         (io) => io.itemType === 'top' || io.itemType === 'layer'
       )

@@ -1,9 +1,9 @@
 import { createId } from '@paralleldrive/cuid2'
 import { relations, sql } from 'drizzle-orm'
 import {
-  boolean,
   check,
   date,
+  doublePrecision,
   pgEnum,
   pgTable,
   primaryKey,
@@ -25,6 +25,16 @@ export const itemTypeEnum: [string, ...string[]] = [
 export const itemTypeEnumPg = pgEnum('itemType', itemTypeEnum)
 
 /**
+ * Item Status Enumeration
+ */
+export const itemStatusEnum: [string, ...string[]] = [
+  'available',
+  'withheld',
+  'retired',
+]
+export const itemStatusEnumPg = pgEnum('itemStatus', itemStatusEnum)
+
+/**
  * Items
  */
 export const items = pgTable('items', {
@@ -36,7 +46,7 @@ export const items = pgTable('items', {
   photoUrl: text('photo_url'),
   type: itemTypeEnumPg('type').notNull(),
   rating: smallint('rating').notNull(),
-  isArchived: boolean('is_archived').notNull().default(false),
+  status: itemStatusEnumPg('status').notNull().default('available'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   userId: text('user_id').notNull(),
 })
@@ -57,6 +67,8 @@ export const outfits = pgTable(
       .primaryKey(),
     rating: smallint('rating').notNull(),
     wearDate: date('wear_date', { mode: 'date' }),
+    locationLatitude: doublePrecision('location_latitude'),
+    locationLongitude: doublePrecision('location_longitude'),
     userId: text('user_id').notNull(),
   },
   (table) => ({

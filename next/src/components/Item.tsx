@@ -3,6 +3,7 @@ import { PiPantsFill } from 'react-icons/pi'
 import { DateTime } from "luxon"
 import { ItemsResponse } from '@/lib/client'
 import { cn } from '@/lib/utils'
+import { ITEM_STATUS, ITEM_STATUS_LABELS } from '@/lib/types'
 
 export const itemTypeIcons = {
   layer: Layers,
@@ -29,7 +30,7 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
   return (
     <div className="flex items-start space-x-3 min-w-0 max-w-full">
       <div className={cn("flex-shrink-0 p-[4px] rounded mt-0.5 border-2", 
-        item.isArchived 
+        item.status !== ITEM_STATUS.AVAILABLE 
           ? "text-muted-foreground bg-background border-muted-foreground" 
           : "text-background bg-muted-foreground border-muted-foreground")}>
         <Icon className="h-[17.5px] w-[17.5px]" />
@@ -41,7 +42,11 @@ export function Item({ item, itemType, isCoreItem = false, showLastWornAt = fals
             {isCoreItem && <span className="ml-1 text-xs align-top">•</span>}
           </p>
           <p className="text-xs text-muted-foreground -mt-[0.05rem]">
-            {item.isArchived ? <i>Archived</i> : item.brand || <i>Unbranded</i>}
+            {item.status !== ITEM_STATUS.AVAILABLE ? (
+              <i>{ITEM_STATUS_LABELS[item.status as keyof typeof ITEM_STATUS_LABELS]}</i>
+            ) : (
+              item.brand || <i>Unbranded</i>
+            )}
             {showLastWornAt && (
               <span>
                 <span className="text-xs align-top ml-[5px] mr-[6px]">•</span>
