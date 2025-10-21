@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Calendar, Star, Trash2 } from 'lucide-react'
+import { Calendar, MapPin, Trash2 } from 'lucide-react'
 import { ItemList } from '@/components/ItemList'
 import OutfitListLoading from './OutfitListLoading'
 import Rating from '@/components/ui/rating'
@@ -80,9 +80,12 @@ export default function OutfitList() {
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex justify-between items-center mb-3 sm:mb-4">
                     <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                      <Calendar className="mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
+                      <Calendar className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       {outfit.wearDate ? formatDate(outfit.wearDate) : 'Never'}
-                      <div className="flex gap-2 pl-3">
+                      {outfit.locationLatitude && outfit.locationLongitude && (
+                        <MapPin className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
+                      )}
+                      <div className="flex gap-2 ml-3">
                         {outfit.tagsToOutfits.map((tagToOutfit) => {
                           const tag = tags?.find(t => t.id === tagToOutfit.tagId)
                           if (!tag) return null

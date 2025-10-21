@@ -5,10 +5,11 @@ import { useState } from 'react'
 import { useItems } from '@/lib/client'
 import { useItemSearch } from '@/lib/hooks/useItemSearch'
 import { Card, CardContent } from '@/components/ui/card'
-import { ItemListLoading } from '@/components/ItemListLoading'
 import { Item, itemTypeIcons } from '@/components/Item'
 import { Button } from '@/components/ui/button'
-import { Archive, ArchiveRestore } from 'lucide-react'
+import { Archive, ArchiveRestore, Ban } from 'lucide-react'
+import type { ItemStatus } from '@/lib/types'
+import { ITEM_STATUS } from '@/lib/types'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -20,7 +21,7 @@ import ItemsLoading from './loading'
 
 // Separate component for Items content to use with Suspense
 function ItemsContent() {
-  const { items, isLoading, archiveItem, mutate } = useItems()
+  const { items, isLoading, updateItemStatus, mutate } = useItems()
   const [selectedType, setSelectedType] = useState<keyof typeof itemTypeIcons | null>(null)
   
   const {
@@ -33,20 +34,18 @@ function ItemsContent() {
     handleNewItem: baseHandleNewItem,
   } = useItemSearch({
     items,
-    typeFilter: selectedType,
-    // No longer filtering by archive status in the hook
-    archiveFilter: null
+    typeFilter: selectedType
   })
 
-  // Sort items to show archived items at the end
+  // Sort items to show available items first, then withheld, then retired
   const filteredItems = [...baseFilteredItems].sort((a, b) => {
-    // First sort by archive status (non-archived first)
-    if (a.isArchived !== b.isArchived) {
-      return a.isArchived ? 1 : -1;
-    }
+    // First sort by status (available first, then withheld, then retired)
+    const statusOrder = { [ITEM_STATUS.AVAILABLE]: 0, [ITEM_STATUS.WITHHELD]: 1, [ITEM_STATUS.RETIRED]: 2 } as const
+    const statusCompare = statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
+    if (statusCompare !== 0) return statusCompare
     
-    // For non-archived items, sort by lastWornAt (oldest first)
-    if (!a.isArchived && !b.isArchived) {
+    // For items with the same status, sort by lastWornAt (oldest first)
+    if (a.status === ITEM_STATUS.AVAILABLE && b.status === ITEM_STATUS.AVAILABLE) {
       // Items without lastWornAt should be first (never worn)
       if (!a.lastWornAt && b.lastWornAt) return -1;
       if (a.lastWornAt && !b.lastWornAt) return 1;
@@ -57,13 +56,13 @@ function ItemsContent() {
       }
     }
     
-    // If archive status is the same and other criteria don't apply, preserve original order
+    // If status is the same and other criteria don't apply, preserve original order
     return 0;
   });
 
   // Function to determine which date category an item belongs to
   const getDateCategory = (item: typeof filteredItems[0]) => {
-    if (item.isArchived) return 'archived';
+    if (item.status !== ITEM_STATUS.AVAILABLE) return item.status;
     if (!item.lastWornAt) return 'never';
     
     const lastWorn = new Date(item.lastWornAt);
@@ -96,7 +95,8 @@ function ItemsContent() {
   
   // Function to get a human-readable title for a category
   const getCategoryTitle = (category: string) => {
-    if (category === 'archived') return 'Archived Items';
+    if (category === ITEM_STATUS.WITHHELD) return 'Withheld Items';
+    if (category === ITEM_STATUS.RETIRED) return 'Retired Items';
     if (category === 'never') return 'Never Worn';
     if (category === 'last-week') return 'Worn in the Last Week';
     if (category === 'this-month') {
@@ -110,9 +110,10 @@ function ItemsContent() {
   
   // Sort categories in the desired order
   const getCategoryOrder = (category: string) => {
-    if (category === 'archived') return 1000; // Always at the end
+    if (category === ITEM_STATUS.RETIRED) return 1000; // Always at the end
+    if (category === ITEM_STATUS.WITHHELD) return 950; // Second to last
     
-    // Now order from oldest to newest for non-archived items
+    // Now order from oldest to newest for available items
     if (category === 'never') return 100; // First
     
     // For month-year categories, sort by date (oldest first)
@@ -167,8 +168,8 @@ function ItemsContent() {
     }
   }
 
-  const handleArchiveToggle = async (itemId: string, currentStatus: boolean) => {
-    await archiveItem(itemId, !currentStatus)
+  const handleStatusChange = async (itemId: string, newStatus: ItemStatus) => {
+    await updateItemStatus(itemId, newStatus)
   }
 
   const handleNewItem = (itemId: string, itemType: string) => {
@@ -244,7 +245,7 @@ function ItemsContent() {
                         <li 
                           key={item.id}
                           className={`text-sm block ${isHighlighted(categoryIndex, itemIndex) ? 'bg-accent rounded-md' : ''} 
-                                     ${item.isArchived ? 'opacity-70' : ''}`}
+                                     ${item.status !== ITEM_STATUS.AVAILABLE ? 'opacity-70' : ''}`}
                         >
                           <ContextMenu>
                             <ContextMenuTrigger className="block w-full">
@@ -257,21 +258,54 @@ function ItemsContent() {
                               </div>
                             </ContextMenuTrigger>
                             <ContextMenuContent>
-                              <ContextMenuItem
-                                onClick={() => handleArchiveToggle(item.id, item.isArchived)}
-                              >
-                                {item.isArchived ? (
-                                  <>
-                                    <ArchiveRestore className="mr-2 h-4 w-4" />
-                                    <span>Unarchive Item</span>
-                                  </>
-                                ) : (
-                                  <>
+                              {item.status === ITEM_STATUS.AVAILABLE && (
+                                <>
+                                  <ContextMenuItem
+                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.WITHHELD)}
+                                  >
+                                    <Ban className="mr-2 h-4 w-4" />
+                                    <span>Withhold Item</span>
+                                  </ContextMenuItem>
+                                  <ContextMenuItem
+                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.RETIRED)}
+                                  >
                                     <Archive className="mr-2 h-4 w-4" />
-                                    <span>Archive Item</span>
-                                  </>
-                                )}
-                              </ContextMenuItem>
+                                    <span>Retire Item</span>
+                                  </ContextMenuItem>
+                                </>
+                              )}
+                              {item.status === ITEM_STATUS.WITHHELD && (
+                                <>
+                                  <ContextMenuItem
+                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.AVAILABLE)}
+                                  >
+                                    <ArchiveRestore className="mr-2 h-4 w-4" />
+                                    <span>Make Available</span>
+                                  </ContextMenuItem>
+                                  <ContextMenuItem
+                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.RETIRED)}
+                                  >
+                                    <Archive className="mr-2 h-4 w-4" />
+                                    <span>Retire Item</span>
+                                  </ContextMenuItem>
+                                </>
+                              )}
+                              {item.status === ITEM_STATUS.RETIRED && (
+                                <>
+                                  <ContextMenuItem
+                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.AVAILABLE)}
+                                  >
+                                    <ArchiveRestore className="mr-2 h-4 w-4" />
+                                    <span>Make Available</span>
+                                  </ContextMenuItem>
+                                  <ContextMenuItem
+                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.WITHHELD)}
+                                  >
+                                    <Ban className="mr-2 h-4 w-4" />
+                                    <span>Withhold Item</span>
+                                  </ContextMenuItem>
+                                </>
+                              )}
                             </ContextMenuContent>
                           </ContextMenu>
                         </li>

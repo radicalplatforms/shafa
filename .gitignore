@@ -3,3 +3,6 @@
 logfile
 .turbo
 node_modules
+# Cursor symlinked files
+.cursor/rules/*-local.mdc
+.cursor/commands/*-local.*
