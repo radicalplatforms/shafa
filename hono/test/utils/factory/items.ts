@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker'
 
-import type { itemStatusEnum} from '../../../src/schema';
+import type { itemStatusEnum } from '../../../src/schema'
 import { itemTypeEnum, items } from '../../../src/schema'
 import { instance } from '../db'
 

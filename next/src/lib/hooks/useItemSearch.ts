@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ItemsResponse } from '@/lib/client'
 import { itemTypeIcons } from '@/components/Item'
 
@@ -29,26 +29,28 @@ export function useItemSearch({
   const [addMode, setAddMode] = useState(false)
 
   // Filter items based on search term and type filter
-  const filteredItems = items.filter(item => {
-    const typeMatch = typeFilter ? item.type === typeFilter : true
-    
-    // Search match - check if search term is in name, brand, or type
-    let searchMatch = true
-    if (searchTerm && !addMode) {
-      const searchTerms = searchTerm.toLowerCase().split(/\s+/)
-      const itemName = item.name.toLowerCase()
-      const itemBrand = (item.brand || '').toLowerCase()
-      const itemType = item.type.toLowerCase()
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const typeMatch = typeFilter ? item.type === typeFilter : true
       
-      searchMatch = searchTerms.every(term => 
-        itemName.includes(term) || 
-        itemBrand.includes(term) ||
-        itemType.includes(term)
-      )
-    }
-    
-    return typeMatch && searchMatch
-  })
+      // Search match - check if search term is in name, brand, or type
+      let searchMatch = true
+      if (searchTerm && !addMode) {
+        const searchTerms = searchTerm.toLowerCase().split(/\s+/)
+        const itemName = item.name.toLowerCase()
+        const itemBrand = (item.brand || '').toLowerCase()
+        const itemType = item.type.toLowerCase()
+        
+        searchMatch = searchTerms.every(term => 
+          itemName.includes(term) || 
+          itemBrand.includes(term) ||
+          itemType.includes(term)
+        )
+      }
+      
+      return typeMatch && searchMatch
+    })
+  }, [items, typeFilter, searchTerm, addMode])
 
   // Automatically switch to add mode when no search results are found
   useEffect(() => {
@@ -61,7 +63,7 @@ export function useItemSearch({
         setAddMode(true)
       }
     }
-  }, [searchTerm, items, typeFilter, addMode])
+  }, [searchTerm, addMode, filteredItems.length])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
