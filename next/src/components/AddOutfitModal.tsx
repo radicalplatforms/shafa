@@ -132,7 +132,7 @@ export function AddOutfitModal({
         handleOpenChange(false)
         onSuccess?.()
       } else {
-        console.error('API Error:', res.status, await res.text())
+        console.error('Failed to create outfit via API:', res.status, await res.text())
       }
     } catch (error) {
       console.error('Request Error:', error)

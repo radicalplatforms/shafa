@@ -27,11 +27,7 @@ export const itemTypeEnumPg = pgEnum('itemType', itemTypeEnum)
 /**
  * Item Status Enumeration
  */
-export const itemStatusEnum: [string, ...string[]] = [
-  'available',
-  'withheld',
-  'retired',
-]
+export const itemStatusEnum: [string, ...string[]] = ['available', 'withheld', 'retired']
 export const itemStatusEnumPg = pgEnum('itemStatus', itemStatusEnum)
 
 /**
