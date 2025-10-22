@@ -6,11 +6,9 @@ import { SuggestionScoreBar } from '@/components/SuggestionScoreBar'
 import { ItemList } from '@/components/ItemList'
 import OutfitSuggestionsLoading from './OutfitSuggestionsLoading'
 import Rating from '@/components/ui/rating'
-import { useSuggestedOutfits, useTags } from '@/lib/client'
+import { useSuggestedOutfits, useTags, useItems } from '@/lib/client'
 import { Tag } from '@/components/ui/tag'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MapPin } from 'lucide-react'
 
 export default function OutfitSuggestions() {
   const [selectedTagId, setSelectedTagId] = useState<string | undefined>(undefined)
@@ -24,6 +22,9 @@ export default function OutfitSuggestions() {
     loadMore 
   } = useSuggestedOutfits(selectedTagId)
   const { tags, isLoading: isLoadingTags } = useTags()
+  const { updateItemStatus, mutate: mutateItems } = useItems()
+  const [statusChangingItemId, setStatusChangingItemId] = useState<string | null>(null)
+  const [changingToStatus, setChangingToStatus] = useState<any>(null)
 
   const observer = useRef<IntersectionObserver | null>(null)
 
@@ -48,8 +49,20 @@ export default function OutfitSuggestions() {
     }
   }
 
-  const clearTagFilter = () => {
-    setSelectedTagId(undefined)
+  const handleItemStatusChange = async (itemId: string, newStatus: any) => {
+    setStatusChangingItemId(itemId)
+    setChangingToStatus(newStatus)
+    try {
+      const success = await updateItemStatus(itemId, newStatus)
+      if (success) {
+        mutateItems()
+      }
+    } catch (error) {
+      console.error('Error updating item status:', error)
+    } finally {
+      setStatusChangingItemId(null)
+      setChangingToStatus(null)
+    }
   }
 
   if ((isLoading || isLoadingTags) && suggestions.length === 0) {
@@ -107,24 +120,34 @@ export default function OutfitSuggestions() {
             >
               <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
                 <CardContent className="p-3 sm:p-4">
-                  <div className="flex justify-between items-center mb-3 sm:mb-4">
-                    <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                      <div className="flex gap-2">
-                        {suggestion.tagsToOutfits.map((tagToOutfit) => {
-                          const tag = tags?.find(t => t.id === tagToOutfit.tagId)
-                          if (!tag) return null
-                          return (
-                            <Tag
-                              key={tag.id}
-                              name={tag.name}
-                              hexColor={tag.hexColor}
-                              selected={true}
-                            />
-                          )
-                        })}
+                  <div className="flex justify-between items-center mb-3 sm:mb-4 text-[12px] text-muted-foreground">
+                    <span className="flex items-center">
+                      <div className="flex gap-2 mr-3">
+                        {Array.isArray(suggestion.tagsToOutfits) && suggestion.tagsToOutfits.length > 0 ? (
+                          suggestion.tagsToOutfits.map((tagToOutfit) => {
+                            const tag = tags?.find(t => t.id === tagToOutfit.tagId)
+                            return tag ? (
+                              <Tag
+                                key={tag.id}
+                                name={tag.name}
+                                hexColor={tag.hexColor}
+                                selected={true}
+                              />
+                            ) : null
+                          })
+                        ) : (<Tag
+                        key="na-tag"
+                            name="N/A"
+                            hexColor="#6b7280"
+                            selected={true}
+                          />
+                        )}
                       </div>
+                      <Rating rating={typeof suggestion.rating === 'number' ? (suggestion.rating as 0 | 1 | 2) : 0} />
+                      {suggestion.locationLatitude && suggestion.locationLongitude ? (
+                        <MapPin className="ml-3 h-3 w-3 sm:h-4 sm:w-4" />
+                      ) : null}
                     </span>
-                    <Rating rating={suggestion.rating as 0 | 1 | 2} />
                   </div>
                   
                   <div className="mb-4">
@@ -143,6 +166,10 @@ export default function OutfitSuggestions() {
                   <ItemList 
                     itemsToOutfits={suggestion.itemsToOutfits}
                     showLastWornAt={true}
+                    showThreeDotsMenu={true}
+                    onItemStatusChange={handleItemStatusChange}
+                    statusChangingItemId={statusChangingItemId}
+                    changingToStatus={changingToStatus}
                   />
                   <div className="mt-4 text-xs text-muted-foreground">
                     <p>Last Worn: {suggestion.wearDate ? `${suggestion.scoringDetails.rawData.daysSinceWorn} days ago` : 'Never'}</p>

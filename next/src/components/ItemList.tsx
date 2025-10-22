@@ -1,41 +1,95 @@
 import React from 'react'
-import { Item, itemTypeIcons } from '@/components/Item'
-import { OutfitsResponse, OutfitSuggestionsResponse, useItems } from '@/lib/client'
+import { OutfitsResponse, OutfitSuggestionsResponse, useItems, ItemsResponse } from '@/lib/client'
 import { ItemListLoading } from './ItemListLoading'
+import { ItemDisplay } from './ItemDisplay'
+import { SelectableItem } from './SelectableItem'
+
+type ItemToOutfit = OutfitsResponse['outfits'][number]['itemsToOutfits'][number] | OutfitSuggestionsResponse['suggestions'][number]['itemsToOutfits'][number]
 
 interface ItemListProps {
-  itemsToOutfits: OutfitsResponse['outfits'][number]['itemsToOutfits'] | OutfitSuggestionsResponse['suggestions'][number]['itemsToOutfits']
+  itemsToOutfits: ItemToOutfit[]
   coreItems?: string[]
   showLastWornAt?: boolean
+  showThreeDotsMenu?: boolean
+  onItemView?: (item: ItemsResponse['items'][number]) => void
+  onItemEdit?: (item: ItemsResponse['items'][number]) => void
+  onItemDelete?: (item: ItemsResponse['items'][number]) => void
+  onItemStatusChange?: (itemId: string, status: any) => Promise<void>
+  statusChangingItemId?: string | null
+  changingToStatus?: any
 }
 
-export function ItemList({ itemsToOutfits, coreItems = [], showLastWornAt = false }: ItemListProps) {
+/**
+ * Simple item list for outfit contexts. Uses ItemDisplay for read-only display
+ * or SelectableItem with three-dots menu when actions are needed.
+ */
+export function ItemList({ 
+  itemsToOutfits, 
+  coreItems = [], 
+  showLastWornAt = false,
+  showThreeDotsMenu = false,
+  onItemView,
+  onItemEdit,
+  onItemDelete,
+  onItemStatusChange,
+  statusChangingItemId,
+  changingToStatus
+}: ItemListProps) {
   const { items, isLoading: isLoadingItems } = useItems()
 
   if (isLoadingItems) {
     return <ItemListLoading />
   }
 
-  return (
-    <ul className="space-y-2">
-      {itemsToOutfits.map((itemToOutfit, index) => {
-        if (!itemToOutfit.itemId || !itemToOutfit.itemType) return null
-        
-        const item = items.find(item => item.id === itemToOutfit.itemId)
-        if (!item) return null
+  // Transform itemsToOutfits to items with additional data
+  const transformedItems: (ItemsResponse['items'][number] & { 
+    itemType: string
+    freshness?: number 
+  })[] = itemsToOutfits
+    .map((itemToOutfit) => {
+      if (!itemToOutfit.itemId || !itemToOutfit.itemType) return null
+      
+      const item = items.find((item: any) => item.id === itemToOutfit.itemId)
+      if (!item) return null
 
-        return (
-          <li key={itemToOutfit.itemId || `item-${index}-${itemToOutfit.itemType}`} className="text-sm">
-            <Item 
+      return {
+        ...item,
+        itemType: itemToOutfit.itemType,
+        freshness: 'freshness' in itemToOutfit ? itemToOutfit.freshness : undefined
+      }
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+
+  return (
+    <ul className="space-y-1">
+      {transformedItems.map((item, index) => (
+        <li key={item.id || `item-${index}`} className="text-sm m-0">
+          {showThreeDotsMenu ? (
+            <SelectableItem
               item={item}
-              itemType={itemToOutfit.itemType as keyof typeof itemTypeIcons}
+              itemType={item.itemType}
               isCoreItem={coreItems.includes(item.id)}
               showLastWornAt={showLastWornAt}
-              freshness={'freshness' in itemToOutfit ? itemToOutfit.freshness : undefined}
+              freshness={item.freshness}
+              showThreeDotsMenu={true}
+              onView={onItemView}
+              onEdit={onItemEdit}
+              onDelete={onItemDelete}
+              onStatusChange={onItemStatusChange}
+              isStatusChanging={statusChangingItemId === item.id}
+              changingToStatus={changingToStatus}
             />
-          </li>
-        )
-      })}
+          ) : (
+            <ItemDisplay
+              item={item}
+              itemType={item.itemType}
+              isCoreItem={coreItems.includes(item.id)}
+              showLastWornAt={showLastWornAt}
+              freshness={item.freshness}
+            />
+          )}
+        </li>
+      ))}
     </ul>
   )
 }

@@ -2,11 +2,10 @@
 
 import { useState, useEffect, memo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Shirt, Sparkles, Calendar, Flame, Layers } from 'lucide-react'
+import { Shirt, Sparkles, Layers } from 'lucide-react'
 import { AddOutfitModal } from '@/components/AddOutfitModal'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { client } from '@/lib/client'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 // Move static data outside component

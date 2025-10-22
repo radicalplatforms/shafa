@@ -9,13 +9,14 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Item, itemTypeIcons } from '@/components/Item'
+import { SelectableItem, itemTypeIcons } from '@/components/SelectableItem'
 import Rating from './ui/rating'
 import { Tag } from "@/components/ui/tag"
 import { client, useItems, useTags, useOutfits } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
 import { ItemInlineSearch } from './ItemInlineSearch'
 import { useLocation } from '@/lib/hooks/useLocation'
+import type { ItemStatus } from '@/lib/types'
 
 interface AddOutfitModalProps {
   open?: boolean
@@ -48,7 +49,7 @@ export function AddOutfitModal({
   const [showDropdown, setShowDropdown] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const { items: allItems, isLoading: isItemsLoading } = useItems()
+  const { items: allItems, isLoading: isItemsLoading, updateItemStatus, mutate: mutateItems } = useItems()
   const [selectedItems, setSelectedItems] = useState<Array<{id: string, type: string}>>([])
 
   const { tags } = useTags()
@@ -56,6 +57,10 @@ export function AddOutfitModal({
 
   // Add state for highlighted index
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
+  
+  // Add state for status changes
+  const [statusChangingItemId, setStatusChangingItemId] = useState<string | null>(null)
+  const [changingToStatus, setChangingToStatus] = useState<ItemStatus | null>(null)
 
   // Add ref for the scroll area
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -74,7 +79,7 @@ export function AddOutfitModal({
     setSearchTerm('')
     setShowDropdown(false)
 
-    // Request location when modal opens
+    // Automatically request location when modal opens
     if (newOpen) {
       requestLocation()
     }
@@ -151,6 +156,25 @@ export function AddOutfitModal({
     setShowDropdown(false)
     if (searchInputRef.current) {
       searchInputRef.current.focus()
+    }
+  }
+
+  const handleStatusChange = async (itemId: string, newStatus: ItemStatus) => {
+    setStatusChangingItemId(itemId)
+    setChangingToStatus(newStatus)
+    try {
+      const success = await updateItemStatus(itemId, newStatus)
+      if (success) {
+        // Clear loading state immediately after successful API call
+        setStatusChangingItemId(null)
+        setChangingToStatus(null)
+        // Trigger data refetch in background
+        mutateItems()
+      }
+    } catch (error) {
+      // Clear loading state on error too
+      setStatusChangingItemId(null)
+      setChangingToStatus(null)
     }
   }
 
@@ -295,22 +319,29 @@ export function AddOutfitModal({
                   const item = allItems?.find(i => i.id === selectedItem.id)
                   if (!item) return null
                   return (
-                    <div key={item.id} className="flex items-center gap-2">
+                    <div key={item.id} className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <Item 
+                        <SelectableItem 
                           item={item} 
                           itemType={selectedItem.type as keyof typeof itemTypeIcons}
                           showLastWornAt
+                          showThreeDotsMenu
+                          isStatusChanging={statusChangingItemId === item.id}
+                          changingToStatus={changingToStatus || undefined}
+                          onStatusChange={handleStatusChange}
+                          className="hover:bg-transparent"
                         />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="flex-shrink-0 p-0.5 mr-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <div className="flex-shrink-0 flex items-center mt-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="h-8 w-8 p-0 hover:bg-muted/50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   )
                 })}
@@ -362,11 +393,17 @@ export function AddOutfitModal({
                           onClick={() => handleItemSelect(item.id, item.type)}
                           onMouseEnter={() => setHighlightedIndex(index)}
                         >
-                          <Item 
-                            item={item} 
-                            itemType={item.type as keyof typeof itemTypeIcons}
-                            showLastWornAt
-                          />
+                          <div className="flex-1">
+                            <SelectableItem 
+                              item={item} 
+                              itemType={item.type as keyof typeof itemTypeIcons}
+                              showLastWornAt
+                              isStatusChanging={statusChangingItemId === item.id}
+                              changingToStatus={changingToStatus || undefined}
+                              onStatusChange={handleStatusChange}
+                              className="hover:bg-transparent"
+                            />
+                          </div>
                           {highlightedIndex === index && (
                             <div className="hidden md:flex w-[80px] ml-[10px] text-xs text-muted-foreground items-center gap-1">
                               <kbd className="px-2 py-0.5 text-xs bg-muted border border-border rounded">
@@ -387,7 +424,7 @@ export function AddOutfitModal({
             )}
           </div>
         </div>
-        <div className="sm:max-w-[550px] w-[95vw] justify-end items-center">
+        <div className="sm:max-w-[546px] w-[95vw] justify-end items-center">
           <div className="overflow-x-auto no-scrollbar">
             <div className="flex gap-2 pb-3">
               <div className="px-1"></div>
@@ -424,6 +461,7 @@ export function AddOutfitModal({
                 <Button
                   variant="outline"
                   className="py-1 transition-colors whitespace-nowrap bg-transparent px-3 h-7 text-xs flex items-center gap-1.5 hover:bg-muted/50"
+                  disabled={locationStatus === 'loading'}
                   onClick={() => {
                     if (locationStatus === 'success' && locationData) {
                       clearLocation()
@@ -432,7 +470,12 @@ export function AddOutfitModal({
                     }
                   }}
                 >
-                  {locationStatus === 'loading' && 'Locating...'}
+                  {locationStatus === 'loading' && (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      Locating...
+                    </>
+                  )}
                   {locationStatus === 'success' && locationData && (
                     `${locationData.latitude.toFixed(4)}, ${locationData.longitude.toFixed(4)}`
                   )}

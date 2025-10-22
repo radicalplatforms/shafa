@@ -1,8 +1,8 @@
-import { Plus, Search, Layers, Shirt, Crown, X } from 'lucide-react'
+import { Plus, Search, Layers, Shirt, Crown, X, Loader2 } from 'lucide-react'
 import { PiPantsFill } from 'react-icons/pi'
 import { Footprints } from 'lucide-react'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { client, useItems, ItemsResponse } from '@/lib/client'
+import { client, useItems } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
 
 interface ItemInlineSearchProps {
@@ -166,7 +166,11 @@ export function ItemInlineSearch({
                   disabled={isSubmitting}
                   className="w-full sm:w-auto flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary hover:bg-secondary/80 disabled:opacity-50 transition-colors"
                 >
-                  <Icon className="h-4 w-4" />
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
                   <span className="text-sm">{label}</span>
                 </button>
               ))}
@@ -195,7 +199,7 @@ export function ItemInlineSearch({
               onClick={onClick}
               onKeyDown={handleInternalKeyDown}
               placeholder={stage === 'brand' ? "Enter brand (optional)..." : "Search items, brands, types..."}
-              className="font-medium leading-[18px] bg-transparent focus:outline-none w-full"
+              className="font-medium leading-[18px] bg-transparent focus:outline-none w-full truncate"
             />
           </div>
         )}
