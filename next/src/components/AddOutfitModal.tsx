@@ -79,6 +79,11 @@ export function AddOutfitModal({
     setSearchTerm('')
     setShowDropdown(false)
 
+    // Automatically request location when modal opens
+    if (newOpen) {
+      requestLocation()
+    }
+
     // Focus the search input when modal opens
     setTimeout(() => {
       searchInputRef.current?.focus()
