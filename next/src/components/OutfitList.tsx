@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Calendar, MapPin, Trash2, Loader2 } from 'lucide-react'
+import { MapPin, Trash2, Loader2 } from 'lucide-react'
 import { ItemList } from '@/components/ItemList'
 import OutfitListLoading from './OutfitListLoading'
 import { Tag } from "@/components/ui/tag"
@@ -102,7 +102,7 @@ export default function OutfitList() {
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex justify-between items-center mb-3 sm:mb-4 text-[12px] text-muted-foreground">
                     <span className="flex items-center">
-                      <div className="flex gap-2 mr-2">
+                      <div className="flex gap-2 mr-3">
                         {Array.isArray(outfit.tagsToOutfits) && outfit.tagsToOutfits.length > 0 ? (
                           outfit.tagsToOutfits.map((tagToOutfit) => {
                             const tag = tags?.find(t => t.id === tagToOutfit.tagId)
@@ -125,7 +125,7 @@ export default function OutfitList() {
                       </div>
                       <Rating rating={typeof outfit.rating === 'number' ? (outfit.rating as 0 | 1 | 2) : 0} />
                       {outfit.locationLatitude && outfit.locationLongitude ? (
-                        <MapPin className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
+                        <MapPin className="ml-3 h-3 w-3 sm:h-4 sm:w-4" />
                       ) : null}
                     </span>
                     {outfit.wearDate && formatDate(outfit.wearDate)}

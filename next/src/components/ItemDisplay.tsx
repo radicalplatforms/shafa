@@ -1,7 +1,6 @@
 'use client'
 
-import { Layers, Shirt, Footprints, Crown } from 'lucide-react'
-import { PiPantsFill } from 'react-icons/pi'
+import { Layers } from 'lucide-react'
 import { DateTime } from "luxon"
 import { ItemsResponse } from '@/lib/client'
 import { cn } from '@/lib/utils'

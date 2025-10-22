@@ -122,7 +122,7 @@ export default function OutfitSuggestions() {
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex justify-between items-center mb-3 sm:mb-4 text-[12px] text-muted-foreground">
                     <span className="flex items-center">
-                      <div className="flex gap-2 mr-2">
+                      <div className="flex gap-2 mr-3">
                         {Array.isArray(suggestion.tagsToOutfits) && suggestion.tagsToOutfits.length > 0 ? (
                           suggestion.tagsToOutfits.map((tagToOutfit) => {
                             const tag = tags?.find(t => t.id === tagToOutfit.tagId)
@@ -145,7 +145,7 @@ export default function OutfitSuggestions() {
                       </div>
                       <Rating rating={typeof suggestion.rating === 'number' ? (suggestion.rating as 0 | 1 | 2) : 0} />
                       {suggestion.locationLatitude && suggestion.locationLongitude ? (
-                        <MapPin className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
+                        <MapPin className="ml-3 h-3 w-3 sm:h-4 sm:w-4" />
                       ) : null}
                     </span>
                   </div>

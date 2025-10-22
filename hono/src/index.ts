@@ -33,7 +33,7 @@ app.use(
       const allowedOrigins = [
         'https://shafa.app',
         'https://*.shafa-next.pages.dev',
-        'https://*.radicalplatforms.workers.dev',
+        'https://*.radison.workers.dev',
       ]
 
       if (process.env.NODE_ENV === 'development') {

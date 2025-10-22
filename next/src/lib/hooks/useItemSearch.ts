@@ -35,7 +35,7 @@ export function useItemSearch({
       
       // Search match - check if search term is in name, brand, or type
       let searchMatch = true
-      if (searchTerm && !addMode) {
+      if (searchTerm) {
         const searchTerms = searchTerm.toLowerCase().split(/\s+/)
         const itemName = item.name.toLowerCase()
         const itemBrand = (item.brand || '').toLowerCase()
@@ -50,11 +50,11 @@ export function useItemSearch({
       
       return typeMatch && searchMatch
     })
-  }, [items, typeFilter, searchTerm, addMode])
+  }, [items, typeFilter, searchTerm])
 
   // Automatically switch to add mode when no search results are found
   useEffect(() => {
-    if (searchTerm && !addMode) {
+    if (searchTerm) {
       // Use the already computed filteredItems to check for results
       const hasSearchResults = filteredItems.length > 0
       
@@ -63,7 +63,7 @@ export function useItemSearch({
         setAddMode(true)
       }
     }
-  }, [searchTerm, addMode, filteredItems.length])
+  }, [searchTerm, filteredItems.length])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)

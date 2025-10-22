@@ -2,7 +2,7 @@ import { Plus, Search, Layers, Shirt, Crown, X, Loader2 } from 'lucide-react'
 import { PiPantsFill } from 'react-icons/pi'
 import { Footprints } from 'lucide-react'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { client, useItems, ItemsResponse } from '@/lib/client'
+import { client, useItems } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
 
 interface ItemInlineSearchProps {

@@ -5,7 +5,6 @@ import { SelectableItem } from './SelectableItem'
 import { SelectionToolbar } from './SelectionToolbar'
 import { useItemSelection } from '@/lib/hooks/useItemSelection'
 import { ItemsResponse } from '@/lib/client'
-import { ItemStatus } from '@/lib/types'
 
 interface SelectableItemListProps {
   items: (ItemsResponse['items'][number] & { 
@@ -95,12 +94,6 @@ export function SelectableItemList({
           onClearSelection={handleClearSelection}
           isUpdating={isBatchUpdating}
           changingToStatus={changingToStatus}
-          searchValue=""
-          onSearchChange={() => {}}
-          onSearchClick={() => {}}
-          onSearchKeyDown={() => {}}
-          searchAddMode={false}
-          onSearchNewItem={() => {}}
         />
       )}
     </>

@@ -4,7 +4,7 @@ import { Archive, Ban, ArchiveRestore, MoreHorizontal, X, Loader2 } from 'lucide
 import { Button } from '@/components/ui/button'
 import { ITEM_STATUS, ItemStatus } from '@/lib/types'
 import { ItemsResponse } from '@/lib/client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Popover,
   PopoverContent,
@@ -19,12 +19,12 @@ interface SelectionToolbarProps {
   isUpdating: boolean
   changingToStatus?: ItemStatus | null
   // Search props
-  searchValue: string
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onSearchClick: () => void
-  onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
-  searchAddMode: boolean
-  onSearchNewItem: (itemId: string, itemType: string) => void
+  searchValue?: string
+  onSearchChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onSearchClick?: () => void
+  onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  searchAddMode?: boolean
+  onSearchNewItem?: (itemId: string, itemType: string) => void
 }
 
 interface StatusAction {
@@ -98,20 +98,29 @@ export function SelectionToolbar({
     onClearSelection()
   }
 
+  // Check if search functionality is enabled
+  const hasSearchFunctionality = searchValue !== undefined && 
+    onSearchChange && 
+    onSearchKeyDown && 
+    searchAddMode !== undefined && 
+    onSearchNewItem
+
   return (
     <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md sm:max-w-lg px-4 sm:px-0">
       <div className="bg-background/80 backdrop-blur-sm border-2 rounded-lg shadow-lg p-2 flex items-center gap-2 w-full">
-        {/* Search input - takes full width on mobile, constrained on larger screens */}
-        <div className="flex-1 min-w-0 ml-1">
-          <ItemInlineSearch
-            value={searchValue}
-            onChange={onSearchChange}
-            onClick={onSearchClick}
-            onKeyDown={onSearchKeyDown}
-            addMode={searchAddMode}
-            onNewItem={onSearchNewItem}
-          />
-        </div>
+        {/* Search input - only render when search functionality is enabled */}
+        {hasSearchFunctionality && (
+          <div className="flex-1 min-w-0 ml-1">
+            <ItemInlineSearch
+              value={searchValue}
+              onChange={onSearchChange}
+              onClick={onSearchClick || (() => {})}
+              onKeyDown={onSearchKeyDown}
+              addMode={searchAddMode}
+              onNewItem={onSearchNewItem}
+            />
+          </div>
+        )}
         
         {/* Actions overflow menu - only show when items are selected */}
         {selectedCount > 0 && (

@@ -12,7 +12,7 @@ env:
   CLERK_PUBLISHABLE_KEY: ${{ vars.DEV_CLERK_PUBLISHABLE_KEY }}
   CLERK_SECRET_KEY: ${{ secrets.DEV_CLERK_SECRET_KEY }}
   DEPLOY_TAG: shafa-hono-stage-${{ github.event.number }}
-  DEPLOY_ROUTE: https://shafa-hono-stage-${{ github.event.number }}.radicalplatforms.workers.dev
+  DEPLOY_ROUTE: https://shafa-hono-stage-${{ github.event.number }}.radison.workers.dev
 
 jobs:
   format_checks:

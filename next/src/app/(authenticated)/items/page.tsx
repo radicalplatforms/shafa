@@ -293,7 +293,6 @@ function ItemsContent() {
         changingToStatus={changingToStatus}
         searchValue={searchTerm}
         onSearchChange={handleSearchChange}
-        onSearchClick={() => {}}
         onSearchKeyDown={handleKeyDown}
         searchAddMode={addMode}
         onSearchNewItem={handleNewItem}
