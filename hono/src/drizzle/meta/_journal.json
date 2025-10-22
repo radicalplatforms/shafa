@@ -57,6 +57,13 @@
       "when": 1761023578962,
       "tag": "0007_concerned_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1761110542840,
+      "tag": "0008_fresh_lightspeed",
+      "breakpoints": true
     }
   ]
 }

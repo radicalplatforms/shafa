@@ -103,8 +103,8 @@ export default function OutfitList() {
                   <div className="flex justify-between items-center mb-3 sm:mb-4 text-[12px] text-muted-foreground">
                     <span className="flex items-center">
                       <div className="flex gap-2 mr-3">
-                        {Array.isArray(outfit.tagsToOutfits) && outfit.tagsToOutfits.length > 0 ? (
-                          outfit.tagsToOutfits.map((tagToOutfit) => {
+                        {Array.isArray(outfit.outfitTags) && outfit.outfitTags.length > 0 ? (
+                          outfit.outfitTags.map((tagToOutfit) => {
                             const tag = tags?.find(t => t.id === tagToOutfit.tagId)
                             return tag ? (
                               <Tag
@@ -131,7 +131,7 @@ export default function OutfitList() {
                     {outfit.wearDate && formatDate(outfit.wearDate)}
                   </div>
                   <ItemList 
-                    itemsToOutfits={outfit.itemsToOutfits} 
+                    outfitItems={outfit.outfitItems} 
                     showThreeDotsMenu={true}
                     onItemStatusChange={handleItemStatusChange}
                     statusChangingItemId={statusChangingItemId}

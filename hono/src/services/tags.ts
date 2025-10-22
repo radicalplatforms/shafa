@@ -5,20 +5,22 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import type { outfits } from '../schema'
-import { tags } from '../schema'
+import type { outfit } from '../schema'
+import { tag } from '../schema'
 import { requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
 import type { DBVariables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
-const insertTagSchema = createInsertSchema(tags, {
+type OutfitSelect = typeof outfit.$inferSelect
+
+const insertTagSchema = createInsertSchema(tag, {
   name: z.string().min(1).max(60),
   hexColor: z.string().regex(/^#[0-9A-F]{6}$/i),
   minDaysBeforeItemReuse: z.number().min(-1).max(365).default(-1),
 }).omit({ id: true, createdAt: true, userId: true })
 
-const selectTagSchema = createSelectSchema(tags, {
+const selectTagSchema = createSelectSchema(tag, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
@@ -30,7 +32,7 @@ export type VirtualTag = {
   minDaysBeforeItemReuse: number
   createdAt: Date
   userId: string
-  appliesTo?: (outfit: typeof outfits.$inferSelect) => boolean // Function to determine if this tag applies to an outfit
+  appliesTo?: (outfit: OutfitSelect) => boolean // Function to determine if this tag applies to an outfit
 }
 
 // Define virtual tags registry
@@ -53,7 +55,7 @@ export const isVirtualTag = (tagId: string): boolean => {
 }
 
 // Helper function to get virtual tags that apply to an outfit
-export const getApplicableVirtualTags = (outfit: typeof outfits.$inferSelect): VirtualTag[] => {
+export const getApplicableVirtualTags = (outfit: OutfitSelect): VirtualTag[] => {
   return Object.values(VIRTUAL_TAGS).filter((tag) => tag.appliesTo && tag.appliesTo(outfit))
 }
 
@@ -62,9 +64,9 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const auth = c.get('auth')
     const userId = auth?.userId || ''
 
-    const tagsData = await c.get('db').query.tags.findMany({
-      where: eq(tags.userId, userId),
-      orderBy: (tags, { asc }) => [asc(tags.name)],
+    const tagsData = await c.get('db').query.tag.findMany({
+      where: eq(tag.userId, userId),
+      orderBy: (tags, { asc }) => [asc(tag.name)],
     })
 
     // Add all virtual tags at the beginning of the tags list
@@ -84,7 +86,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       (
         await c
           .get('db')
-          .insert(tags)
+          .insert(tag)
           .values({
             ...body,
             userId,
@@ -114,12 +116,12 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         (
           await c
             .get('db')
-            .update(tags)
+            .update(tag)
             .set({
               ...body,
               userId,
             })
-            .where(eq(tags.id, params.id))
+            .where(eq(tag.id, params.id))
             .returning()
         )[0]
       )
@@ -144,8 +146,8 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         (
           await c
             .get('db')
-            .delete(tags)
-            .where(and(eq(tags.id, params.id), eq(tags.userId, userId)))
+            .delete(tag)
+            .where(and(eq(tag.id, params.id), eq(tag.userId, userId)))
             .returning()
         )[0]
       )

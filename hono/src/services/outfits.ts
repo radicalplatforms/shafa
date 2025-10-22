@@ -5,14 +5,14 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { itemTypeEnum, items, itemsToOutfits, outfits, tagsToOutfits } from '../schema'
+import { item, itemTypeEnum, outfit, outfitItem, outfitTag } from '../schema'
 import { requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
 import type { DBVariables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 import { VIRTUAL_TAGS, getApplicableVirtualTags, isVirtualTag } from './tags'
 
-const insertOutfitSchema = createInsertSchema(outfits, {
+const insertOutfitSchema = createInsertSchema(outfit, {
   rating: z.number().min(0).max(2).default(1),
   wearDate: z.coerce.date().optional(),
   locationLatitude: z.number().min(-90).max(90).optional(),
@@ -32,7 +32,7 @@ const insertOutfitSchema = createInsertSchema(outfits, {
   })
   .omit({ id: true, userId: true })
 
-const selectOutfitSchema = createSelectSchema(outfits, {
+const selectOutfitSchema = createSelectSchema(outfit, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
@@ -76,25 +76,25 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const pageNumber: number = page ? +page : 0
     const pageSize: number = size ? +size : 10
 
-    const outfitsData = await c.get('db').query.outfits.findMany({
+    const outfitsData = await c.get('db').query.outfit.findMany({
       where: and(
-        eq(outfits.userId, userId),
-        sql`${outfits.wearDate} IS NOT NULL` // Exclude ghost outfits
+        eq(outfit.userId, userId),
+        sql`${outfit.wearDate} IS NOT NULL` // Exclude ghost outfits
       ),
       with: {
-        itemsToOutfits: {
+        outfitItems: {
           columns: {
             outfitId: false,
           },
-          orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
+          orderBy: (outfitItems, { asc }) => [asc(outfitItems.itemType)],
         },
-        tagsToOutfits: {
+        outfitTags: {
           columns: {
             outfitId: false,
           },
         },
       },
-      orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+      orderBy: (outfit, { desc }) => [desc(outfit.wearDate)],
       offset: pageNumber * pageSize,
       limit: pageSize + 1,
     })
@@ -119,11 +119,11 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
         if (itemIds.length > 0) {
           // Find which of these items (if any) are currently withheld or retired
-          const unavailableItems = await tx.query.items.findMany({
+          const unavailableItems = await tx.query.item.findMany({
             where: and(
-              inArray(items.id, itemIds),
-              sql`items.status != 'available'`,
-              eq(items.userId, userId)
+              inArray(item.id, itemIds),
+              sql`item.status != 'available'`,
+              eq(item.userId, userId)
             ),
             columns: {
               id: true,
@@ -136,9 +136,9 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
             // Make the items available
             await tx
-              .update(items)
+              .update(item)
               .set({ status: 'available' })
-              .where(inArray(items.id, unavailableItemIds))
+              .where(inArray(item.id, unavailableItemIds))
           }
         }
 
@@ -148,11 +148,11 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         }
 
         const newOutfit = (
-          await tx.insert(outfits).values(outfitData).onConflictDoNothing().returning()
+          await tx.insert(outfit).values(outfitData).onConflictDoNothing().returning()
         )[0]
 
         // Insert item to outfit relationships
-        await tx.insert(itemsToOutfits).values(
+        await tx.insert(outfitItem).values(
           body.itemIdsTypes.map((e) => ({
             itemId: e.id,
             outfitId: newOutfit.id,
@@ -166,7 +166,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           const realTagIds = body.tagIds.filter((tagId) => !isVirtualTag(tagId))
 
           if (realTagIds.length > 0) {
-            await tx.insert(tagsToOutfits).values(
+            await tx.insert(outfitTag).values(
               realTagIds.map((e) => ({
                 tagId: e,
                 outfitId: newOutfit.id,
@@ -194,8 +194,8 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         (
           await c
             .get('db')
-            .delete(outfits)
-            .where(and(eq(outfits.id, params.id), eq(outfits.userId, userId)))
+            .delete(outfit)
+            .where(and(eq(outfit.id, params.id), eq(outfit.userId, userId)))
             .returning()
         )[0]
       )
@@ -215,10 +215,10 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     const regularTagId = isVirtualTagFilter ? undefined : tagId
 
     // STEP 1: Get all available items with last worn dates in a single query
-    const allItems = await c.get('db').query.items.findMany({
+    const allItems = await c.get('db').query.item.findMany({
       where: and(
-        eq(sql`items.user_id`, userId),
-        eq(items.status, 'available') // Exclude non-available items from suggestions
+        eq(sql`item.user_id`, userId),
+        eq(item.status, 'available') // Exclude non-available items from suggestions
       ),
       columns: {
         id: true,
@@ -228,8 +228,8 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     })
 
     // Get a list of non-available item IDs for checking if outfits contain unavailable items
-    const unavailableItems = await c.get('db').query.items.findMany({
-      where: and(eq(sql`items.user_id`, userId), sql`items.status != 'available'`),
+    const unavailableItems = await c.get('db').query.item.findMany({
+      where: and(eq(sql`item.user_id`, userId), sql`item.status != 'available'`),
       columns: {
         id: true,
       },
@@ -271,9 +271,9 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           io.item_id,
           MAX(o.wear_date) as last_worn_date
         FROM 
-          items_to_outfits io
+          outfit_item io
         JOIN 
-          outfits o ON o.id = io.outfit_id
+          outfit o ON o.id = io.outfit_id
         WHERE 
           o.user_id = ${userId}
         GROUP BY 
@@ -352,17 +352,17 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     }
 
     // STEP 3: Get all eligible outfits in a single query
-    const eligibleOutfits = await c.get('db').query.outfits.findMany({
-      where: and(eq(outfits.userId, userId), gte(outfits.rating, 1)),
+    const eligibleOutfits = await c.get('db').query.outfit.findMany({
+      where: and(eq(outfit.userId, userId), gte(outfit.rating, 1)),
       with: {
-        itemsToOutfits: {
+        outfitItems: {
           columns: {
             outfitId: true,
             itemId: true,
             itemType: true,
           },
         },
-        tagsToOutfits: {
+        outfitTags: {
           columns: {
             outfitId: true,
             tagId: true,
@@ -370,13 +370,13 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           },
         },
       },
-      orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
+      orderBy: (outfits, { desc }) => [desc(outfit.wearDate)],
     })
 
     // Filter out outfits that contain any unavailable items
     const availableOutfits = eligibleOutfits.filter((outfit) => {
       // Return true only if no items in the outfit are unavailable
-      return !outfit.itemsToOutfits.some((io) => unavailableItemIds.has(io.itemId))
+      return !outfit.outfitItems.some((io) => unavailableItemIds.has(io.itemId))
     })
 
     // If no eligible outfits after filtering unavailable items, return empty result
@@ -397,18 +397,18 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     // Filter outfits to only include those with at least one layer/top, one bottom, and one footwear
     // And apply tag filter if provided
     const completeOutfits = availableOutfits.filter((outfit) => {
-      const hasTopOrLayer = outfit.itemsToOutfits.some(
+      const hasTopOrLayer = outfit.outfitItems.some(
         (io) => io.itemType === 'top' || io.itemType === 'layer'
       )
-      const hasBottom = outfit.itemsToOutfits.some((io) => io.itemType === 'bottom')
-      const hasFootwear = outfit.itemsToOutfits.some((io) => io.itemType === 'footwear')
+      const hasBottom = outfit.outfitItems.some((io) => io.itemType === 'bottom')
+      const hasFootwear = outfit.outfitItems.some((io) => io.itemType === 'footwear')
 
       // Check for virtual tag filter
       const matchesVirtualTagFilter =
         !virtualTag || (virtualTag.appliesTo && virtualTag.appliesTo(outfit))
 
       // If regular tagId is provided, check if the outfit has this tag
-      const hasTag = !regularTagId || outfit.tagsToOutfits.some((to) => to.tagId === regularTagId)
+      const hasTag = !regularTagId || outfit.outfitTags.some((to) => to.tagId === regularTagId)
 
       return hasTopOrLayer && hasBottom && hasFootwear && hasTag && matchesVirtualTagFilter
     })
@@ -436,7 +436,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
     // First pass: Group outfits by core items and find the most recent for each group
     for (const outfit of completeOutfits) {
       // Extract only layers, tops, and bottoms - not accessories or footwear
-      const coreItems = outfit.itemsToOutfits
+      const coreItems = outfit.outfitItems
         .filter((io) => ['layer', 'top', 'bottom'].includes(io.itemType))
         .map((io) => io.itemId)
         .sort() // Sort to ensure consistent order
@@ -468,7 +468,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
     // Second pass: Filter outfits to keep only the most recent for each core items group
     const uniqueOutfits = completeOutfits.filter((outfit) => {
-      const coreItems = outfit.itemsToOutfits
+      const coreItems = outfit.outfitItems
         .filter((io) => ['layer', 'top', 'bottom'].includes(io.itemType))
         .map((io) => io.itemId)
         .sort()
@@ -488,7 +488,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
     // For each filtered outfit, set its wear count to the total number of outfits with the same core items
     for (const outfit of uniqueOutfits) {
-      const coreItems = outfit.itemsToOutfits
+      const coreItems = outfit.outfitItems
         .filter((io) => ['layer', 'top', 'bottom'].includes(io.itemType))
         .map((io) => io.itemId)
         .sort()
@@ -517,8 +517,8 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
       )
 
       // Get item freshness for all items in this outfit
-      const itemIds = outfit.itemsToOutfits.map((io) => io.itemId)
-      const nonAccessoryItems = outfit.itemsToOutfits.filter((io) => io.itemType !== 'accessory')
+      const itemIds = outfit.outfitItems.map((io) => io.itemId)
+      const nonAccessoryItems = outfit.outfitItems.filter((io) => io.itemType !== 'accessory')
 
       if (itemIds.length === 0) {
         // Empty outfit case - just return rating score
@@ -651,16 +651,16 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
     // STEP 7: Fetch full details for the paginated outfits in a single query
     const outfitIds = paginatedOutfits.map((o) => o.outfitId)
-    const outfitDetails = await c.get('db').query.outfits.findMany({
-      where: inArray(outfits.id, outfitIds),
+    const outfitDetails = await c.get('db').query.outfit.findMany({
+      where: inArray(outfit.id, outfitIds),
       with: {
-        itemsToOutfits: {
+        outfitItems: {
           columns: {
             outfitId: false,
           },
-          orderBy: (itemsToOutfits, { asc }) => [asc(itemsToOutfits.itemType)],
+          orderBy: (outfitItems, { asc }) => [asc(outfitItems.itemType)],
         },
-        tagsToOutfits: {
+        outfitTags: {
           columns: {
             outfitId: false,
           },
@@ -674,7 +674,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         const scoreInfo = paginatedOutfits.find((s) => s.outfitId === outfit.id)
 
         // Add freshness score to each item
-        const itemsToOutfitsWithFreshness = outfit.itemsToOutfits.map((item) => {
+        const outfitItemsWithFreshness = outfit.outfitItems.map((item) => {
           const freshness = itemFreshnessMap.get(item.itemId) || 1.0
           return {
             ...item,
@@ -683,12 +683,12 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         })
 
         // Add applicable virtual tags to the outfit
-        const tagsToOutfits = [...outfit.tagsToOutfits]
+        const outfitTags = [...outfit.outfitTags]
         const applicableVirtualTags = getApplicableVirtualTags(outfit)
 
         // Add all applicable virtual tags to this outfit
         for (const virtualTag of applicableVirtualTags) {
-          tagsToOutfits.push({
+          outfitTags.push({
             tagId: virtualTag.id,
             status: 'manually_assigned',
           })
@@ -696,8 +696,8 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
         return {
           ...outfit,
-          itemsToOutfits: itemsToOutfitsWithFreshness,
-          tagsToOutfits,
+          outfitItems: outfitItemsWithFreshness,
+          outfitTags,
           scoringDetails: scoreInfo?.scoring_details || {
             ratingScore: 0,
             timeScore: 0,

@@ -31,9 +31,9 @@ export const itemStatusEnum: [string, ...string[]] = ['available', 'withheld', '
 export const itemStatusEnumPg = pgEnum('itemStatus', itemStatusEnum)
 
 /**
- * Items
+ * Item
  */
-export const items = pgTable('items', {
+export const item = pgTable('item', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
@@ -47,16 +47,16 @@ export const items = pgTable('items', {
   userId: text('user_id').notNull(),
 })
 
-export const itemsRelations = relations(items, ({ many }) => ({
-  itemsToOutfits: many(itemsToOutfits),
-  tagsToItems: many(tagsToItems),
+export const itemRelations = relations(item, ({ many }) => ({
+  outfitItems: many(outfitItem),
+  itemTags: many(itemTag),
 }))
 
 /**
- * Outfits
+ * Outfit
  */
-export const outfits = pgTable(
-  'outfits',
+export const outfit = pgTable(
+  'outfit',
   {
     id: text('id')
       .$defaultFn(() => createId())
@@ -67,45 +67,39 @@ export const outfits = pgTable(
     locationLongitude: doublePrecision('location_longitude'),
     userId: text('user_id').notNull(),
   },
-  (table) => ({
-    ratingCheck: check('rating_check', sql`${table.rating} >= 0 AND ${table.rating} <= 2`),
-  })
+  (table) => [check('rating_check', sql`${table.rating} >= 0 AND ${table.rating} <= 2`)]
 )
 
-export const outfitsRelations = relations(outfits, ({ many }) => ({
-  itemsToOutfits: many(itemsToOutfits),
-  tagsToOutfits: many(tagsToOutfits),
+export const outfitRelations = relations(outfit, ({ many }) => ({
+  outfitItems: many(outfitItem),
+  outfitTags: many(outfitTag),
 }))
 
 /**
- * Items to Outfits
+ * Outfit Item
  */
-export const itemsToOutfits = pgTable(
-  'items_to_outfits',
+export const outfitItem = pgTable(
+  'outfit_item',
   {
-    itemId: text('item_id')
-      .notNull()
-      .references(() => items.id, { onDelete: 'cascade' }),
     outfitId: text('outfit_id')
       .notNull()
-      .references(() => outfits.id, { onDelete: 'cascade' }),
+      .references(() => outfit.id, { onDelete: 'cascade' }),
+    itemId: text('item_id')
+      .notNull()
+      .references(() => item.id, { onDelete: 'cascade' }),
     itemType: itemTypeEnumPg('item_type').notNull(),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.itemId, table.outfitId] }),
-    }
-  }
+  (table) => [primaryKey({ columns: [table.outfitId, table.itemId] })]
 )
 
-export const itemsToOutfitsRelations = relations(itemsToOutfits, ({ one }) => ({
-  item: one(items, {
-    fields: [itemsToOutfits.itemId],
-    references: [items.id],
+export const outfitItemRelations = relations(outfitItem, ({ one }) => ({
+  outfit: one(outfit, {
+    fields: [outfitItem.outfitId],
+    references: [outfit.id],
   }),
-  outfit: one(outfits, {
-    fields: [itemsToOutfits.outfitId],
-    references: [outfits.id],
+  item: one(item, {
+    fields: [outfitItem.itemId],
+    references: [item.id],
   }),
 }))
 
@@ -121,10 +115,10 @@ export const tagStatusEnum: [string, ...string[]] = [
 export const tagStatusEnumPg = pgEnum('tagStatus', tagStatusEnum)
 
 /**
- * Tags
+ * Tag
  */
-export const tags = pgTable(
-  'tags',
+export const tag = pgTable(
+  'tag',
   {
     id: text('id')
       .$defaultFn(() => createId())
@@ -135,76 +129,66 @@ export const tags = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     userId: text('user_id').notNull(),
   },
-  (table) => ({
-    minDaysCheck: check('min_days_before_item_reuse', sql`${table.minDaysBeforeItemReuse} >= -1`),
-  })
+  (table) => [check('min_days_before_item_reuse', sql`${table.minDaysBeforeItemReuse} >= -1`)]
 )
 
-export const tagsRelations = relations(tags, ({ many }) => ({
-  tagsToOutfits: many(tagsToOutfits),
-  tagsToItems: many(tagsToItems),
+export const tagRelations = relations(tag, ({ many }) => ({
+  outfitTags: many(outfitTag),
+  itemTags: many(itemTag),
 }))
 
 /**
- * Tags to Outfits
+ * Outfit Tag
  */
-export const tagsToOutfits = pgTable(
-  'tags_to_outfits',
+export const outfitTag = pgTable(
+  'outfit_tag',
   {
-    tagId: text('tag_id')
-      .notNull()
-      .references(() => tags.id, { onDelete: 'cascade' }),
     outfitId: text('outfit_id')
       .notNull()
-      .references(() => outfits.id, { onDelete: 'cascade' }),
+      .references(() => outfit.id, { onDelete: 'cascade' }),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => tag.id, { onDelete: 'cascade' }),
     status: tagStatusEnumPg('status').notNull().default('suggested'),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.tagId, table.outfitId] }),
-    }
-  }
+  (table) => [primaryKey({ columns: [table.outfitId, table.tagId] })]
 )
 
-export const tagsToOutfitsRelations = relations(tagsToOutfits, ({ one }) => ({
-  tag: one(tags, {
-    fields: [tagsToOutfits.tagId],
-    references: [tags.id],
+export const outfitTagRelations = relations(outfitTag, ({ one }) => ({
+  outfit: one(outfit, {
+    fields: [outfitTag.outfitId],
+    references: [outfit.id],
   }),
-  outfit: one(outfits, {
-    fields: [tagsToOutfits.outfitId],
-    references: [outfits.id],
+  tag: one(tag, {
+    fields: [outfitTag.tagId],
+    references: [tag.id],
   }),
 }))
 
 /**
- * Tags to Items
+ * Item Tag
  */
-export const tagsToItems = pgTable(
-  'tags_to_items',
+export const itemTag = pgTable(
+  'item_tag',
   {
-    tagId: text('tag_id')
-      .notNull()
-      .references(() => tags.id, { onDelete: 'cascade' }),
     itemId: text('item_id')
       .notNull()
-      .references(() => items.id, { onDelete: 'cascade' }),
+      .references(() => item.id, { onDelete: 'cascade' }),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => tag.id, { onDelete: 'cascade' }),
     status: tagStatusEnumPg('status').notNull().default('suggested'),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.tagId, table.itemId] }),
-    }
-  }
+  (table) => [primaryKey({ columns: [table.itemId, table.tagId] })]
 )
 
-export const tagsToItemsRelations = relations(tagsToItems, ({ one }) => ({
-  tag: one(tags, {
-    fields: [tagsToItems.tagId],
-    references: [tags.id],
+export const itemTagRelations = relations(itemTag, ({ one }) => ({
+  item: one(item, {
+    fields: [itemTag.itemId],
+    references: [item.id],
   }),
-  item: one(items, {
-    fields: [tagsToItems.itemId],
-    references: [items.id],
+  tag: one(tag, {
+    fields: [itemTag.tagId],
+    references: [tag.id],
   }),
 }))
