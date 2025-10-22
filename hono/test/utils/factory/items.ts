@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 
 import type { itemStatusEnum } from '../../../src/schema'
-import { itemTypeEnum, items } from '../../../src/schema'
+import { item, itemTypeEnum } from '../../../src/schema'
 import { instance } from '../db'
 
 export type ItemType = 'layer' | 'top' | 'bottom' | 'footwear' | 'accessory'
@@ -61,7 +61,7 @@ export class ItemFactory implements Item {
 
   async store(name: string, port: number) {
     const db = instance(name, port)
-    await db.insert(items).values(this).onConflictDoNothing()
+    await db.insert(item).values(this).onConflictDoNothing()
   }
 
   formatAPI({ omitLastWornAt = false }: { omitLastWornAt?: boolean } = {}): ItemAPI {

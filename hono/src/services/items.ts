@@ -6,13 +6,13 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { itemStatusEnum, itemTypeEnum, items } from '../schema'
+import { item, itemStatusEnum, itemTypeEnum } from '../schema'
 import { requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
 import type { DBVariables } from '../utils/inject-db'
 import injectDB from '../utils/inject-db'
 
-const insertItemSchema = createInsertSchema(items, {
+const insertItemSchema = createInsertSchema(item, {
   name: z.string().min(1).max(60),
   brand: z.string().min(1).max(60),
   photoUrl: z.string().url(),
@@ -21,7 +21,7 @@ const insertItemSchema = createInsertSchema(items, {
   status: z.enum(itemStatusEnum).default('available'),
 }).omit({ id: true, createdAt: true, userId: true })
 
-const selectItemSchema = createSelectSchema(items, {
+const selectItemSchema = createSelectSchema(item, {
   id: z.string().refine((val) => isCuid(val)),
 })
 
@@ -44,11 +44,11 @@ const paginationValidationItems = z
   .optional()
 
 const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefined) => {
-  return db.query.items
+  return db.query.item
     .findMany({
       where: whereClause,
       with: {
-        itemsToOutfits: {
+        outfitItems: {
           with: {
             outfit: {
               columns: {
@@ -57,7 +57,7 @@ const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefin
             },
           },
         },
-        tagsToItems: {
+        itemTags: {
           columns: {
             itemId: false,
           },
@@ -75,11 +75,11 @@ const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefin
         status: item.status,
         createdAt: item.createdAt,
         userId: item.userId,
-        lastWornAt: item.itemsToOutfits.length
-          ? item.itemsToOutfits.filter((rel) => rel.outfit.wearDate !== null).length > 0
+        lastWornAt: item.outfitItems.length
+          ? item.outfitItems.filter((rel) => rel.outfit.wearDate !== null).length > 0
             ? new Date(
                 Math.max(
-                  ...item.itemsToOutfits
+                  ...item.outfitItems
                     .filter((rel) => rel.outfit.wearDate !== null)
                     .map((rel) => rel.outfit.wearDate!.getTime())
                 )
@@ -88,7 +88,7 @@ const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefin
                 .split('T')[0]
             : null
           : null,
-        tagsToItems: item.tagsToItems,
+        itemTags: item.itemTags,
       }))
     )
 }
@@ -106,10 +106,10 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
           ...search
             .toLowerCase()
             .split(/\s+/)
-            .map((word) => or(ilike(items.name, `%${word}%`), ilike(items.brand, `%${word}%`))),
-          eq(items.userId, userId)
+            .map((word) => or(ilike(item.name, `%${word}%`), ilike(item.brand, `%${word}%`))),
+          eq(item.userId, userId)
         )
-      : eq(items.userId, userId)
+      : eq(item.userId, userId)
 
     const itemsData = await getItemQuery(c.get('db'), whereClause).then((items) => {
       // Sort by status (available first, then withheld, then retired), then lastWornAt (nulls first), then name
@@ -159,7 +159,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
       const itemData = await getItemQuery(
         c.get('db'),
-        and(eq(items.id, id), eq(items.userId, userId))
+        and(eq(item.id, id), eq(item.userId, userId))
       ) // NOTE: Aware that this is not good practice, could be more efficient
 
       if (!itemData.length) {
@@ -190,7 +190,7 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         (
           await c
             .get('db')
-            .insert(items)
+            .insert(item)
             .values({
               ...body,
               userId,
@@ -217,12 +217,12 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         (
           await c
             .get('db')
-            .update(items)
+            .update(item)
             .set({
               ...body,
               userId,
             })
-            .where(and(eq(items.id, params.id), eq(items.userId, userId)))
+            .where(and(eq(item.id, params.id), eq(item.userId, userId)))
             .returning()
         )[0]
       )
@@ -242,8 +242,8 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
         (
           await c
             .get('db')
-            .delete(items)
-            .where(and(eq(items.id, params.id), eq(items.userId, userId)))
+            .delete(item)
+            .where(and(eq(item.id, params.id), eq(item.userId, userId)))
             .returning()
         )[0]
       )

@@ -4,10 +4,10 @@ import { ItemListLoading } from './ItemListLoading'
 import { ItemDisplay } from './ItemDisplay'
 import { SelectableItem } from './SelectableItem'
 
-type ItemToOutfit = OutfitsResponse['outfits'][number]['itemsToOutfits'][number] | OutfitSuggestionsResponse['suggestions'][number]['itemsToOutfits'][number]
+type ItemToOutfit = OutfitsResponse['outfits'][number]['outfitItems'][number] | OutfitSuggestionsResponse['suggestions'][number]['outfitItems'][number]
 
 interface ItemListProps {
-  itemsToOutfits: ItemToOutfit[]
+  outfitItems: ItemToOutfit[]
   coreItems?: string[]
   showLastWornAt?: boolean
   showThreeDotsMenu?: boolean
@@ -24,7 +24,7 @@ interface ItemListProps {
  * or SelectableItem with three-dots menu when actions are needed.
  */
 export function ItemList({ 
-  itemsToOutfits, 
+  outfitItems, 
   coreItems = [], 
   showLastWornAt = false,
   showThreeDotsMenu = false,
@@ -41,11 +41,11 @@ export function ItemList({
     return <ItemListLoading />
   }
 
-  // Transform itemsToOutfits to items with additional data
+  // Transform outfitItems to items with additional data
   const transformedItems: (ItemsResponse['items'][number] & { 
     itemType: string
     freshness?: number 
-  })[] = itemsToOutfits
+  })[] = outfitItems
     .map((itemToOutfit) => {
       if (!itemToOutfit.itemId || !itemToOutfit.itemType) return null
       

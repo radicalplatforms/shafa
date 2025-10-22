@@ -74,11 +74,6 @@ export default function OutfitSuggestions() {
   }
 
   const maxScore = suggestions[0]?.totalScore || 0
-  
-  // Check if any suggestions have tags
-  const hasTags = suggestions.some(suggestion => 
-    suggestion.tagsToOutfits && suggestion.tagsToOutfits.length > 0
-  );
 
   return (
     <div className="space-y-6">
@@ -123,8 +118,8 @@ export default function OutfitSuggestions() {
                   <div className="flex justify-between items-center mb-3 sm:mb-4 text-[12px] text-muted-foreground">
                     <span className="flex items-center">
                       <div className="flex gap-2 mr-3">
-                        {Array.isArray(suggestion.tagsToOutfits) && suggestion.tagsToOutfits.length > 0 ? (
-                          suggestion.tagsToOutfits.map((tagToOutfit) => {
+                        {Array.isArray(suggestion.outfitTags) && suggestion.outfitTags.length > 0 ? (
+                          suggestion.outfitTags.map((tagToOutfit) => {
                             const tag = tags?.find(t => t.id === tagToOutfit.tagId)
                             return tag ? (
                               <Tag
@@ -164,7 +159,7 @@ export default function OutfitSuggestions() {
                   </div>
                   <div className="divider"></div>
                   <ItemList 
-                    itemsToOutfits={suggestion.itemsToOutfits}
+                    outfitItems={suggestion.outfitItems}
                     showLastWornAt={true}
                     showThreeDotsMenu={true}
                     onItemStatusChange={handleItemStatusChange}

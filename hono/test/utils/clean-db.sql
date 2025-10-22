@@ -1,18 +1,18 @@
 
 DELETE
-FROM tags_to_items;
+FROM item_tag;
 
 DELETE
-FROM tags_to_outfits;
+FROM outfit_tag;
 
 DELETE
-FROM items_to_outfits;
+FROM outfit_item;
 
 DELETE
-FROM items;
+FROM item;
 
 DELETE
-FROM outfits;
+FROM outfit;
 
 DELETE
-FROM tags;
+FROM tag;

@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker'
 
-import { tagStatusEnum, tagsToItems } from '../../../src/schema'
+import { itemTag, tagStatusEnum } from '../../../src/schema'
 import { instance } from '../db'
 
 export interface TagToItem {
@@ -22,7 +22,7 @@ export class TagToItemFactory implements TagToItem {
 
   async store(name: string, port: number) {
     const db = instance(name, port)
-    await db.insert(tagsToItems).values(this).onConflictDoNothing()
+    await db.insert(itemTag).values(this).onConflictDoNothing()
   }
 
   tagId: string

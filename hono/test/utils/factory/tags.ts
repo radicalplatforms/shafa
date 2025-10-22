@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker'
 
-import { tags } from '../../../src/schema'
+import { tag } from '../../../src/schema'
 import { instance } from '../db'
 
 export interface Tag {
@@ -42,7 +42,7 @@ export class TagFactory implements Tag {
 
   async store(name: string, port: number) {
     const db = instance(name, port)
-    await db.insert(tags).values(this).onConflictDoNothing()
+    await db.insert(tag).values(this).onConflictDoNothing()
   }
 
   formatAPI(): TagAPI {
