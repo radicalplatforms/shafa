@@ -1,28 +1,34 @@
 'use client'
 
-import React, { Suspense } from 'react'
+import React, { Suspense, useMemo, useCallback } from 'react'
 import { useState } from 'react'
 import { useItems } from '@/lib/client'
 import { useItemSearch } from '@/lib/hooks/useItemSearch'
+import { useItemSelection } from '@/lib/hooks/useItemSelection'
 import { Card, CardContent } from '@/components/ui/card'
-import { Item, itemTypeIcons } from '@/components/Item'
+import { itemTypeIcons, SelectableItem } from '@/components/SelectableItem'
 import { Button } from '@/components/ui/button'
-import { Archive, ArchiveRestore, Ban } from 'lucide-react'
-import type { ItemStatus } from '@/lib/types'
 import { ITEM_STATUS } from '@/lib/types'
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu"
-import { ItemInlineSearch } from '@/components/ItemInlineSearch'
+import { SelectionToolbar } from '@/components/SelectionToolbar'
 import ItemsLoading from './loading'
 
 // Separate component for Items content to use with Suspense
 function ItemsContent() {
-  const { items, isLoading, updateItemStatus, mutate } = useItems()
+  const { items, isLoading, isError, mutate } = useItems()
   const [selectedType, setSelectedType] = useState<keyof typeof itemTypeIcons | null>(null)
+  
+  // Global selection state
+  const {
+    selectedItemIds,
+    isBatchUpdating,
+    statusChangingItemId,
+    changingToStatus,
+    handleToggleSelection,
+    handleClearSelection,
+    handleBatchStatusChange,
+    handleStatusChange,
+  } = useItemSelection()
+  
   
   const {
     searchTerm,
@@ -37,31 +43,34 @@ function ItemsContent() {
     typeFilter: selectedType
   })
 
+
   // Sort items to show available items first, then withheld, then retired
-  const filteredItems = [...baseFilteredItems].sort((a, b) => {
-    // First sort by status (available first, then withheld, then retired)
-    const statusOrder = { [ITEM_STATUS.AVAILABLE]: 0, [ITEM_STATUS.WITHHELD]: 1, [ITEM_STATUS.RETIRED]: 2 } as const
-    const statusCompare = statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
-    if (statusCompare !== 0) return statusCompare
-    
-    // For items with the same status, sort by lastWornAt (oldest first)
-    if (a.status === ITEM_STATUS.AVAILABLE && b.status === ITEM_STATUS.AVAILABLE) {
-      // Items without lastWornAt should be first (never worn)
-      if (!a.lastWornAt && b.lastWornAt) return -1;
-      if (a.lastWornAt && !b.lastWornAt) return 1;
+  const filteredItems = useMemo(() => {
+    return [...baseFilteredItems].sort((a, b) => {
+      // First sort by status (available first, then withheld, then retired)
+      const statusOrder = { [ITEM_STATUS.AVAILABLE]: 0, [ITEM_STATUS.WITHHELD]: 1, [ITEM_STATUS.RETIRED]: 2 } as const
+      const statusCompare = statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
+      if (statusCompare !== 0) return statusCompare
       
-      // If both have lastWornAt dates, sort oldest first
-      if (a.lastWornAt && b.lastWornAt) {
-        return new Date(a.lastWornAt).getTime() - new Date(b.lastWornAt).getTime();
+      // For items with the same status, sort by lastWornAt (oldest first)
+      if (a.status === ITEM_STATUS.AVAILABLE && b.status === ITEM_STATUS.AVAILABLE) {
+        // Items without lastWornAt should be first (never worn)
+        if (!a.lastWornAt && b.lastWornAt) return -1;
+        if (a.lastWornAt && !b.lastWornAt) return 1;
+        
+        // If both have lastWornAt dates, sort oldest first
+        if (a.lastWornAt && b.lastWornAt) {
+          return new Date(a.lastWornAt).getTime() - new Date(b.lastWornAt).getTime();
+        }
       }
-    }
-    
-    // If status is the same and other criteria don't apply, preserve original order
-    return 0;
-  });
+      
+      // If status is the same and other criteria don't apply, preserve original order
+      return 0;
+    });
+  }, [baseFilteredItems]);
 
   // Function to determine which date category an item belongs to
-  const getDateCategory = (item: typeof filteredItems[0]) => {
+  const getDateCategory = useCallback((item: typeof filteredItems[0]) => {
     if (item.status !== ITEM_STATUS.AVAILABLE) return item.status;
     if (!item.lastWornAt) return 'never';
     
@@ -83,15 +92,17 @@ function ItemsContent() {
     
     // Otherwise, categorize by month-year
     return `${lastWorn.getFullYear()}-${lastWorn.getMonth()}`;
-  }
+  }, []);
   
   // Group items by date category
-  const itemsByCategory = filteredItems.reduce((acc, item) => {
-    const category = getDateCategory(item);
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(item);
-    return acc;
-  }, {} as Record<string, typeof filteredItems>);
+  const itemsByCategory = useMemo(() => {
+    return filteredItems.reduce((acc, item) => {
+      const category = getDateCategory(item);
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(item);
+      return acc;
+    }, {} as Record<string, typeof filteredItems>);
+  }, [filteredItems, getDateCategory]);
   
   // Function to get a human-readable title for a category
   const getCategoryTitle = (category: string) => {
@@ -131,9 +142,11 @@ function ItemsContent() {
   }
   
   // Get categories in sorted order
-  const sortedCategories = Object.keys(itemsByCategory).sort(
-    (a, b) => getCategoryOrder(a) - getCategoryOrder(b)
-  );
+  const sortedCategories = useMemo(() => {
+    return Object.keys(itemsByCategory).sort(
+      (a, b) => getCategoryOrder(a) - getCategoryOrder(b)
+    );
+  }, [itemsByCategory]);
 
   // Function to find the global index of an item in the filtered items list 
   // based on its position within its category
@@ -156,6 +169,19 @@ function ItemsContent() {
     return <ItemsLoading />
   }
 
+  if (isError) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-destructive mb-4">
+          Failed to load items. Please try again.
+        </p>
+        <Button onClick={() => mutate()} variant="outline">
+          Retry
+        </Button>
+      </div>
+    )
+  }
+
   const itemTypes = Object.keys(itemTypeIcons) as Array<keyof typeof itemTypeIcons>
 
   const handleTypeClick = (type: keyof typeof itemTypeIcons) => {
@@ -168,9 +194,6 @@ function ItemsContent() {
     }
   }
 
-  const handleStatusChange = async (itemId: string, newStatus: ItemStatus) => {
-    await updateItemStatus(itemId, newStatus)
-  }
 
   const handleNewItem = (itemId: string, itemType: string) => {
     // Call the base handler
@@ -184,6 +207,7 @@ function ItemsContent() {
       setSelectedType(itemType as keyof typeof itemTypeIcons)
     }
   }
+
 
   return (
     <div className="space-y-6">
@@ -215,117 +239,65 @@ function ItemsContent() {
         </div>
       </div>
 
-      {/* Items list */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
-          {/* Search input */}
-          <div className="mb-4 ml-1">
-            <ItemInlineSearch
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onClick={() => {}}
-              onKeyDown={handleKeyDown}
-              addMode={addMode}
-              onNewItem={handleNewItem}
-            />
-          </div>
 
-          {!addMode && filteredItems.length > 0 ? (
-            <ul className="space-y-1">
-              {sortedCategories.map((category, categoryIndex) => {
-                return (
-                  <React.Fragment key={category}>
-                    <li className={`${categoryIndex > 0 ? 'mt-4' : ''} pb-1`}>
-                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide border-t pt-2 mt-4">
-                        {getCategoryTitle(category)}
-                      </div>
+      {!addMode && filteredItems.length > 0 ? (
+        <div className="space-y-2 pb-10">
+          {sortedCategories.map((category, categoryIndex) => {
+            return (
+              <React.Fragment key={category}>
+                <div className="pb-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide border-t pt-2 mt-4">
+                    {getCategoryTitle(category)}
+                  </div>
+                </div>
+                <ul className="space-y-1">
+                  {itemsByCategory[category].map((item: any, index: number) => (
+                    <li key={item.id || `item-${index}`} className="text-sm m-0">
+                      <SelectableItem 
+                        item={item}
+                        itemType={item.type as keyof typeof itemTypeIcons}
+                        showLastWornAt={true}
+                        // Selection props
+                        enableSelection={true}
+                        isSelected={selectedItemIds.has(item.id)}
+                        hasAnySelection={selectedItemIds.size > 0}
+                        onToggleSelection={handleToggleSelection}
+                        // Status change props
+                        isStatusChanging={statusChangingItemId === item.id}
+                        changingToStatus={changingToStatus || undefined}
+                        onStatusChange={handleStatusChange}
+                      />
                     </li>
-                    {itemsByCategory[category].map((item, itemIndex) => {
-                      return (
-                        <li 
-                          key={item.id}
-                          className={`text-sm block ${isHighlighted(categoryIndex, itemIndex) ? 'bg-accent rounded-md' : ''} 
-                                     ${item.status !== ITEM_STATUS.AVAILABLE ? 'opacity-70' : ''}`}
-                        >
-                          <ContextMenu>
-                            <ContextMenuTrigger className="block w-full">
-                              <div className={`p-1 ${isHighlighted(categoryIndex, itemIndex) ? 'bg-accent rounded-md' : ''}`}>
-                                <Item
-                                  item={item}
-                                  itemType={item.type as keyof typeof itemTypeIcons}
-                                  showLastWornAt={true}
-                                />
-                              </div>
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                              {item.status === ITEM_STATUS.AVAILABLE && (
-                                <>
-                                  <ContextMenuItem
-                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.WITHHELD)}
-                                  >
-                                    <Ban className="mr-2 h-4 w-4" />
-                                    <span>Withhold Item</span>
-                                  </ContextMenuItem>
-                                  <ContextMenuItem
-                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.RETIRED)}
-                                  >
-                                    <Archive className="mr-2 h-4 w-4" />
-                                    <span>Retire Item</span>
-                                  </ContextMenuItem>
-                                </>
-                              )}
-                              {item.status === ITEM_STATUS.WITHHELD && (
-                                <>
-                                  <ContextMenuItem
-                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.AVAILABLE)}
-                                  >
-                                    <ArchiveRestore className="mr-2 h-4 w-4" />
-                                    <span>Make Available</span>
-                                  </ContextMenuItem>
-                                  <ContextMenuItem
-                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.RETIRED)}
-                                  >
-                                    <Archive className="mr-2 h-4 w-4" />
-                                    <span>Retire Item</span>
-                                  </ContextMenuItem>
-                                </>
-                              )}
-                              {item.status === ITEM_STATUS.RETIRED && (
-                                <>
-                                  <ContextMenuItem
-                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.AVAILABLE)}
-                                  >
-                                    <ArchiveRestore className="mr-2 h-4 w-4" />
-                                    <span>Make Available</span>
-                                  </ContextMenuItem>
-                                  <ContextMenuItem
-                                    onClick={() => handleStatusChange(item.id, ITEM_STATUS.WITHHELD)}
-                                  >
-                                    <Ban className="mr-2 h-4 w-4" />
-                                    <span>Withhold Item</span>
-                                  </ContextMenuItem>
-                                </>
-                              )}
-                            </ContextMenuContent>
-                          </ContextMenu>
-                        </li>
-                      )
-                    })}
-                  </React.Fragment>
-                )
-              })}
-            </ul>
-          ) : !addMode ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground">
-                {searchTerm 
-                  ? "No items found matching your search criteria. Keep typing to create a new item."
-                  : "No items found with the selected filter."}
-              </p>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+                  ))}
+                </ul>
+              </React.Fragment>
+            )
+          })}
+        </div>
+      ) : !addMode ? (
+        <div className="p-8 text-center">
+          <p className="text-muted-foreground">
+            {searchTerm 
+              ? "No items found matching your search criteria. Keep typing to create a new item."
+              : "No items found with the selected filter."}
+          </p>
+        </div>
+      ) : null}
+      
+      {/* Global Selection toolbar with integrated search */}
+      <SelectionToolbar
+        selectedItems={items.filter((item: any) => selectedItemIds.has(item.id))}
+        onBatchStatusChange={handleBatchStatusChange}
+        onClearSelection={handleClearSelection}
+        isUpdating={isBatchUpdating}
+        changingToStatus={changingToStatus}
+        searchValue={searchTerm}
+        onSearchChange={handleSearchChange}
+        onSearchClick={() => {}}
+        onSearchKeyDown={handleKeyDown}
+        searchAddMode={addMode}
+        onSearchNewItem={handleNewItem}
+      />
     </div>
   )
 }

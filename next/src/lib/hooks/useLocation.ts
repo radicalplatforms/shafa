@@ -1,92 +1,54 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 export interface LocationData {
   latitude: number
   longitude: number
-  accuracy?: number
 }
 
 export type LocationStatus = 'idle' | 'loading' | 'success' | 'error' | 'denied'
 
-export interface LocationState {
-  data: LocationData | null
-  status: LocationStatus
-  error: string | null
-}
-
 export function useLocation() {
-  const [state, setState] = useState<LocationState>({
-    data: null,
-    status: 'idle',
-    error: null,
-  })
+  const [data, setData] = useState<LocationData | null>(null)
+  const [status, setStatus] = useState<LocationStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setState(prev => ({
-        ...prev,
-        status: 'error',
-        error: 'Geolocation is not supported by this browser',
-      }))
+      setStatus('error')
+      setError('Geolocation not supported')
       return
     }
 
-    setState(prev => ({ ...prev, status: 'loading', error: null }))
+    setStatus('loading')
+    setError(null)
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setState({
-          data: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          },
-          status: 'success',
-          error: null,
+        setData({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
         })
+        setStatus('success')
       },
       (error) => {
-        let errorMessage = 'Unknown error occurred'
-        let status: LocationStatus = 'error'
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied by user'
-            status = 'denied'
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information is unavailable'
-            break
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out'
-            break
-        }
-
-        setState({
-          data: null,
-          status,
-          error: errorMessage,
-        })
+        const isDenied = error.code === error.PERMISSION_DENIED
+        setStatus(isDenied ? 'denied' : 'error')
+        setError(isDenied ? 'Location denied' : 'Location unavailable')
+        setData(null)
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5 minutes
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 0,
       }
     )
   }, [])
 
   const clearLocation = useCallback(() => {
-    setState({
-      data: null,
-      status: 'idle',
-      error: null,
-    })
+    setData(null)
+    setStatus('idle')
+    setError(null)
   }, [])
 
-  return {
-    ...state,
-    requestLocation,
-    clearLocation,
-  }
+  return { data, status, error, requestLocation, clearLocation }
 }

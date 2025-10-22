@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ItemsResponse } from '@/lib/client'
-import { itemTypeIcons } from '@/components/Item'
+import { itemTypeIcons } from '@/components/SelectableItem'
 
 interface UseItemSearchProps {
   items: ItemsResponse['items']
