@@ -3,7 +3,6 @@ import { ItemFactory, type ItemType } from '../factory/items'
 import { ItemToOutfitFactory } from '../factory/items-outfits'
 import { OutfitFactory } from '../factory/outfits'
 import { TagFactory } from '../factory/tags'
-import { TagToItemFactory } from '../factory/tags-items'
 import { TagToOutfitFactory } from '../factory/tags-outfits'
 
 export default async function (
@@ -15,7 +14,6 @@ export default async function (
     OutfitFactory[],
     ItemToOutfitFactory[],
     TagFactory[],
-    TagToItemFactory[],
     TagToOutfitFactory[],
   ]
 > {
@@ -23,7 +21,6 @@ export default async function (
   const outfits: OutfitFactory[] = []
   const items_to_outfits: ItemToOutfitFactory[] = []
   const tags: TagFactory[] = []
-  const tags_to_items: TagToItemFactory[] = []
   const tags_to_outfits: TagToOutfitFactory[] = []
 
   // Create tags
@@ -43,14 +40,6 @@ export default async function (
       userId: 'rak3rman',
     })
     await items[i].store(db_name, db_port)
-
-    // Assign tag to item
-    tags_to_items[i] = new TagToItemFactory(undefined, {
-      tagId: tags[i % tags.length].id,
-      itemId: items[i].id,
-      status: tagStatusEnum[i % 4],
-    })
-    await tags_to_items[i].store(db_name, db_port)
   }
 
   // Create outfits and map items
@@ -81,5 +70,5 @@ export default async function (
     await tags_to_outfits[i].store(db_name, db_port)
   }
 
-  return [items, outfits, items_to_outfits, tags, tags_to_items, tags_to_outfits]
+  return [items, outfits, items_to_outfits, tags, tags_to_outfits]
 }

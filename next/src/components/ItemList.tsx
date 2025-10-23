@@ -1,8 +1,8 @@
 import React from 'react'
 import { OutfitsResponse, OutfitSuggestionsResponse, useItems, ItemsResponse } from '@/lib/client'
 import { ItemListLoading } from './ItemListLoading'
-import { ItemDisplay } from './ItemDisplay'
-import { SelectableItem } from './SelectableItem'
+import { Item } from './Item'
+import type { ItemStatus } from '@/lib/types'
 
 type ItemToOutfit = OutfitsResponse['outfits'][number]['outfitItems'][number] | OutfitSuggestionsResponse['suggestions'][number]['outfitItems'][number]
 
@@ -14,14 +14,14 @@ interface ItemListProps {
   onItemView?: (item: ItemsResponse['items'][number]) => void
   onItemEdit?: (item: ItemsResponse['items'][number]) => void
   onItemDelete?: (item: ItemsResponse['items'][number]) => void
-  onItemStatusChange?: (itemId: string, status: any) => Promise<void>
+  onItemStatusChange?: (itemId: string, status: ItemStatus) => Promise<void>
   statusChangingItemId?: string | null
-  changingToStatus?: any
+  changingToStatus?: ItemStatus | null
 }
 
 /**
- * Simple item list for outfit contexts. Uses ItemDisplay for read-only display
- * or SelectableItem with three-dots menu when actions are needed.
+ * Simple item list for outfit contexts. Uses Item component for display
+ * with optional three-dots menu when actions are needed.
  */
 export function ItemList({ 
   outfitItems, 
@@ -64,30 +64,20 @@ export function ItemList({
     <ul className="space-y-1">
       {transformedItems.map((item, index) => (
         <li key={item.id || `item-${index}`} className="text-sm m-0">
-          {showThreeDotsMenu ? (
-            <SelectableItem
-              item={item}
-              itemType={item.itemType}
-              isCoreItem={coreItems.includes(item.id)}
-              showLastWornAt={showLastWornAt}
-              freshness={item.freshness}
-              showThreeDotsMenu={true}
-              onView={onItemView}
-              onEdit={onItemEdit}
-              onDelete={onItemDelete}
-              onStatusChange={onItemStatusChange}
-              isStatusChanging={statusChangingItemId === item.id}
-              changingToStatus={changingToStatus}
-            />
-          ) : (
-            <ItemDisplay
-              item={item}
-              itemType={item.itemType}
-              isCoreItem={coreItems.includes(item.id)}
-              showLastWornAt={showLastWornAt}
-              freshness={item.freshness}
-            />
-          )}
+          <Item
+            item={item}
+            itemType={item.itemType}
+            isCoreItem={coreItems.includes(item.id)}
+            showLastWornAt={showLastWornAt}
+            freshness={item.freshness}
+            showThreeDotsMenu={showThreeDotsMenu}
+            onView={onItemView}
+            onEdit={onItemEdit}
+            onDelete={onItemDelete}
+            onStatusChange={onItemStatusChange}
+            isStatusChanging={statusChangingItemId === item.id}
+            changingToStatus={changingToStatus || undefined}
+          />
         </li>
       ))}
     </ul>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ItemsResponse } from '@/lib/client'
-import { itemTypeIcons } from '@/components/SelectableItem'
+import { itemTypeIcons } from '@/components/Item'
 
 interface UseItemSearchProps {
   items: ItemsResponse['items']
@@ -33,7 +33,7 @@ export function useItemSearch({
     return items.filter(item => {
       const typeMatch = typeFilter ? item.type === typeFilter : true
       
-      // Search match - check if search term is in name, brand, or type
+      // Search match - check if search term is in name, brand, type, or tag names
       let searchMatch = true
       if (searchTerm) {
         const searchTerms = searchTerm.toLowerCase().split(/\s+/)
@@ -41,10 +41,14 @@ export function useItemSearch({
         const itemBrand = (item.brand || '').toLowerCase()
         const itemType = item.type.toLowerCase()
         
+        // Check if any aggregated tags match the search term
+        const tagNames = (item.aggregatedTags || []).map(tag => tag.tagName.toLowerCase())
+        
         searchMatch = searchTerms.every(term => 
           itemName.includes(term) || 
           itemBrand.includes(term) ||
-          itemType.includes(term)
+          itemType.includes(term) ||
+          tagNames.some(tagName => tagName.includes(term))
         )
       }
       

@@ -1,7 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { ItemLoading } from '@/components/ItemLoading'
-import { itemTypeIcons } from '@/components/SelectableItem'
+import { itemTypeIcons } from '@/components/Item'
 
 export default function ItemsLoading() {
   const itemTypes = Object.keys(itemTypeIcons) as Array<keyof typeof itemTypeIcons>

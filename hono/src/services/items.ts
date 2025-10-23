@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { isCuid } from '@paralleldrive/cuid2'
 import type { SQL } from 'drizzle-orm'
-import { and, eq, ilike, or } from 'drizzle-orm'
+import { and, eq, ilike, or, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -54,42 +54,79 @@ const getItemQuery = (db: DBVariables['db'], whereClause: SQL<unknown> | undefin
               columns: {
                 wearDate: true,
               },
+              with: {
+                outfitTags: {
+                  with: {
+                    tag: {
+                      columns: {
+                        id: true,
+                        name: true,
+                        hexColor: true,
+                      },
+                    },
+                  },
+                },
+              },
             },
-          },
-        },
-        itemTags: {
-          columns: {
-            itemId: false,
           },
         },
       },
     })
     .then((items) =>
-      items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        brand: item.brand,
-        photoUrl: item.photoUrl,
-        type: item.type,
-        rating: item.rating,
-        status: item.status,
-        createdAt: item.createdAt,
-        userId: item.userId,
-        lastWornAt: item.outfitItems.length
-          ? item.outfitItems.filter((rel) => rel.outfit.wearDate !== null).length > 0
-            ? new Date(
-                Math.max(
-                  ...item.outfitItems
-                    .filter((rel) => rel.outfit.wearDate !== null)
-                    .map((rel) => rel.outfit.wearDate!.getTime())
+      items.map((item) => {
+        // Aggregate tags from worn outfits only
+        const tagCounts = new Map<string, { tagId: string; tagName: string; hexColor: string; count: number }>()
+        
+        // Filter to only worn outfits first to avoid unnecessary iterations
+        const wornOutfitItems = item.outfitItems.filter(outfitItem => outfitItem.outfit.wearDate !== null)
+        
+        wornOutfitItems.forEach((outfitItem) => {
+          // Safely handle missing outfitTags
+          if (outfitItem.outfit.outfitTags) {
+            outfitItem.outfit.outfitTags.forEach((outfitTag) => {
+              // Safely handle missing tag data
+              if (outfitTag.tag) {
+                const tagId = outfitTag.tag.id
+                const tagName = outfitTag.tag.name
+                const hexColor = outfitTag.tag.hexColor
+                
+                const existing = tagCounts.get(tagId)
+                if (existing) {
+                  existing.count += 1
+                } else {
+                  tagCounts.set(tagId, { tagId, tagName, hexColor, count: 1 })
+                }
+              }
+            })
+          }
+        })
+        
+        return {
+          id: item.id,
+          name: item.name,
+          brand: item.brand,
+          photoUrl: item.photoUrl,
+          type: item.type,
+          rating: item.rating,
+          status: item.status,
+          createdAt: item.createdAt,
+          userId: item.userId,
+          lastWornAt: item.outfitItems.length
+            ? item.outfitItems.filter((rel) => rel.outfit.wearDate !== null).length > 0
+              ? new Date(
+                  Math.max(
+                    ...item.outfitItems
+                      .filter((rel) => rel.outfit.wearDate !== null)
+                      .map((rel) => rel.outfit.wearDate!.getTime())
+                  )
                 )
-              )
-                .toISOString()
-                .split('T')[0]
-            : null
-          : null,
-        itemTags: item.itemTags,
-      }))
+                  .toISOString()
+                  .split('T')[0]
+              : null
+            : null,
+          aggregatedTags: Array.from(tagCounts.values()),
+        }
+      })
     )
 }
 
@@ -103,10 +140,29 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables }>()
 
     const whereClause = search
       ? and(
-          ...search
-            .toLowerCase()
-            .split(/\s+/)
-            .map((word) => or(ilike(item.name, `%${word}%`), ilike(item.brand, `%${word}%`))),
+          or(
+            // Search in item name and brand
+            ...search
+              .toLowerCase()
+              .split(/\s+/)
+              .map((word) => or(ilike(item.name, `%${word}%`), ilike(item.brand, `%${word}%`))),
+            // Search in aggregated tags
+            ...search
+              .toLowerCase()
+              .split(/\s+/)
+              .map((word) => 
+                sql`EXISTS (
+                  SELECT 1 FROM outfit_item oi
+                  JOIN outfit o ON o.id = oi.outfit_id
+                  JOIN outfit_tag ot ON ot.outfit_id = o.id
+                  JOIN tag t ON t.id = ot.tag_id
+                  WHERE oi.item_id = ${item.id}
+                    AND o.user_id = ${userId}
+                    AND o.wear_date IS NOT NULL
+                    AND LOWER(t.name) LIKE ${`%${word}%`}
+                )`
+              )
+          ),
           eq(item.userId, userId)
         )
       : eq(item.userId, userId)

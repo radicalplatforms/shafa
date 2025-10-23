@@ -5,9 +5,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Trash2, Loader2 } from 'lucide-react'
 import { ItemList } from '@/components/ItemList'
 import OutfitListLoading from './OutfitListLoading'
-import { Tag } from "@/components/ui/tag"
+import { FilterTag } from "@/components/ui/tag"
 import Rating from '@/components/ui/rating'
 import { useOutfits, useItems, useTags } from '@/lib/client'
+import type { ItemStatus } from '@/lib/types'
+import { useOutfitSearch } from '@/lib/hooks/useOutfitSearch'
+import { SearchToolbar } from '@/components/SearchToolbar'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -17,15 +20,28 @@ import {
 
 export default function OutfitList() {
   const { outfits, isLoading: isLoadingOutfits, isLoadingMore, isError: isErrorOutfits, isReachingEnd, loadMore, deleteOutfit } = useOutfits()
-  const { isLoading: isLoadingItems, isError: isErrorItems, updateItemStatus, mutate: mutateItems } = useItems()
-  const { tags, isLoading: isLoadingTags, isError: isErrorTags } = useTags()
+  const { items, updateItemStatus, mutate: mutateItems } = useItems()
+  const { tags } = useTags()
   const observer = useRef<IntersectionObserver | null>(null)
   const [deletingOutfitId, setDeletingOutfitId] = useState<string | null>(null)
   const [statusChangingItemId, setStatusChangingItemId] = useState<string | null>(null)
-  const [changingToStatus, setChangingToStatus] = useState<any>(null)
+  const [changingToStatus, setChangingToStatus] = useState<ItemStatus | null>(null)
+
+  const {
+    searchTerm,
+    addMode,
+    filteredOutfits,
+    handleSearchChange,
+    handleKeyDown,
+    handleNewItem
+  } = useOutfitSearch({
+    outfits,
+    allItems: items,
+    allTags: tags
+  })
 
   const lastOutfitElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (isLoadingOutfits || isLoadingItems || isLoadingTags || isLoadingMore) return
+    if (isLoadingOutfits || isLoadingMore) return
     if (observer.current) observer.current.disconnect()
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !isReachingEnd) {
@@ -33,7 +49,7 @@ export default function OutfitList() {
       }
     })
     if (node) observer.current.observe(node)
-  }, [isLoadingOutfits, isLoadingItems, isLoadingTags, isLoadingMore, isReachingEnd, loadMore])
+  }, [isLoadingOutfits, isLoadingMore, isReachingEnd, loadMore])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -59,7 +75,7 @@ export default function OutfitList() {
     }
   }
 
-  const handleItemStatusChange = async (itemId: string, newStatus: any) => {
+  const handleItemStatusChange = async (itemId: string, newStatus: ItemStatus) => {
     setStatusChangingItemId(itemId)
     setChangingToStatus(newStatus)
     try {
@@ -84,18 +100,20 @@ export default function OutfitList() {
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-      {outfits.map((outfit, index) => (
-        <div
-          key={`outfit-${outfit.id}`}
-          ref={index === outfits.length - 1 ? lastOutfitElementRef : null}
-          className={`h-full animate-in fade-in slide-in-from-bottom-4 ${index === 9 ? "duration-1000" : "duration-700"}`}
-          style={{ 
-            animationDelay: `${index * 50}ms`, 
-            animationFillMode: 'forwards',
-            ...(index === 9 && { filter: 'blur(0) !important', opacity: '1 !important' })
-          }}
-        >
+    <div className="space-y-6">
+      {!addMode && filteredOutfits.length > 0 ? (
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 pb-10">
+          {filteredOutfits.map((outfit, index) => (
+            <div
+              key={`outfit-${outfit.id}`}
+              ref={index === filteredOutfits.length - 1 ? lastOutfitElementRef : null}
+              className={`h-full animate-in fade-in slide-in-from-bottom-4 ${index === 9 ? "duration-1000" : "duration-700"}`}
+              style={{ 
+                animationDelay: `${index * 50}ms`, 
+                animationFillMode: 'forwards',
+                ...(index === 9 && { filter: 'blur(0) !important', opacity: '1 !important' })
+              }}
+            >
           <ContextMenu>
             <ContextMenuTrigger>
               <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
@@ -107,7 +125,7 @@ export default function OutfitList() {
                           outfit.outfitTags.map((tagToOutfit) => {
                             const tag = tags?.find(t => t.id === tagToOutfit.tagId)
                             return tag ? (
-                              <Tag
+                              <FilterTag
                                 key={tag.id}
                                 name={tag.name}
                                 hexColor={tag.hexColor}
@@ -115,7 +133,7 @@ export default function OutfitList() {
                               />
                             ) : null
                           })
-                        ) : (<Tag
+                        ) : (<FilterTag
                           key="na-tag"
                               name="N/A"
                               hexColor="#6b7280"
@@ -155,8 +173,26 @@ export default function OutfitList() {
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
+            </div>
+          ))}
         </div>
-      ))}
+      ) : !addMode ? (
+        <div className="p-8 text-center pb-10">
+          <p className="text-muted-foreground">
+            {searchTerm 
+              ? "No outfits found matching your search criteria. Keep typing to create a new item."
+              : "No outfits found."}
+          </p>
+        </div>
+      ) : null}
+      
+      <SearchToolbar
+        searchValue={searchTerm}
+        onSearchChange={handleSearchChange}
+        onSearchKeyDown={handleKeyDown}
+        searchAddMode={addMode}
+        onSearchNewItem={handleNewItem}
+      />
     </div>
   )
 }

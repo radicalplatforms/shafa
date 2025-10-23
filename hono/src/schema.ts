@@ -49,7 +49,6 @@ export const item = pgTable('item', {
 
 export const itemRelations = relations(item, ({ many }) => ({
   outfitItems: many(outfitItem),
-  itemTags: many(itemTag),
 }))
 
 /**
@@ -134,7 +133,6 @@ export const tag = pgTable(
 
 export const tagRelations = relations(tag, ({ many }) => ({
   outfitTags: many(outfitTag),
-  itemTags: many(itemTag),
 }))
 
 /**
@@ -161,34 +159,6 @@ export const outfitTagRelations = relations(outfitTag, ({ one }) => ({
   }),
   tag: one(tag, {
     fields: [outfitTag.tagId],
-    references: [tag.id],
-  }),
-}))
-
-/**
- * Item Tag
- */
-export const itemTag = pgTable(
-  'item_tag',
-  {
-    itemId: text('item_id')
-      .notNull()
-      .references(() => item.id, { onDelete: 'cascade' }),
-    tagId: text('tag_id')
-      .notNull()
-      .references(() => tag.id, { onDelete: 'cascade' }),
-    status: tagStatusEnumPg('status').notNull().default('suggested'),
-  },
-  (table) => [primaryKey({ columns: [table.itemId, table.tagId] })]
-)
-
-export const itemTagRelations = relations(itemTag, ({ one }) => ({
-  item: one(item, {
-    fields: [itemTag.itemId],
-    references: [item.id],
-  }),
-  tag: one(tag, {
-    fields: [itemTag.tagId],
     references: [tag.id],
   }),
 }))

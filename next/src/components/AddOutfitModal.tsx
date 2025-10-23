@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SelectableItem, itemTypeIcons } from '@/components/SelectableItem'
+import { Item, itemTypeIcons } from '@/components/Item'
 import Rating from './ui/rating'
-import { Tag } from "@/components/ui/tag"
+import { FilterTag } from "@/components/ui/tag"
 import { client, useItems, useTags, useOutfits } from '@/lib/client'
 import { useAuth } from '@clerk/nextjs'
 import { ItemInlineSearch } from './ItemInlineSearch'
@@ -321,7 +321,7 @@ export function AddOutfitModal({
                   return (
                     <div key={item.id} className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <SelectableItem 
+                        <Item 
                           item={item} 
                           itemType={selectedItem.type as keyof typeof itemTypeIcons}
                           showLastWornAt
@@ -394,7 +394,7 @@ export function AddOutfitModal({
                           onMouseEnter={() => setHighlightedIndex(index)}
                         >
                           <div className="flex-1">
-                            <SelectableItem 
+                            <Item 
                               item={item} 
                               itemType={item.type as keyof typeof itemTypeIcons}
                               showLastWornAt
@@ -484,13 +484,12 @@ export function AddOutfitModal({
                 </Button>
               )}
               {tags?.map((tag) => (
-                <Tag
+                <FilterTag
                   key={tag.id}
                   name={tag.name}
                   hexColor={tag.hexColor}
                   selected={selectedTags.includes(tag.id)}
                   onClick={() => handleTagToggle(tag.id)}
-                  compact={false}
                 />
               ))}
               <div className="px-1"></div>

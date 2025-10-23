@@ -198,7 +198,7 @@ export function ItemInlineSearch({
               onChange={handleInternalChange}
               onClick={onClick}
               onKeyDown={handleInternalKeyDown}
-              placeholder={stage === 'brand' ? "Enter brand (optional)..." : "Search items, brands, types..."}
+              placeholder={stage === 'brand' ? "Enter brand (optional)..." : "Search items, brands, types, tags..."}
               className="font-medium leading-[18px] bg-transparent focus:outline-none w-full truncate"
             />
           </div>

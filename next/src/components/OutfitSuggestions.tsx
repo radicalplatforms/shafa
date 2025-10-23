@@ -7,7 +7,10 @@ import { ItemList } from '@/components/ItemList'
 import OutfitSuggestionsLoading from './OutfitSuggestionsLoading'
 import Rating from '@/components/ui/rating'
 import { useSuggestedOutfits, useTags, useItems } from '@/lib/client'
-import { Tag } from '@/components/ui/tag'
+import type { ItemStatus } from '@/lib/types'
+import { useOutfitSearch } from '@/lib/hooks/useOutfitSearch'
+import { SearchToolbar } from '@/components/SearchToolbar'
+import { FilterTag } from '@/components/ui/tag'
 import { MapPin } from 'lucide-react'
 
 export default function OutfitSuggestions() {
@@ -21,15 +24,28 @@ export default function OutfitSuggestions() {
     isReachingEnd, 
     loadMore 
   } = useSuggestedOutfits(selectedTagId)
-  const { tags, isLoading: isLoadingTags } = useTags()
-  const { updateItemStatus, mutate: mutateItems } = useItems()
+  const { tags } = useTags()
+  const { items, updateItemStatus, mutate: mutateItems } = useItems()
   const [statusChangingItemId, setStatusChangingItemId] = useState<string | null>(null)
-  const [changingToStatus, setChangingToStatus] = useState<any>(null)
+  const [changingToStatus, setChangingToStatus] = useState<ItemStatus | null>(null)
+
+  const {
+    searchTerm,
+    addMode,
+    filteredOutfits,
+    handleSearchChange,
+    handleKeyDown,
+    handleNewItem
+  } = useOutfitSearch({
+    outfits: suggestions,
+    allItems: items,
+    allTags: tags
+  })
 
   const observer = useRef<IntersectionObserver | null>(null)
 
   const lastSuggestionElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (isLoading || isLoadingTags || isLoadingMore) return
+    if (isLoading || isLoadingMore) return
     if (observer.current) observer.current.disconnect()
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !isReachingEnd) {
@@ -37,7 +53,7 @@ export default function OutfitSuggestions() {
       }
     })
     if (node) observer.current.observe(node)
-  }, [isLoading, isLoadingTags, isLoadingMore, isReachingEnd, loadMore])
+  }, [isLoading, isLoadingMore, isReachingEnd, loadMore])
 
   const handleTagClick = (tagId: string) => {
     if (selectedTagId === tagId) {
@@ -49,7 +65,7 @@ export default function OutfitSuggestions() {
     }
   }
 
-  const handleItemStatusChange = async (itemId: string, newStatus: any) => {
+  const handleItemStatusChange = async (itemId: string, newStatus: ItemStatus) => {
     setStatusChangingItemId(itemId)
     setChangingToStatus(newStatus)
     try {
@@ -65,7 +81,7 @@ export default function OutfitSuggestions() {
     }
   }
 
-  if ((isLoading || isLoadingTags) && suggestions.length === 0) {
+  if (isLoading && suggestions.length === 0) {
     return <OutfitSuggestionsLoading />
   }
 
@@ -73,7 +89,7 @@ export default function OutfitSuggestions() {
     return <div className="text-destructive">{isError.toString()}</div>
   }
 
-  const maxScore = suggestions[0]?.totalScore || 0
+  const maxScore = filteredOutfits[0]?.totalScore || 0
 
   return (
     <div className="space-y-6">
@@ -82,7 +98,7 @@ export default function OutfitSuggestions() {
         <div className="flex flex-wrap gap-2 pb-1 w-full">
           {tags && tags.length > 0 ? (
             tags.map((tag) => (
-              <Tag
+              <FilterTag
                 key={tag.id}
                 name={tag.name}
                 hexColor={tag.hexColor}
@@ -96,23 +112,23 @@ export default function OutfitSuggestions() {
         </div>
       </div>
 
-      {/* Suggestions grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-        {suggestions.map((suggestion, index) => {
-          // Use longer duration for the last few items
-          const isLongerDuration = index >= Math.max(0, suggestions.length - 2);
-          
-          return (
-            <div
-              key={`suggestion-${suggestion.id}`}
-              ref={index === suggestions.length - 1 ? lastSuggestionElementRef : null}
-              className={`h-full animate-in fade-in slide-in-from-bottom-4 ${isLongerDuration ? "duration-1000" : "duration-700"}`}
-              style={{ 
-                animationDelay: `${index * 50}ms`, 
-                animationFillMode: 'forwards',
-                ...(isLongerDuration && { filter: 'blur(0) !important', opacity: '1 !important' })
-              }}
-            >
+      {!addMode && filteredOutfits.length > 0 ? (
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 pb-10">
+          {filteredOutfits.map((suggestion, index) => {
+            // Use longer duration for the last few items
+            const isLongerDuration = index >= Math.max(0, filteredOutfits.length - 2);
+            
+            return (
+              <div
+                key={`suggestion-${suggestion.id}`}
+                ref={index === filteredOutfits.length - 1 ? lastSuggestionElementRef : null}
+                className={`h-full animate-in fade-in slide-in-from-bottom-4 ${isLongerDuration ? "duration-1000" : "duration-700"}`}
+                style={{ 
+                  animationDelay: `${index * 50}ms`, 
+                  animationFillMode: 'forwards',
+                  ...(isLongerDuration && { filter: 'blur(0) !important', opacity: '1 !important' })
+                }}
+              >
               <Card className="overflow-hidden bg-card hover:bg-accent transition-colors duration-300 h-full">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex justify-between items-center mb-3 sm:mb-4 text-[12px] text-muted-foreground">
@@ -122,7 +138,7 @@ export default function OutfitSuggestions() {
                           suggestion.outfitTags.map((tagToOutfit) => {
                             const tag = tags?.find(t => t.id === tagToOutfit.tagId)
                             return tag ? (
-                              <Tag
+                              <FilterTag
                                 key={tag.id}
                                 name={tag.name}
                                 hexColor={tag.hexColor}
@@ -130,7 +146,7 @@ export default function OutfitSuggestions() {
                               />
                             ) : null
                           })
-                        ) : (<Tag
+                        ) : (<FilterTag
                         key="na-tag"
                             name="N/A"
                             hexColor="#6b7280"
@@ -177,18 +193,27 @@ export default function OutfitSuggestions() {
               </Card>
             </div>
           )
-        })}
-        
-        {suggestions.length === 0 && !isLoading && (
-          <div className="col-span-3 p-8 text-center">
-            <p className="text-muted-foreground">
-              {selectedTagId 
+          })}
+        </div>
+      ) : !addMode ? (
+        <div className="p-8 text-center pb-10">
+          <p className="text-muted-foreground">
+            {searchTerm 
+              ? "No suggestions found matching your search criteria. Keep typing to create a new item."
+              : selectedTagId 
                 ? "No suggestions found with the selected tag. Try removing the filter."
                 : "No outfit suggestions available."}
-            </p>
-          </div>
-        )}
-      </div>
+          </p>
+        </div>
+      ) : null}
+      
+      <SearchToolbar
+        searchValue={searchTerm}
+        onSearchChange={handleSearchChange}
+        onSearchKeyDown={handleKeyDown}
+        searchAddMode={addMode}
+        onSearchNewItem={handleNewItem}
+      />
     </div>
   )
 }

@@ -4,30 +4,21 @@ import React, { Suspense, useMemo, useCallback } from 'react'
 import { useState } from 'react'
 import { useItems } from '@/lib/client'
 import { useItemSearch } from '@/lib/hooks/useItemSearch'
-import { useItemSelection } from '@/lib/hooks/useItemSelection'
 import { Card, CardContent } from '@/components/ui/card'
-import { itemTypeIcons, SelectableItem } from '@/components/SelectableItem'
+import { itemTypeIcons, Item } from '@/components/Item'
 import { Button } from '@/components/ui/button'
 import { ITEM_STATUS } from '@/lib/types'
-import { SelectionToolbar } from '@/components/SelectionToolbar'
+import { SearchToolbar } from '@/components/SearchToolbar'
 import ItemsLoading from './loading'
 
 // Separate component for Items content to use with Suspense
 function ItemsContent() {
-  const { items, isLoading, isError, mutate } = useItems()
+  const { items, isLoading, isError, mutate, updateItemStatus } = useItems()
   const [selectedType, setSelectedType] = useState<keyof typeof itemTypeIcons | null>(null)
   
-  // Global selection state
-  const {
-    selectedItemIds,
-    isBatchUpdating,
-    statusChangingItemId,
-    changingToStatus,
-    handleToggleSelection,
-    handleClearSelection,
-    handleBatchStatusChange,
-    handleStatusChange,
-  } = useItemSelection()
+  // Status change state for individual items
+  const [statusChangingItemId, setStatusChangingItemId] = useState<string | null>(null)
+  const [changingToStatus, setChangingToStatus] = useState<any>(null)
   
   
   const {
@@ -208,6 +199,30 @@ function ItemsContent() {
     }
   }
 
+  const handleStatusChange = async (itemId: string, newStatus: any) => {
+    setStatusChangingItemId(itemId)
+    setChangingToStatus(newStatus)
+    try {
+      const success = await updateItemStatus(itemId, newStatus)
+      if (success) {
+        // Clear loading state immediately after successful API call
+        setStatusChangingItemId(null)
+        setChangingToStatus(null)
+        // Trigger data refetch in background
+        mutate()
+      } else {
+        // If the API call didn't succeed, clear loading state
+        setStatusChangingItemId(null)
+        setChangingToStatus(null)
+      }
+    } catch (error) {
+      console.error('Status change failed:', error)
+      // Clear loading state on error
+      setStatusChangingItemId(null)
+      setChangingToStatus(null)
+    }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -253,15 +268,12 @@ function ItemsContent() {
                 <ul className="space-y-1">
                   {itemsByCategory[category].map((item: any, index: number) => (
                     <li key={item.id || `item-${index}`} className="text-sm m-0">
-                      <SelectableItem 
+                      <Item 
                         item={item}
                         itemType={item.type as keyof typeof itemTypeIcons}
                         showLastWornAt={true}
-                        // Selection props
-                        enableSelection={true}
-                        isSelected={selectedItemIds.has(item.id)}
-                        hasAnySelection={selectedItemIds.size > 0}
-                        onToggleSelection={handleToggleSelection}
+                        showAggregatedTags={true}
+                        showThreeDotsMenu={true}
                         // Status change props
                         isStatusChanging={statusChangingItemId === item.id}
                         changingToStatus={changingToStatus || undefined}
@@ -284,13 +296,8 @@ function ItemsContent() {
         </div>
       ) : null}
       
-      {/* Global Selection toolbar with integrated search */}
-      <SelectionToolbar
-        selectedItems={items.filter((item: any) => selectedItemIds.has(item.id))}
-        onBatchStatusChange={handleBatchStatusChange}
-        onClearSelection={handleClearSelection}
-        isUpdating={isBatchUpdating}
-        changingToStatus={changingToStatus}
+      {/* Search toolbar */}
+      <SearchToolbar
         searchValue={searchTerm}
         onSearchChange={handleSearchChange}
         onSearchKeyDown={handleKeyDown}
