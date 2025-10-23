@@ -10,9 +10,7 @@ export interface Item {
   id: string
   name: string
   brand: string
-  photoUrl: string
   type: ItemType
-  rating: number
   status: (typeof itemStatusEnum)[number]
   createdAt: Date
   userId: string
@@ -23,9 +21,7 @@ export interface ItemAPI {
   id: string
   name: string
   brand: string
-  photoUrl: string
   type: ItemType
-  rating: number
   status: (typeof itemStatusEnum)[number]
   createdAt: string
   userId: string
@@ -40,15 +36,9 @@ export class ItemFactory implements Item {
       : faker.string.alphanumeric({ length: 24, casing: 'lower' })
     this.name = options?.name ? (options.name as string) : faker.commerce.productName()
     this.brand = options?.brand ? (options.brand as string) : faker.company.name()
-    this.photoUrl = options?.photoUrl
-      ? (options.photoUrl as string)
-      : faker.image.urlLoremFlickr({ category: 'fashion' })
     this.type = options?.type
       ? (options.type as ItemType)
       : (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
-    this.rating = options?.rating
-      ? (options.rating as number)
-      : faker.number.int({ min: 0, max: 4 })
     this.status = options?.status
       ? (options.status as (typeof itemStatusEnum)[number])
       : 'available'
@@ -83,9 +73,7 @@ export class ItemFactory implements Item {
   id: string
   name: string
   brand: string
-  photoUrl: string
   type: ItemType
-  rating: number
   status: (typeof itemStatusEnum)[number]
   createdAt: Date
   userId: string
@@ -95,9 +83,7 @@ export class ItemFactory implements Item {
 export interface PartialItem {
   name: string
   brand: string
-  photoUrl: string
   type: ItemType
-  rating: number
 }
 
 export class PartialItemFactory implements PartialItem {
@@ -105,9 +91,7 @@ export class PartialItemFactory implements PartialItem {
     faker.seed(seed ?? undefined)
     this.name = options?.name || faker.commerce.productName()
     this.brand = options?.brand || faker.company.name()
-    this.photoUrl = options?.photoUrl || faker.image.urlLoremFlickr({ category: 'fashion' })
     this.type = options?.type || (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
-    this.rating = options?.rating || faker.number.int({ min: 0, max: 4 })
   }
 
   formatAPI(): PartialItem {
@@ -118,7 +102,5 @@ export class PartialItemFactory implements PartialItem {
 
   name: string
   brand: string
-  photoUrl: string
   type: ItemType
-  rating: number
 }

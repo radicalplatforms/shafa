@@ -7,7 +7,6 @@ export interface Tag {
   id: string
   name: string
   hexColor: string
-  minDaysBeforeItemReuse: number
   createdAt: Date
   userId: string
 }
@@ -16,7 +15,6 @@ export interface TagAPI {
   id: string
   name: string
   hexColor: string
-  minDaysBeforeItemReuse: number
   createdAt: string
   userId: string
 }
@@ -31,9 +29,6 @@ export class TagFactory implements Tag {
     this.hexColor = options?.hexColor
       ? (options.hexColor as string)
       : faker.color.rgb({ format: 'hex' })
-    this.minDaysBeforeItemReuse = options?.minDaysBeforeItemReuse
-      ? (options.minDaysBeforeItemReuse as number)
-      : faker.number.int({ min: -1, max: 365 })
     this.createdAt = options?.createdAt
       ? new Date(options.createdAt as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
@@ -55,7 +50,6 @@ export class TagFactory implements Tag {
   id: string
   name: string
   hexColor: string
-  minDaysBeforeItemReuse: number
   createdAt: Date
   userId: string
 }
@@ -63,7 +57,6 @@ export class TagFactory implements Tag {
 export interface PartialTag {
   name: string
   hexColor: string
-  minDaysBeforeItemReuse: number
 }
 
 export class PartialTagFactory implements PartialTag {
@@ -71,8 +64,6 @@ export class PartialTagFactory implements PartialTag {
     faker.seed(seed ?? undefined)
     this.name = options?.name || faker.word.noun()
     this.hexColor = options?.hexColor || faker.color.rgb({ format: 'hex' })
-    this.minDaysBeforeItemReuse =
-      options?.minDaysBeforeItemReuse || faker.number.int({ min: -1, max: 365 })
   }
 
   formatAPI(): PartialTag {
@@ -83,5 +74,4 @@ export class PartialTagFactory implements PartialTag {
 
   name: string
   hexColor: string
-  minDaysBeforeItemReuse: number
 }

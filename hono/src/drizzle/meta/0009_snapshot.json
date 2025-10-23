@@ -1,9 +1,66 @@
 {
-  "id": "b19c11b8-5754-4ccb-9ac5-22a6239ab06a",
+  "id": "d736f3c9-2aa3-4682-af7a-953848e5cfad",
   "prevId": "78937b18-caaf-485e-826e-1a3bf430e315",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.agent_chat": {
+      "name": "agent_chat",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_message": {
+          "name": "user_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_response": {
+          "name": "agent_response",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reasoning_effort": {
+          "name": "reasoning_effort",
+          "type": "reasoningEffort",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.item": {
       "name": "item",
       "schema": "",
@@ -26,22 +83,10 @@
           "primaryKey": false,
           "notNull": false
         },
-        "photo_url": {
-          "name": "photo_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "type": {
           "name": "type",
           "type": "itemType",
           "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rating": {
-          "name": "rating",
-          "type": "smallint",
           "primaryKey": false,
           "notNull": true
         },
@@ -159,12 +204,8 @@
           "name": "outfit_item_outfit_id_outfit_id_fk",
           "tableFrom": "outfit_item",
           "tableTo": "outfit",
-          "columnsFrom": [
-            "outfit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["outfit_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -172,12 +213,8 @@
           "name": "outfit_item_item_id_item_id_fk",
           "tableFrom": "outfit_item",
           "tableTo": "item",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -185,10 +222,7 @@
       "compositePrimaryKeys": {
         "outfit_item_outfit_id_item_id_pk": {
           "name": "outfit_item_outfit_id_item_id_pk",
-          "columns": [
-            "outfit_id",
-            "item_id"
-          ]
+          "columns": ["outfit_id", "item_id"]
         }
       },
       "uniqueConstraints": {},
@@ -227,12 +261,8 @@
           "name": "outfit_tag_outfit_id_outfit_id_fk",
           "tableFrom": "outfit_tag",
           "tableTo": "outfit",
-          "columnsFrom": [
-            "outfit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["outfit_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -240,12 +270,8 @@
           "name": "outfit_tag_tag_id_tag_id_fk",
           "tableFrom": "outfit_tag",
           "tableTo": "tag",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -253,10 +279,7 @@
       "compositePrimaryKeys": {
         "outfit_tag_outfit_id_tag_id_pk": {
           "name": "outfit_tag_outfit_id_tag_id_pk",
-          "columns": [
-            "outfit_id",
-            "tag_id"
-          ]
+          "columns": ["outfit_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -286,13 +309,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "min_days_before_item_reuse": {
-          "name": "min_days_before_item_reuse",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": -1
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -312,12 +328,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "min_days_before_item_reuse": {
-          "name": "min_days_before_item_reuse",
-          "value": "\"tag\".\"min_days_before_item_reuse\" >= -1"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },
@@ -325,32 +336,22 @@
     "public.itemStatus": {
       "name": "itemStatus",
       "schema": "public",
-      "values": [
-        "available",
-        "withheld",
-        "retired"
-      ]
+      "values": ["available", "withheld", "retired"]
     },
     "public.itemType": {
       "name": "itemType",
       "schema": "public",
-      "values": [
-        "layer",
-        "top",
-        "bottom",
-        "footwear",
-        "accessory"
-      ]
+      "values": ["layer", "top", "bottom", "footwear", "accessory"]
+    },
+    "public.reasoningEffort": {
+      "name": "reasoningEffort",
+      "schema": "public",
+      "values": ["minimal", "low", "medium", "high"]
     },
     "public.tagStatus": {
       "name": "tagStatus",
       "schema": "public",
-      "values": [
-        "manually_assigned",
-        "suggested",
-        "suggestion_accepted",
-        "suggestion_rejected"
-      ]
+      "values": ["manually_assigned", "suggested", "suggestion_accepted", "suggestion_rejected"]
     }
   },
   "schemas": {},

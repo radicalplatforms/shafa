@@ -4,7 +4,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client'
 import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
 import { useAuth } from '@clerk/nextjs'
-import type { ItemStatus } from './types'
+import type { ItemStatus, AgentResponse } from './types'
 
 export const client = hc<AppType>(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787/')
 
@@ -225,6 +225,30 @@ export function useTags() {
     isLoading,
     isError: error
   }
+}
+
+export function useAgent() {
+  const { getToken } = useAuth()
+  const $post = client.api.agent.$post
+  
+  const sendMessage = async (message: string): Promise<AgentResponse> => {
+    const res = await $post({ 
+      json: { message } 
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await getToken()}`
+      }
+    })
+    
+    if (!res.ok) {
+      throw new Error('Failed to send message to agent')
+    }
+    
+    return await res.json()
+  }
+  
+  return { sendMessage }
 }
 
 

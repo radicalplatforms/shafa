@@ -72,7 +72,7 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
   let testTagsToOutfits: TagToOutfitFactory[]
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits, testTags, , testTagsToOutfits] =
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToOutfits] =
       await basicSmallSeed(DB_NAME, DB_PORT)
   })
 

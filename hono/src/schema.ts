@@ -39,9 +39,7 @@ export const item = pgTable('item', {
     .primaryKey(),
   name: text('name').notNull(),
   brand: text('brand'),
-  photoUrl: text('photo_url'),
   type: itemTypeEnumPg('type').notNull(),
-  rating: smallint('rating').notNull(),
   status: itemStatusEnumPg('status').notNull().default('available'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   userId: text('user_id').notNull(),
@@ -116,20 +114,15 @@ export const tagStatusEnumPg = pgEnum('tagStatus', tagStatusEnum)
 /**
  * Tag
  */
-export const tag = pgTable(
-  'tag',
-  {
-    id: text('id')
-      .$defaultFn(() => createId())
-      .primaryKey(),
-    name: text('name').notNull(),
-    hexColor: text('hex_color').notNull(),
-    minDaysBeforeItemReuse: smallint('min_days_before_item_reuse').notNull().default(-1),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    userId: text('user_id').notNull(),
-  },
-  (table) => [check('min_days_before_item_reuse', sql`${table.minDaysBeforeItemReuse} >= -1`)]
-)
+export const tag = pgTable('tag', {
+  id: text('id')
+    .$defaultFn(() => createId())
+    .primaryKey(),
+  name: text('name').notNull(),
+  hexColor: text('hex_color').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  userId: text('user_id').notNull(),
+})
 
 export const tagRelations = relations(tag, ({ many }) => ({
   outfitTags: many(outfitTag),
@@ -162,3 +155,24 @@ export const outfitTagRelations = relations(outfitTag, ({ one }) => ({
     references: [tag.id],
   }),
 }))
+
+/**
+ * Reasoning Effort Enumeration
+ */
+export const reasoningEffortEnum: [string, ...string[]] = ['minimal', 'low', 'medium', 'high']
+export const reasoningEffortEnumPg = pgEnum('reasoningEffort', reasoningEffortEnum)
+
+/**
+ * Agent Chat
+ */
+export const agentChat = pgTable('agent_chat', {
+  id: text('id')
+    .$defaultFn(() => createId())
+    .primaryKey(),
+  userId: text('user_id').notNull(),
+  userMessage: text('user_message').notNull(),
+  agentResponse: text('agent_response').notNull(),
+  summary: text('summary'),
+  reasoningEffort: reasoningEffortEnumPg('reasoning_effort'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})

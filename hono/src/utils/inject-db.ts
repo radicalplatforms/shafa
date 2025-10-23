@@ -8,6 +8,7 @@ import * as schema from '../schema'
 
 export type DBVariables = {
   db: NeonDatabase<typeof schema>
+  dbClient: Client
 }
 
 export default async function injectDB(c: Context, next: Function) {
@@ -16,11 +17,16 @@ export default async function injectDB(c: Context, next: Function) {
   const client = new Client(DATABASE_URL!)
   const db = drizzle(client, { schema })
   c.set('db', db)
+  c.set('dbClient', client)
 
   try {
     await client.connect()
     await next()
   } finally {
-    await client.end()
+    // Only close the connection if it's not being used by agent tools
+    // The agent tools need the connection to remain open during execution
+    if (!c.get('isAgentRequest')) {
+      await client.end()
+    }
   }
 }

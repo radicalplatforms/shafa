@@ -5,9 +5,11 @@ import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 
 import { version } from '../package.json'
-import items from './services/items'
-import outfits from './services/outfits'
-import tags from './services/tags'
+import items from './controllers/items'
+import outfits from './controllers/outfits'
+import tags from './controllers/tags'
+import agent from './services/agent'
+import injectServices from './utils/inject-services'
 
 const app = new Hono()
 
@@ -67,6 +69,7 @@ const routes = app
   .get('/', async (c) => {
     return c.text(`Shafa API v${version}`)
   })
+  .route('/api/agent', agent)
   .route('/api/items', items)
   .route('/api/outfits', outfits)
   .route('/api/tags', tags)

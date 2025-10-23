@@ -1,6 +1,10 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { Sparkles } from 'lucide-react'
 import { ItemInlineSearch } from './ItemInlineSearch'
+import { Button } from './ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 interface SearchToolbarProps {
   // Search props
@@ -24,12 +28,19 @@ export function SearchToolbar({
   searchAddMode,
   onSearchNewItem
 }: SearchToolbarProps) {
+  const router = useRouter()
   // Check if search functionality is enabled
   const hasSearchFunctionality = searchValue !== undefined && 
     onSearchChange && 
     onSearchKeyDown && 
     searchAddMode !== undefined && 
     onSearchNewItem
+
+  const handleAgentSubmit = () => {
+    if (searchValue && searchValue.trim()) {
+      router.push(`/agent?q=${encodeURIComponent(searchValue.trim())}`)
+    }
+  }
 
   if (!hasSearchFunctionality) {
     return null
@@ -48,6 +59,27 @@ export function SearchToolbar({
             onNewItem={onSearchNewItem}
           />
         </div>
+        
+        {/* Agent submission button */}
+        {searchValue && searchValue.trim() && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleAgentSubmit}
+                  className="shrink-0 p-2 h-8 w-8"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Ask Fashion Assistant</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     </div>
   )

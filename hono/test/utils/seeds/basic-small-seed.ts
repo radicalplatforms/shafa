@@ -9,13 +9,7 @@ export default async function (
   db_name: string,
   db_port: number
 ): Promise<
-  [
-    ItemFactory[],
-    OutfitFactory[],
-    ItemToOutfitFactory[],
-    TagFactory[],
-    TagToOutfitFactory[],
-  ]
+  [ItemFactory[], OutfitFactory[], ItemToOutfitFactory[], TagFactory[], TagToOutfitFactory[]]
 > {
   const items: ItemFactory[] = []
   const outfits: OutfitFactory[] = []
