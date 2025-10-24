@@ -16,6 +16,7 @@ export type TagsResponse = InferResponseType<typeof client.api.tags.$get>
 export function useOutfits() {
   const { getToken } = useAuth()
   const $get = client.api.outfits.$get
+  const $getById = client.api.outfits[':id'].$get
   const $delete = client.api.outfits[':id'].$delete
 
   const getKey = (pageIndex: number, previousPageData: any) => {
@@ -58,6 +59,24 @@ export function useOutfits() {
   const isEmpty = data?.[0]?.outfits.length === 0
   const isReachingEnd = isEmpty || (data && data[data.length - 1]?.last_page)
 
+  const getOutfitById = async (outfitId: string) => {
+    try {
+      const res = await $getById({ param: { id: outfitId } }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
+        }
+      })
+      if (res.ok) {
+        return await res.json()
+      }
+      return null
+    } catch (error) {
+      console.error('Error fetching outfit:', error)
+      return null
+    }
+  }
+
   const deleteOutfit = async (outfitId: string) => {
     try {
       const res = await $delete({ param: { id: outfitId } }, {
@@ -83,6 +102,7 @@ export function useOutfits() {
     isReachingEnd,
     loadMore: () => setSize(size + 1),
     mutate,
+    getOutfitById,
     deleteOutfit
   }
 }
@@ -125,6 +145,7 @@ export function useSuggestedOutfits(tagId?: string) {
         'Authorization': `Bearer ${await getToken()}`
       },
     })
+    
     return await res.json()
   }
 
@@ -136,9 +157,9 @@ export function useSuggestedOutfits(tagId?: string) {
     }
   )
  
-  const suggestions = data ? data.flatMap(page => page.suggestions) : []
+  const suggestions = data ? data.flatMap(page => page.suggestions || []) : []
   const isLoadingMore = isLoading || (size > 0 && data && typeof data[size - 1] === 'undefined')
-  const isEmpty = data?.[0]?.suggestions.length === 0
+  const isEmpty = data?.[0]?.suggestions?.length === 0
   const isReachingEnd = isEmpty || (data && data[data.length - 1]?.metadata?.last_page)
   
   return {
@@ -231,7 +252,7 @@ export function useAgent() {
   const { getToken } = useAuth()
   const $post = client.api.agent.$post
   
-  const sendMessage = async (message: string): Promise<AgentResponse> => {
+  const sendMessage = async (message: string): Promise<any> => {
     const res = await $post({ 
       json: { message } 
     }, {

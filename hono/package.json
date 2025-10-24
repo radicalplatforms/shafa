@@ -17,6 +17,7 @@
     "check-eslint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.0-beta.37",
     "@ai-sdk/openai": "^3.0.0-beta.34",
     "@clerk/backend": "^1.23.7",
     "@hono/clerk-auth": "^2.0.0",

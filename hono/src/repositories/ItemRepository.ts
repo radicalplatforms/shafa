@@ -1,7 +1,7 @@
 import type { SQL } from 'drizzle-orm'
-import { and, eq, ilike, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
 
-import { item } from '../schema'
+import { item, outfit, outfitItem, outfitTag, tag } from '../schema'
 import type { DBVariables } from '../utils/inject-db'
 
 export interface ItemWithAggregatedTags {
@@ -21,12 +21,27 @@ export interface ItemWithAggregatedTags {
   }>
 }
 
-export interface ItemSearchOptions {
-  search?: string
-  type?: string
-  status?: string
+export interface ItemSearchInput {
+  text?: string
+  itemIdsAny?: string[]
+  nameEquals?: string
+  brandEquals?: string
+  typeIn?: string[]
+  statusIn?: string[]
+  createdFrom?: string
+  createdTo?: string
+  inOutfitsOnly?: boolean
+  neverWorn?: boolean
+  wornWithItemId?: string
+  wornBetween?: { startDate: string; endDate: string }
+  taggedWithAllTagIds?: string[]
+  taggedWithAnyTagIds?: string[]
+  taggedWithAllTagNames?: string[]
+  taggedWithAnyTagNames?: string[]
+  sortBy?: 'createdAt' | 'name' | 'brand' | 'wornCount'
+  sortOrder?: 'asc' | 'desc'
+  limit?: number
   page?: number
-  size?: number
 }
 
 export class ItemRepository {
@@ -122,40 +137,6 @@ export class ItemRepository {
       )
   }
 
-  async findAll(userId: string, options?: ItemSearchOptions): Promise<ItemWithAggregatedTags[]> {
-    const whereClause = options?.search
-      ? and(
-          or(
-            // Search in item name and brand
-            ...options.search
-              .toLowerCase()
-              .split(/\s+/)
-              .map((word) => or(ilike(item.name, `%${word}%`), ilike(item.brand, `%${word}%`))),
-            // Search in aggregated tags
-            ...options.search
-              .toLowerCase()
-              .split(/\s+/)
-              .map(
-                (word) =>
-                  sql`EXISTS (
-                  SELECT 1 FROM outfit_item oi
-                  JOIN outfit o ON o.id = oi.outfit_id
-                  JOIN outfit_tag ot ON ot.outfit_id = o.id
-                  JOIN tag t ON t.id = ot.tag_id
-                  WHERE oi.item_id = ${item.id}
-                    AND o.user_id = ${userId}
-                    AND o.wear_date IS NOT NULL
-                    AND LOWER(t.name) LIKE ${`%${word}%`}
-                )`
-              )
-          ),
-          eq(item.userId, userId)
-        )
-      : eq(item.userId, userId)
-
-    return this.getItemQuery(whereClause)
-  }
-
   async findById(userId: string, itemId: string): Promise<ItemWithAggregatedTags | null> {
     const items = await this.getItemQuery(and(eq(item.id, itemId), eq(item.userId, userId)))
     return items[0] || null
@@ -208,35 +189,201 @@ export class ItemRepository {
     })
   }
 
-  async search(userId: string, query: string) {
-    const searchTerm = query.toLowerCase()
+  async search(userId: string, input: ItemSearchInput): Promise<ItemWithAggregatedTags[]> {
+    const conditions: SQL<unknown>[] = [eq(item.userId, userId)]
 
-    const whereClause = and(
-      or(
-        // Search in item name and brand
-        ...searchTerm
-          .split(/\s+/)
-          .map((word: string) => or(ilike(item.name, `%${word}%`), ilike(item.brand, `%${word}%`))),
-        // Search in aggregated tags
-        ...searchTerm.split(/\s+/).map(
-          (word: string) =>
-            sql`EXISTS (
-            SELECT 1 FROM outfit_item oi
-            JOIN outfit o ON o.id = oi.outfit_id
-            JOIN outfit_tag ot ON ot.outfit_id = o.id
-            JOIN tag t ON t.id = ot.tag_id
+    if (input.text) {
+      const textConditions = input.text
+        .toLowerCase()
+        .split(/\s+/)
+        .flatMap((word) => [ilike(item.name, `%${word}%`), ilike(item.brand, `%${word}%`)])
+      conditions.push(or(...textConditions)!)
+    }
+
+    if (input.itemIdsAny && input.itemIdsAny.length > 0) {
+      conditions.push(inArray(item.id, input.itemIdsAny))
+    }
+
+    if (input.nameEquals) {
+      conditions.push(eq(item.name, input.nameEquals))
+    }
+
+    if (input.brandEquals) {
+      conditions.push(eq(item.brand, input.brandEquals))
+    }
+
+    if (input.typeIn && input.typeIn.length > 0) {
+      conditions.push(inArray(item.type, input.typeIn))
+    }
+
+    if (input.statusIn && input.statusIn.length > 0) {
+      conditions.push(inArray(item.status, input.statusIn))
+    }
+
+    if (input.createdFrom) {
+      conditions.push(gte(item.createdAt, new Date(input.createdFrom)))
+    }
+
+    if (input.createdTo) {
+      conditions.push(lte(item.createdAt, new Date(input.createdTo)))
+    }
+
+    if (input.inOutfitsOnly) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${outfitItem}
+          WHERE ${outfitItem.itemId} = ${item.id}
+        )`
+      )
+    }
+
+    if (input.neverWorn) {
+      conditions.push(
+        sql`NOT EXISTS (
+          SELECT 1 FROM ${outfitItem} oi
+          JOIN ${outfit} o ON o.id = oi.outfit_id
+          WHERE oi.item_id = ${item.id}
+            AND o.wear_date IS NOT NULL
+        )`
+      )
+    }
+
+    if (input.wornWithItemId) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${outfitItem} oi1
+          JOIN ${outfitItem} oi2 ON oi1.outfit_id = oi2.outfit_id
+          JOIN ${outfit} o ON o.id = oi1.outfit_id
+          WHERE oi1.item_id = ${item.id}
+            AND oi2.item_id = ${input.wornWithItemId}
+            AND o.wear_date IS NOT NULL
+        )`
+      )
+    }
+
+    if (input.wornBetween) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${outfitItem} oi
+          JOIN ${outfit} o ON o.id = oi.outfit_id
+          WHERE oi.item_id = ${item.id}
+            AND o.wear_date IS NOT NULL
+            AND o.wear_date >= ${input.wornBetween.startDate}::date
+            AND o.wear_date <= ${input.wornBetween.endDate}::date
+        )`
+      )
+    }
+
+    if (input.taggedWithAllTagIds && input.taggedWithAllTagIds.length > 0) {
+      for (const tagId of input.taggedWithAllTagIds) {
+        conditions.push(
+          sql`EXISTS (
+            SELECT 1 FROM ${outfitItem} oi
+            JOIN ${outfit} o ON o.id = oi.outfit_id
+            JOIN ${outfitTag} ot ON ot.outfit_id = o.id
             WHERE oi.item_id = ${item.id}
-              AND o.user_id = ${userId}
               AND o.wear_date IS NOT NULL
-              AND LOWER(t.name) LIKE ${`%${word}%`}
+              AND ot.tag_id = ${tagId}
           )`
         )
-      ),
-      eq(item.userId, userId)
-    )
+      }
+    }
 
-    return this.db.query.item.findMany({
-      where: whereClause,
-    })
+    if (input.taggedWithAnyTagIds && input.taggedWithAnyTagIds.length > 0) {
+      const tagConditions = input.taggedWithAnyTagIds.map(
+        (tagId) =>
+          sql`EXISTS (
+            SELECT 1 FROM ${outfitItem} oi
+            JOIN ${outfit} o ON o.id = oi.outfit_id
+            JOIN ${outfitTag} ot ON ot.outfit_id = o.id
+            WHERE oi.item_id = ${item.id}
+              AND o.wear_date IS NOT NULL
+              AND ot.tag_id = ${tagId}
+          )`
+      )
+      conditions.push(or(...tagConditions)!)
+    }
+
+    if (input.taggedWithAllTagNames && input.taggedWithAllTagNames.length > 0) {
+      for (const tagName of input.taggedWithAllTagNames) {
+        conditions.push(
+          sql`EXISTS (
+            SELECT 1 FROM ${outfitItem} oi
+            JOIN ${outfit} o ON o.id = oi.outfit_id
+            JOIN ${outfitTag} ot ON ot.outfit_id = o.id
+            JOIN ${tag} t ON t.id = ot.tag_id
+            WHERE oi.item_id = ${item.id}
+              AND o.wear_date IS NOT NULL
+              AND LOWER(t.name) = ${tagName.toLowerCase()}
+          )`
+        )
+      }
+    }
+
+    if (input.taggedWithAnyTagNames && input.taggedWithAnyTagNames.length > 0) {
+      const tagConditions = input.taggedWithAnyTagNames.map(
+        (tagName) =>
+          sql`EXISTS (
+            SELECT 1 FROM ${outfitItem} oi
+            JOIN ${outfit} o ON o.id = oi.outfit_id
+            JOIN ${outfitTag} ot ON ot.outfit_id = o.id
+            JOIN ${tag} t ON t.id = ot.tag_id
+            WHERE oi.item_id = ${item.id}
+              AND o.wear_date IS NOT NULL
+              AND LOWER(t.name) = ${tagName.toLowerCase()}
+          )`
+      )
+      conditions.push(or(...tagConditions)!)
+    }
+
+    const baseQuery = this.getItemQuery(and(...conditions))
+
+    let orderedQuery = baseQuery
+
+    if (input.sortBy) {
+      switch (input.sortBy) {
+        case 'name':
+          orderedQuery = baseQuery.then((items) =>
+            items.sort((a, b) =>
+              input.sortOrder === 'desc'
+                ? b.name.localeCompare(a.name)
+                : a.name.localeCompare(b.name)
+            )
+          )
+          break
+        case 'brand':
+          orderedQuery = baseQuery.then((items) =>
+            items.sort((a, b) => {
+              const brandA = a.brand || ''
+              const brandB = b.brand || ''
+              return input.sortOrder === 'desc'
+                ? brandB.localeCompare(brandA)
+                : brandA.localeCompare(brandB)
+            })
+          )
+          break
+        case 'createdAt':
+          orderedQuery = baseQuery.then((items) =>
+            items.sort((a, b) =>
+              input.sortOrder === 'desc'
+                ? b.createdAt.getTime() - a.createdAt.getTime()
+                : a.createdAt.getTime() - b.createdAt.getTime()
+            )
+          )
+          break
+      }
+    }
+
+    let results = await orderedQuery
+
+    // Handle pagination
+    if (input.page !== undefined && input.limit !== undefined) {
+      const offset = input.page * input.limit
+      results = results.slice(offset, offset + input.limit)
+    } else if (input.limit !== undefined) {
+      results = results.slice(0, input.limit)
+    }
+
+    return results
   }
 }

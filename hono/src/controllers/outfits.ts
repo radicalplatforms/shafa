@@ -46,8 +46,8 @@ const paginationValidationOutfits = z.object({
     .optional(),
   size: z
     .string()
-    .refine((val) => !isNaN(+val) && +val > 0 && +val <= 100, {
-      message: 'Outfits page size must be a positive number and less than or equal to 100',
+    .refine((val) => !isNaN(+val) && +val > 0 && +val <= 300, {
+      message: 'Outfits page size must be a positive number and less than or equal to 300',
     })
     .optional(),
 })
@@ -104,20 +104,6 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables & ServiceVariables
       return c.json(await c.get('outfitService').createOutfit(userId, body))
     }
   )
-  .delete(
-    '/:id',
-    zValidator('param', selectOutfitSchema.pick({ id: true })),
-    requireAuth,
-    injectDB,
-    injectServices,
-    async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const params = c.req.valid('param')
-
-      return c.json(await c.get('outfitService').deleteOutfit(userId, params.id))
-    }
-  )
   .get(
     '/suggest',
     zValidator('query', suggestionsValidation),
@@ -138,6 +124,41 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables & ServiceVariables
       })
 
       return c.json(result)
+    }
+  )
+  .delete(
+    '/:id',
+    zValidator('param', selectOutfitSchema.pick({ id: true })),
+    requireAuth,
+    injectDB,
+    injectServices,
+    async (c) => {
+      const auth = c.get('auth')
+      const userId = auth?.userId || ''
+      const params = c.req.valid('param')
+
+      return c.json(await c.get('outfitService').deleteOutfit(userId, params.id))
+    }
+  )
+  .get(
+    '/:id',
+    zValidator('param', selectOutfitSchema.pick({ id: true })),
+    requireAuth,
+    injectDB,
+    injectServices,
+    async (c) => {
+      const auth = c.get('auth')
+      const userId = auth?.userId || ''
+      const params = c.req.valid('param')
+
+      // Get the specific outfit
+      const outfit = await c.get('outfitService').getOutfitById(userId, params.id)
+
+      if (!outfit) {
+        return c.json({ error: 'Outfit not found' }, 404)
+      }
+
+      return c.json(outfit)
     }
   )
 

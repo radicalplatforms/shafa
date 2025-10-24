@@ -5,7 +5,9 @@ import { OutfitRepository } from '../repositories/OutfitRepository'
 import { TagRepository } from '../repositories/TagRepository'
 import { ItemService } from '../services/ItemService'
 import { OutfitService } from '../services/OutfitService'
+import { SimilarityService } from '../services/SimilarityService'
 import { TagService } from '../services/TagService'
+import { WeatherService } from '../services/WeatherService'
 import type { DBVariables } from './inject-db'
 
 export type ServiceVariables = {
@@ -15,6 +17,8 @@ export type ServiceVariables = {
   itemService: ItemService
   outfitService: OutfitService
   tagService: TagService
+  similarityService: SimilarityService
+  weatherService: WeatherService
 }
 
 const injectServices: MiddlewareHandler<{
@@ -31,6 +35,8 @@ const injectServices: MiddlewareHandler<{
   const itemService = new ItemService(itemRepository)
   const outfitService = new OutfitService(outfitRepository, itemRepository)
   const tagService = new TagService(tagRepository)
+  const similarityService = new SimilarityService(db)
+  const weatherService = new WeatherService(db)
 
   // Inject into context
   c.set('itemRepository', itemRepository)
@@ -39,6 +45,8 @@ const injectServices: MiddlewareHandler<{
   c.set('itemService', itemService)
   c.set('outfitService', outfitService)
   c.set('tagService', tagService)
+  c.set('similarityService', similarityService)
+  c.set('weatherService', weatherService)
 
   await next()
 }

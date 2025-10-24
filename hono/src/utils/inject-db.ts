@@ -9,6 +9,7 @@ import * as schema from '../schema'
 export type DBVariables = {
   db: NeonDatabase<typeof schema>
   dbClient: Client
+  isAgentRequest?: boolean
 }
 
 export default async function injectDB(c: Context, next: Function) {

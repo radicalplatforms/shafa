@@ -1,259 +1,495 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useAuth } from '@clerk/nextjs'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useAgent, useItems, useOutfits, useTags } from '@/lib/client'
-import type { AgentResponse, AgentMessage, ComposedOutfit } from '@/lib/types'
-import { ItemList } from '@/components/ItemList'
-import { OutfitList } from '@/components/OutfitList'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { FilterTag } from '@/components/ui/tag'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent } from '@/components/ui/card'
+import { useItems, useOutfits } from '@/lib/client'
+import { Item } from '@/components/Item'
+import OutfitCard from '@/components/OutfitCard'
+import SuggestedOutfitCard from '@/components/SuggestedOutfitCard'
+import { OutfitCardLoading } from '@/components/OutfitCardLoading'
+import { ItemLoading } from '@/components/ItemLoading'
+import { Shimmer } from '@/components/ui/shimmer'
+import { SearchToolbar } from '@/components/SearchToolbar'
 
-/**
- * Component to render a composed outfit created by the agent
- */
-function ComposedOutfitCard({ outfit }: { outfit: ComposedOutfit }) {
-  const { items } = useItems()
-  const { tags } = useTags()
-  
-  // Get the actual item objects from IDs
-  const outfitItems = outfit.items.map(composedItem => {
-    const item = items.find(i => i.id === composedItem.itemId)
-    return item ? { ...item, itemType: composedItem.itemType } : null
-  }).filter(Boolean)
-
-  // Get the actual tag objects from IDs
-  const outfitTags = outfit.tagIds?.map(tagId => {
-    return tags?.find(t => t.id === tagId)
-  }).filter(Boolean) || []
-
-  if (outfitItems.length === 0) {
-    return (
-      <Card className="w-full">
-        <CardContent className="p-4">
-          <p className="text-muted-foreground">Unable to load outfit items</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg">Agent-Composed Outfit</CardTitle>
-        {outfit.reasoning && (
-          <p className="text-sm text-muted-foreground">{outfit.reasoning}</p>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Items in the outfit */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {outfitItems.map((item) => (
-            <div key={item.id} className="space-y-2">
-              <div className="aspect-square relative overflow-hidden rounded-lg bg-muted">
-                {item.photoUrl ? (
-                  <img
-                    src={item.photoUrl}
-                    alt={item.name}
-                    className="object-cover w-full h-full"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    No image
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium truncate">{item.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{item.brand}</p>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs border border-dashed bg-transparent text-muted-foreground">
-                  {item.type}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Tags */}
-        {outfitTags.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Suggested Tags:</p>
-            <div className="flex flex-wrap gap-2">
-              {outfitTags.map((tag) => (
-                <FilterTag
-                  key={tag.id}
-                  name={tag.name}
-                  hexColor={tag.hexColor}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
 }
 
-/**
- * Component to render agent response messages
- */
-function AgentMessageRenderer({ message }: { message: AgentMessage }) {
-  const { items } = useItems()
-  const { outfits } = useOutfits()
-
-  switch (message.type) {
-    case 'text':
-      return (
-        <div className="prose prose-sm max-w-none">
-          <p className="whitespace-pre-wrap">{message.content}</p>
-        </div>
-      )
-
-    case 'items':
-      const filteredItems = items.filter(item => message.content.includes(item.id))
-      return (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Recommended Items</h3>
-          <ItemList items={filteredItems} />
-        </div>
-      )
-
-    case 'outfits':
-      const filteredOutfits = outfits.filter(outfit => message.content.includes(outfit.id))
-      return (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Recommended Outfits</h3>
-          <OutfitList outfits={filteredOutfits} />
-        </div>
-      )
-
-    case 'composed_outfits':
-      return (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">New Outfit Suggestions</h3>
-          <div className="space-y-4">
-            {message.content.map((outfit, index) => (
-              <ComposedOutfitCard key={index} outfit={outfit} />
-            ))}
-          </div>
-        </div>
-      )
-
-    default:
-      return null
-  }
-}
+type StreamingStatus = 'ready' | 'streaming' | 'error'
 
 export default function AgentPage() {
+  const { getToken } = useAuth()
+  const { items } = useItems()
+  const { outfits, getOutfitById } = useOutfits()
   const searchParams = useSearchParams()
-  const initialQuery = searchParams.get('q')
-  
-  const { sendMessage } = useAgent()
-  const [isLoading, setIsLoading] = useState(false)
+  const [input, setInput] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [conversationId, setConversationId] = useState<string | undefined>()
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [status, setStatus] = useState<StreamingStatus>('ready')
   const [error, setError] = useState<string | null>(null)
-  const [response, setResponse] = useState<AgentResponse | null>(null)
-  const [userMessage, setUserMessage] = useState<string>('')
+  const [fetchedOutfits, setFetchedOutfits] = useState<Record<string, any>>({})
 
+  // Clear any existing conversation context on page load
   useEffect(() => {
-    if (initialQuery) {
-      setUserMessage(initialQuery)
-      handleSendMessage(initialQuery)
-    }
-  }, [initialQuery])
-
-  const handleSendMessage = async (message: string) => {
-    setIsLoading(true)
+    // Always start fresh - clear any stored conversation ID
+    localStorage.removeItem('agentConversationId')
+    setConversationId(undefined)
+    setMessages([])
+    setCurrentStatus(null)
     setError(null)
+    setStatus('ready')
+  }, [])
+
+  const sendMessage = useCallback(async (messageText: string, retryCount = 0) => {
+    if (status !== 'ready' || !messageText.trim()) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: messageText.trim(),
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setStatus('streaming')
+    setError(null)
+    setCurrentStatus('Connecting...')
+
+    const maxRetries = 2
+    const retryDelay = 1000 * Math.pow(2, retryCount) // Exponential backoff
+
+    try {
+      const token = await getToken()
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'}/api/agent`
+      
+      // Send the message via POST first
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: messageText,
+          conversationId,
+        }),
+      })
+
+      if (!response.ok) {
+        if (response.status >= 500 && retryCount < maxRetries) {
+          // Server error - retry with exponential backoff
+          setCurrentStatus(`Connection failed, retrying in ${retryDelay / 1000}s...`)
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+          return sendMessage(messageText, retryCount + 1)
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      // Create assistant message for streaming (will be added when first content arrives)
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: '',
+      }
+
+      let assistantMessageAdded = false
+
+      // Handle SSE stream
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No response body reader available')
+      }
+
+      let buffer = ''
+      let streamEnded = false
+
+      while (!streamEnded) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          streamEnded = true
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            const eventType = line.slice(7).trim()
+            if (eventType === 'end') {
+              streamEnded = true
+            } else if (eventType === 'error') {
+              throw new Error('Server reported an error')
+            }
+            continue
+          }
+          
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim()
+            if (!data || data === '{}') continue
+
+            try {
+              const parsed = JSON.parse(data)
+              
+              if (parsed.textDelta && parsed.textDelta.trim()) {
+                if (!assistantMessageAdded) {
+                  // Add the assistant message when first content arrives
+                  setMessages(prev => [...prev, { ...assistantMessage, content: parsed.textDelta }])
+                  assistantMessageAdded = true
+                } else {
+                  // Update existing assistant message
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessage.id 
+                      ? { ...msg, content: msg.content + parsed.textDelta }
+                      : msg
+                  ))
+                }
+              } else if (parsed.status) {
+                console.log('Status update received:', parsed.status)
+                setCurrentStatus(parsed.status)
+              } else if (parsed.conversationId) {
+                setConversationId(parsed.conversationId)
+                localStorage.setItem('agentConversationId', parsed.conversationId)
+              } else if (parsed.error) {
+                throw new Error(parsed.error)
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse SSE data:', data, parseError)
+            }
+          }
+        }
+      }
+
+      setStatus('ready')
+      setCurrentStatus(null)
+      
+      // Log completed message to console and check for failed lookups
+      console.log('Message completed:', {
+        id: assistantMessage.id,
+        timestamp: new Date().toISOString()
+      })
+      
+      // Check for failed outfit/item lookups after message completion
+      setTimeout(() => {
+        // Get the final content from the current messages state
+        setMessages(currentMessages => {
+          const completedMessage = currentMessages.find(msg => msg.id === assistantMessage.id)
+          if (completedMessage) {
+            checkForFailedLookups(completedMessage.content)
+          }
+          return currentMessages
+        })
+      }, 100)
+    } catch (err) {
+      console.error('Streaming error:', err)
+      
+      // Network errors - retry with exponential backoff
+      if ((err instanceof TypeError && err.message.includes('fetch')) && retryCount < maxRetries) {
+        setCurrentStatus(`Network error, retrying in ${retryDelay / 1000}s...`)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+        return sendMessage(messageText, retryCount + 1)
+      }
+      
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      setStatus('error')
+      setCurrentStatus(null)
+    }
+  }, [getToken, conversationId, status])
+
+  // Handle initial query from URL
+  useEffect(() => {
+    const initialQuery = searchParams.get('q')
+    if (initialQuery && status === 'ready' && messages.length === 0) {
+      setInput(initialQuery)
+      // Auto-submit the query after a brief delay to ensure everything is loaded
+      setTimeout(() => {
+        sendMessage(initialQuery)
+      }, 100)
+    }
+  }, [searchParams, status, sendMessage, messages.length])
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleAgentSubmit = (message: string) => {
+    sendMessage(message)
+    setInput('')
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+  }
+
+  const handleNewConversation = () => {
+    // Clear all conversation context and state
+    setConversationId(undefined)
+    localStorage.removeItem('agentConversationId')
+    setMessages([])
+    setCurrentStatus(null)
+    setError(null)
+    setStatus('ready')
+    setFetchedOutfits({})
+    console.log('Started new conversation - all context cleared')
+  }
+
+  const fetchOutfitById = async (outfitId: string) => {
+    if (fetchedOutfits[outfitId]) {
+      return fetchedOutfits[outfitId]
+    }
     
     try {
-      const agentResponse = await sendMessage(message)
-      setResponse(agentResponse)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setIsLoading(false)
+      const outfit = await getOutfitById(outfitId)
+      if (outfit) {
+        setFetchedOutfits(prev => ({ ...prev, [outfitId]: outfit }))
+        return outfit
+      }
+    } catch (error) {
+      console.error('Error fetching outfit:', error)
     }
+    return null
+  }
+
+  // Check for failed outfit/item lookups and log raw tags
+  const checkForFailedLookups = (content: string) => {
+    const tagMatches = content.match(/<(outfit_existing|outfit_suggested|item)\s+[^>]+\/>/g) || []
+    
+    tagMatches.forEach((tag) => {
+      const tagMatch = tag.match(/<(outfit_existing|outfit_suggested|item)\s+([^>]+)\/>/)
+      if (!tagMatch) return
+      
+      const [, tagType, attributes] = tagMatch
+      
+      if (tagType === 'outfit_existing') {
+        const idMatch = attributes.match(/id="([^"]+)"/)
+        if (idMatch) {
+          const outfitId = idMatch[1]
+          const outfit = outfits?.find(o => o.id === outfitId)
+          if (!outfit) {
+            console.warn('Failed outfit lookup - Raw tag:', tag)
+            console.warn('Failed outfit lookup - ID:', outfitId)
+            console.warn('Available outfit IDs:', outfits?.map(o => o.id) || [])
+            console.warn('Total outfits loaded:', outfits?.length || 0)
+          }
+        }
+      }
+      
+      if (tagType === 'item') {
+        const idMatch = attributes.match(/id="([^"]+)"/)
+        if (idMatch) {
+          const itemId = idMatch[1]
+          const item = items?.find(i => i.id === itemId)
+          if (!item) {
+            console.warn('Failed item lookup - Raw tag:', tag)
+            console.warn('Failed item lookup - ID:', itemId)
+            console.warn('Available item IDs:', items?.map(i => i.id) || [])
+            console.warn('Total items loaded:', items?.length || 0)
+          }
+        }
+      }
+    })
+  }
+
+  // Simple markdown renderer for basic formatting
+  const renderMarkdown = (text: string) => {
+    // Handle bold text
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    
+    // Handle italic text
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>')
+    
+    // Handle inline code
+    text = text.replace(/`(.*?)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>')
+    
+    return text
+  }
+
+  // Parse and render text with MDX tags and markdown
+  const renderMessage = (text: string) => {
+    const parts = text.split(/(<(?:outfit_existing|outfit_suggested|item)\s+[^>]+\/>)/g)
+    
+    return parts.map((part, index) => {
+      const tagMatch = part.match(/<(outfit_existing|outfit_suggested|item)\s+([^>]+)\/>/)
+      
+      if (tagMatch) {
+        const [, tagType, attributes] = tagMatch
+        
+        if (tagType === 'outfit_existing') {
+          const idMatch = attributes.match(/id="([^"]+)"/)
+          if (idMatch) {
+            const outfitId = idMatch[1]
+            const outfit = outfits?.find(o => o.id === outfitId) || fetchedOutfits[outfitId]
+            if (outfit) {
+              return (
+                <div key={index} data-kind="outfit">
+                  <OutfitCard
+                    outfitItems={outfit.outfitItems || []}
+                    tags={outfit.outfitTags?.map((tag: any) => ({ tagId: tag.tagId })) || []}
+                    wearDate={outfit.wearDate}
+                    rating={outfit.rating}
+                    locationLatitude={outfit.locationLatitude}
+                    locationLongitude={outfit.locationLongitude}
+                    index={index}
+                    showThreeDotsMenu={false}
+                  />
+                </div>
+              )
+            } else {
+              // Try to fetch the outfit if not found locally
+              fetchOutfitById(outfitId)
+              return (
+                <div key={index} data-kind="outfit">
+                  <OutfitCardLoading />
+                </div>
+              )
+            }
+          }
+        }
+        
+        if (tagType === 'outfit_suggested') {
+          const itemsMatch = attributes.match(/items='([^']+)'/)
+          if (itemsMatch) {
+            try {
+              const items = JSON.parse(itemsMatch[1])
+              return (
+                <div key={index} data-kind="outfit">
+                  <SuggestedOutfitCard items={items} />
+                </div>
+              )
+            } catch (e) {
+              console.error('Failed to parse outfit items:', e)
+            }
+          }
+        }
+        
+        if (tagType === 'item') {
+          const idMatch = attributes.match(/id="([^"]+)"/)
+          if (idMatch) {
+            const itemId = idMatch[1]
+            const item = items?.find(i => i.id === itemId)
+            if (item) {
+              return (
+                <div key={index} data-kind="item">
+                  <Item item={item} showThreeDotsMenu={false} />
+                </div>
+              )
+            } else {
+              return (
+                <div key={index} data-kind="item">
+                  <ItemLoading />
+                </div>
+              )
+            }
+          }
+        }
+      }
+      
+      // Regular text with markdown rendering
+      if (!part.trim()) return null
+      
+      const lines = part.split('\n')
+      return (
+        <span key={index} className="whitespace-pre-wrap leading-relaxed" data-kind="text">
+          {lines.map((line, lineIndex) => (
+            <span key={lineIndex} dangerouslySetInnerHTML={{ __html: renderMarkdown(line) }} />
+          ))}
+        </span>
+      )
+    })
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Fashion Assistant</h1>
-          <p className="text-muted-foreground">
-            Get personalized styling advice and outfit recommendations
-          </p>
-        </div>
-
-        {/* User Message */}
-        {userMessage && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Your Question</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap">{userMessage}</p>
-            </CardContent>
-          </Card>
-        )}
+    <div className="space-y-6">
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+        {messages.map((message) => (
+          <div key={message.id} className="fade-in">
+            <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[85%] ${
+                  message.role === 'user'
+                    && 'bg-secondary text-secondary-foreground rounded-xl'
+                }`}
+              >
+                <div className="py-3 px-4">
+                  {message.role === 'user' ? (
+                    <p className="whitespace-pre-wrap text-sm">
+                      {message.content}
+                    </p>
+                  ) : (
+                      <div className="text-sm
+                    [&>*]:block
+    space-y-4
+    [&>[data-kind=item]+[data-kind=item]]:!mt-1">
+                      {renderMessage(message.content)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
 
         {/* Loading State */}
-        {isLoading && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Fashion Assistant is thinking...</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </CardContent>
-          </Card>
+        {status === 'streaming' && currentStatus && (
+          <div className="flex justify-start fade-in">
+            <div className="max-w-[85%] py-2 px-4">
+              <Shimmer 
+                className="text-sm" 
+              >
+                {currentStatus}
+              </Shimmer>
+            </div>
+          </div>
+        )}
+        
+        {/* Skeleton fallback when no status */}
+        {status === 'streaming' && !currentStatus && (
+          <div className="flex justify-start fade-in">
+            <div className="max-w-[85%] py-2 px-4">
+              <Shimmer 
+                className="text-sm" 
+              >
+                Thinking...
+              </Shimmer>
+            </div>
+          </div>
         )}
 
         {/* Error State */}
-        {error && (
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-lg text-destructive">Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{error}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Agent Response */}
-        {response && !isLoading && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">Fashion Assistant Response</h2>
-            {response.messages.map((message, index) => (
-              <Card key={index}>
-                <CardContent className="p-6">
-                  <AgentMessageRenderer message={message} />
-                </CardContent>
-              </Card>
-            ))}
+        {status === 'error' && error && (
+          <div className="flex justify-center">
+            <Card className="max-w-[85%] border-destructive bg-destructive/5">
+              <CardContent className="p-4">
+                <p className="text-destructive text-sm">{error}</p>
+              </CardContent>
+            </Card>
           </div>
         )}
-
-        {/* Empty State */}
-        {!userMessage && !isLoading && !response && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold mb-2">Welcome to your Fashion Assistant</h3>
-              <p className="text-muted-foreground mb-4">
-                Ask me anything about your wardrobe, styling advice, or outfit recommendations.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Try asking: "What should I wear for a business meeting?" or "Help me plan outfits for a weekend trip"
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <div ref={messagesEndRef} />
       </div>
+      
+      {/* Search Toolbar for Agent Input */}
+      <SearchToolbar
+        agentMode={true}
+        searchValue={input}
+        onSearchChange={handleInputChange}
+        onAgentSubmit={handleAgentSubmit}
+        agentDisabled={status !== 'ready'}
+        agentPlaceholder="Ask about your wardrobe..."
+      />
     </div>
   )
 }

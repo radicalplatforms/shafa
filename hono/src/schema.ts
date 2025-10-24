@@ -4,6 +4,7 @@ import {
   check,
   date,
   doublePrecision,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -163,16 +164,23 @@ export const reasoningEffortEnum: [string, ...string[]] = ['minimal', 'low', 'me
 export const reasoningEffortEnumPg = pgEnum('reasoningEffort', reasoningEffortEnum)
 
 /**
- * Agent Chat
+ * Agent Conversation
  */
-export const agentChat = pgTable('agent_chat', {
+export const agentConversation = pgTable('agent_conversation', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
   userId: text('user_id').notNull(),
-  userMessage: text('user_message').notNull(),
-  agentResponse: text('agent_response').notNull(),
-  summary: text('summary'),
-  reasoningEffort: reasoningEffortEnumPg('reasoning_effort'),
+  state: jsonb('state').notNull().$type<{
+    messages: any[]
+    context: {
+      userId: string
+      conversationId?: string
+      recentItems?: string[]
+      recentOutfits?: string[]
+      lastIntent?: string
+    }
+  }>(),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })

@@ -5,10 +5,10 @@ import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 
 import { version } from '../package.json'
+import agent from './controllers/agent'
 import items from './controllers/items'
 import outfits from './controllers/outfits'
 import tags from './controllers/tags'
-import agent from './services/agent'
 import injectServices from './utils/inject-services'
 
 const app = new Hono()
@@ -56,8 +56,15 @@ app.use(
       return matched ? origin : allowedOrigins[0]
     },
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['X-Total-Count'],
+    allowHeaders: [
+      'Content-Type',
+      'Authorization',
+      'User-Agent',
+      'Accept',
+      'Accept-Language',
+      'X-Requested-With',
+    ],
+    exposeHeaders: ['X-Total-Count', 'Content-Type'],
     maxAge: 60,
     credentials: true,
   })

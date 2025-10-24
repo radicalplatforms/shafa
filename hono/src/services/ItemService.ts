@@ -1,6 +1,6 @@
 import type {
   ItemRepository,
-  ItemSearchOptions,
+  ItemSearchInput,
   ItemWithAggregatedTags,
 } from '../repositories/ItemRepository'
 
@@ -18,7 +18,7 @@ export class ItemService {
     const pageNumber = pagination?.page
     const pageSize = pagination?.size
 
-    const itemsData = await this.itemRepository.findAll(userId, { search }).then((items) => {
+    const itemsData = await this.itemRepository.search(userId, { text: search }).then((items) => {
       // Sort by status (available first, then withheld, then retired), then lastWornAt (nulls first), then name
       const sortedItems = items.sort((a, b) => {
         // First sort by status
@@ -71,18 +71,15 @@ export class ItemService {
     return this.itemRepository.delete(userId, itemId)
   }
 
-  async searchItems(userId: string, query: string) {
-    const items = await this.itemRepository.search(userId, query)
-    return items
-  }
-
-  async getItemsByType(userId: string, itemType: string) {
-    const items = await this.itemRepository.findByType(userId, itemType)
-    return items
-  }
-
-  async getItemsByStatus(userId: string, status: string) {
-    const items = await this.itemRepository.findByStatus(userId, status)
-    return items
+  /**
+   * Search wardrobe items with rich filtering.
+   *
+   * @param {string} userId - The user's ID
+   * @param {ItemSearchInput} input - Search filters
+   * @returns {Promise<ItemWithAggregatedTags[]>} - Matching items
+   * @example searchItems(userId, { text: "blue", typeIn: ["top"], statusIn: ["available"] })
+   */
+  async searchItems(userId: string, input: ItemSearchInput): Promise<ItemWithAggregatedTags[]> {
+    return this.itemRepository.search(userId, input)
   }
 }

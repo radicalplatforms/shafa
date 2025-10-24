@@ -12,6 +12,8 @@ interface ItemInlineSearchProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
   addMode?: boolean
   onNewItem?: (itemId: string, itemType: string) => void
+  placeholder?: string
+  disabled?: boolean
 }
 
 const itemTypes = [
@@ -28,7 +30,9 @@ export function ItemInlineSearch({
   onClick, 
   onKeyDown, 
   addMode = false,
-  onNewItem
+  onNewItem,
+  placeholder,
+  disabled = false
 }: ItemInlineSearchProps) {
   const { getToken } = useAuth()
   const { mutate: mutateItems } = useItems()
@@ -198,8 +202,12 @@ export function ItemInlineSearch({
               onChange={handleInternalChange}
               onClick={onClick}
               onKeyDown={handleInternalKeyDown}
-              placeholder={stage === 'brand' ? "Enter brand (optional)..." : "Search items, brands, types, tags..."}
-              className="font-medium leading-[18px] bg-transparent focus:outline-none w-full truncate"
+              placeholder={
+                placeholder || 
+                (stage === 'brand' ? "Enter brand (optional)..." : "Search items, brands, types, tags...")
+              }
+              disabled={disabled}
+              className="font-medium leading-[18px] bg-transparent focus:outline-none w-full truncate disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
         )}

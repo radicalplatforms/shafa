@@ -1,6 +1,6 @@
-import { and, eq, gte, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
 
-import { item, outfit, outfitItem, outfitTag } from '../schema'
+import { item, outfit, outfitItem, outfitTag, tag } from '../schema'
 import type { DBVariables } from '../utils/inject-db'
 
 export interface OutfitWithDetails {
@@ -34,6 +34,23 @@ export interface OutfitSuggestionsOptions {
   page?: number
   size?: number
   tagId?: string
+}
+
+export interface OutfitSearchInput {
+  text?: string
+  tagIdsAny?: string[]
+  tagNamesAny?: string[]
+  tagIdsAll?: string[]
+  tagNamesAll?: string[]
+  containsItemId?: string
+  minRating?: '0' | '1' | '2'
+  ratingIn?: Array<'0' | '1' | '2'>
+  wearDateBetween?: { startDate: string; endDate: string }
+  withItems?: boolean
+  sortBy?: 'wearDate' | 'rating'
+  sortOrder?: 'asc' | 'desc'
+  limit?: number
+  page?: number
 }
 
 export class OutfitRepository {
@@ -221,5 +238,153 @@ export class OutfitRepository {
         id: true,
       },
     })
+  }
+
+  async search(userId: string, input: OutfitSearchInput) {
+    const conditions: any[] = [eq(outfit.userId, userId), sql`${outfit.wearDate} IS NOT NULL`]
+
+    if (input.containsItemId) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${outfitItem} oi
+          WHERE oi.outfit_id = ${outfit.id}
+            AND oi.item_id = ${input.containsItemId}
+        )`
+      )
+    }
+
+    if (input.tagIdsAny && input.tagIdsAny.length > 0) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${outfitTag} ot
+          WHERE ot.outfit_id = ${outfit.id}
+            AND ot.tag_id IN ${input.tagIdsAny}
+        )`
+      )
+    }
+
+    if (input.tagNamesAny && input.tagNamesAny.length > 0) {
+      const tagConditions = input.tagNamesAny.map(
+        (tagName) =>
+          sql`EXISTS (
+            SELECT 1 FROM ${outfitTag} ot
+            JOIN ${tag} t ON t.id = ot.tag_id
+            WHERE ot.outfit_id = ${outfit.id}
+              AND LOWER(t.name) = ${tagName.toLowerCase()}
+          )`
+      )
+      conditions.push(or(...tagConditions))
+    }
+
+    if (input.tagIdsAll && input.tagIdsAll.length > 0) {
+      for (const tagId of input.tagIdsAll) {
+        conditions.push(
+          sql`EXISTS (
+            SELECT 1 FROM ${outfitTag} ot
+            WHERE ot.outfit_id = ${outfit.id}
+              AND ot.tag_id = ${tagId}
+          )`
+        )
+      }
+    }
+
+    if (input.tagNamesAll && input.tagNamesAll.length > 0) {
+      for (const tagName of input.tagNamesAll) {
+        conditions.push(
+          sql`EXISTS (
+            SELECT 1 FROM ${outfitTag} ot
+            JOIN ${tag} t ON t.id = ot.tag_id
+            WHERE ot.outfit_id = ${outfit.id}
+              AND LOWER(t.name) = ${tagName.toLowerCase()}
+          )`
+        )
+      }
+    }
+
+    if (input.minRating !== undefined) {
+      conditions.push(gte(outfit.rating, parseInt(input.minRating)))
+    }
+
+    if (input.ratingIn && input.ratingIn.length > 0) {
+      conditions.push(
+        inArray(
+          outfit.rating,
+          input.ratingIn.map((r) => parseInt(r))
+        )
+      )
+    }
+
+    if (input.wearDateBetween) {
+      conditions.push(
+        and(
+          gte(outfit.wearDate, sql`${input.wearDateBetween.startDate}::date`),
+          lte(outfit.wearDate, sql`${input.wearDateBetween.endDate}::date`)
+        )!
+      )
+    }
+
+    const queryBuilder = this.db.query.outfit.findMany({
+      where: and(...conditions),
+      with: input.withItems
+        ? {
+            outfitItems: {
+              columns: { outfitId: false },
+              with: { item: true },
+              orderBy: (outfitItems, { asc }) => [asc(outfitItems.itemType)],
+            },
+            outfitTags: {
+              columns: { outfitId: false },
+              with: { tag: true },
+            },
+          }
+        : {
+            outfitTags: {
+              columns: { outfitId: false },
+              with: { tag: true },
+            },
+          },
+      orderBy: (outfit, { desc }) => [desc(outfit.wearDate)], // Same ordering as findAll
+    })
+
+    let results = await queryBuilder
+
+    if (input.sortBy) {
+      results = results.sort((a, b) => {
+        let comparison = 0
+        if (input.sortBy === 'wearDate') {
+          const dateA = a.wearDate ? new Date(a.wearDate).getTime() : 0
+          const dateB = b.wearDate ? new Date(b.wearDate).getTime() : 0
+          comparison = dateB - dateA
+        } else if (input.sortBy === 'rating') {
+          comparison = b.rating - a.rating
+        }
+        return input.sortOrder === 'asc' ? -comparison : comparison
+      })
+    }
+
+    // Handle pagination
+    if (input.page !== undefined && input.limit !== undefined) {
+      const offset = input.page * input.limit
+      results = results.slice(offset, offset + input.limit)
+    } else if (input.limit !== undefined) {
+      results = results.slice(0, input.limit)
+    }
+
+    return results
+  }
+
+  async findOutfitItems(userId: string, outfitId: string) {
+    const result = await this.db.query.outfit.findFirst({
+      where: and(eq(outfit.id, outfitId), eq(outfit.userId, userId)),
+      with: {
+        outfitItems: {
+          with: {
+            item: true,
+          },
+        },
+      },
+    })
+
+    return result?.outfitItems || []
   }
 }

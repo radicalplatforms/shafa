@@ -71,6 +71,13 @@
       "when": 1761192607375,
       "tag": "0009_bizarre_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1761254625540,
+      "tag": "0010_tiny_king_bedlam",
+      "breakpoints": true
     }
   ]
 }

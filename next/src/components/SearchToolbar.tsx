@@ -1,19 +1,25 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Send } from 'lucide-react'
 import { ItemInlineSearch } from './ItemInlineSearch'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 interface SearchToolbarProps {
-  // Search props
+  // Search props (for items/outfits pages)
   searchValue?: string
   onSearchChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
   onSearchClick?: () => void
   onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
   searchAddMode?: boolean
   onSearchNewItem?: (itemId: string, itemType: string) => void
+  
+  // Agent mode props
+  agentMode?: boolean
+  onAgentSubmit?: (message: string) => void
+  agentDisabled?: boolean
+  agentPlaceholder?: string
 }
 
 /**
@@ -26,24 +32,49 @@ export function SearchToolbar({
   onSearchClick,
   onSearchKeyDown,
   searchAddMode,
-  onSearchNewItem
+  onSearchNewItem,
+  agentMode = false,
+  onAgentSubmit,
+  agentDisabled = false,
+  agentPlaceholder = "Ask about your wardrobe..."
 }: SearchToolbarProps) {
   const router = useRouter()
-  // Check if search functionality is enabled
+  
+  // Check if search functionality is enabled (for items/outfits pages)
   const hasSearchFunctionality = searchValue !== undefined && 
     onSearchChange && 
     onSearchKeyDown && 
     searchAddMode !== undefined && 
     onSearchNewItem
 
+  // Agent mode should always render if enabled
+  if (!agentMode && !hasSearchFunctionality) {
+    return null
+  }
+
   const handleAgentSubmit = () => {
     if (searchValue && searchValue.trim()) {
-      router.push(`/agent?q=${encodeURIComponent(searchValue.trim())}`)
+      if (agentMode && onAgentSubmit) {
+        // Direct agent submission
+        onAgentSubmit(searchValue.trim())
+      } else {
+        // Clear any existing conversation context before navigating to agent page
+        localStorage.removeItem('agentConversationId')
+        // Navigate to agent page
+        router.push(`/agent?q=${encodeURIComponent(searchValue.trim())}`)
+      }
     }
   }
 
-  if (!hasSearchFunctionality) {
-    return null
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (agentMode) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        handleAgentSubmit()
+      }
+    } else if (onSearchKeyDown) {
+      onSearchKeyDown(e)
+    }
   }
 
   return (
@@ -51,16 +82,18 @@ export function SearchToolbar({
       <div className="bg-background/80 backdrop-blur-sm border-2 rounded-lg shadow-lg p-2 flex items-center gap-2 w-full">
         <div className="flex-1 min-w-0 ml-1">
           <ItemInlineSearch
-            value={searchValue}
-            onChange={onSearchChange}
+            value={searchValue || ''}
+            onChange={onSearchChange || (() => {})}
             onClick={onSearchClick || (() => {})}
-            onKeyDown={onSearchKeyDown}
-            addMode={searchAddMode}
-            onNewItem={onSearchNewItem}
+            onKeyDown={handleKeyDown}
+            addMode={agentMode ? false : searchAddMode}
+            onNewItem={agentMode ? (() => {}) : onSearchNewItem}
+            placeholder={agentMode ? agentPlaceholder : undefined}
+            disabled={agentMode ? agentDisabled : false}
           />
         </div>
         
-        {/* Agent submission button */}
+        {/* Submit button */}
         {searchValue && searchValue.trim() && (
           <TooltipProvider>
             <Tooltip>
@@ -69,13 +102,18 @@ export function SearchToolbar({
                   size="sm"
                   variant="ghost"
                   onClick={handleAgentSubmit}
+                  disabled={agentMode && agentDisabled}
                   className="shrink-0 p-2 h-8 w-8"
                 >
-                  <Sparkles className="h-4 w-4" />
+                  {agentMode ? (
+                    <Send className="h-4 w-4" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Ask Fashion Assistant</p>
+                <p>{agentMode ? 'Send Message' : 'Ask Fashion Assistant'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
