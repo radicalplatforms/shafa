@@ -1,0 +1,163 @@
+@import 'tailwindcss';
+
+@plugin "daisyui" {
+	prefix: "d-";
+}
+
+@plugin "daisyui/theme" {
+  name: "radical-ui-dark";
+  default: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(0.1391 0.0029 246.26);
+  --color-base-200: oklch(0.1723 0.0026 247.98);
+  --color-base-300: oklch(0.2171 0.0025 247.94);
+  --color-base-content: oklch(0.9784 0.0011 197.14);
+  --color-primary: oklch(0.9784 0.0011 197.14);
+  --color-primary-content: oklch(0.1391 0.0029 246.26);
+  --color-secondary: oklch(0.5475 0.1119 270.33);
+  --color-secondary-content: oklch(0.9784 0.0011 197.14);
+  --color-accent: oklch(0.8717 0.0093 258.34);
+  --color-accent-content: oklch(0.9784 0.0011 197.14);
+  --color-neutral: oklch(0.6217 0.0074 286.18);
+  --color-neutral-content: oklch(0.9784 0.0011 197.14);
+  --color-info: oklch(0.5475 0.1119 270.33);
+  --color-info-content: oklch(0.9784 0.0011 197.14);
+  --color-success: oklch(0.596 0.1274 163.23);
+  --color-success-content: oklch(0.9784 0.0011 197.14);
+  --color-warning: oklch(0.6814 0.2136 40.06);
+  --color-warning-content: oklch(0.9784 0.0011 197.14);
+  --color-error: oklch(0.596 0.20 15.2);
+  --color-error-content: oklch(0.9784 0.0011 197.14);
+
+  --radius-selector: 0.4rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  --border: 1.5px;
+
+  --depth: 1;
+  --noise: 0;
+}
+
+@import '../styles/fonts.css';
+
+:root {
+  --font-sans: 'Test Founders Grotesk', sans-serif;
+  --font-serif: 'Test Tiempos Text', serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+[data-theme='radical-ui-dark'] {
+
+	--app-inset-x: 35px;
+	--app-inset-y: 35px;
+
+    --nav-label-gap: 1px;
+
+	--nav-label-size: 18px;
+	--nav-label-weight: 400;
+	--nav-label-line-height: 22px;
+	--nav-label-letter-spacing: 0.01em;
+	--nav-label-color: var(--color-base-content);
+
+	--descriptor-gap: 0.125rem;
+
+	--descriptor-title-size: 16px;
+	--descriptor-title-weight: 400;
+	--descriptor-title-line-height: 19px;
+	--descriptor-title-letter-spacing: 0;
+	--descriptor-title-color: var(--color-base-content);
+
+	--descriptor-note-size: 14px;
+	--descriptor-note-weight: 400;
+	--descriptor-note-line-height: 17px;
+	--descriptor-note-letter-spacing: 0;
+	--descriptor-note-color: var(--color-neutral);
+}
+
+/* Nav title: base typography for nav labels and section titles (like descriptor-title/note) */
+.nav-title {
+	font-size: var(--nav-label-size);
+	font-weight: var(--nav-label-weight);
+	line-height: var(--nav-label-line-height);
+	letter-spacing: var(--nav-label-letter-spacing);
+	color: var(--nav-label-color);
+	padding: 1.25px 0 3px 0;
+}
+
+/* Descriptor group (stack container) */
+.descriptor {
+	display: flex;
+	flex-direction: column;
+	gap: var(--descriptor-gap);
+	min-width: 0; /* ensures text truncation works */
+}
+
+/* Descriptor primary line (title) */
+.descriptor-title {
+	font-size: var(--descriptor-title-size);
+	font-weight: var(--descriptor-title-weight);
+	line-height: var(--descriptor-title-line-height);
+	letter-spacing: var(--descriptor-title-letter-spacing);
+	color: var(--descriptor-title-color);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Descriptor secondary line (note) */
+.descriptor-note {
+	font-size: var(--descriptor-note-size);
+	font-weight: var(--descriptor-note-weight);
+	line-height: var(--descriptor-note-line-height);
+	letter-spacing: var(--descriptor-note-letter-spacing);
+	color: var(--descriptor-note-color);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Selector transition (buttons, interactive elements) */
+.transition-selector {
+	transition:
+		transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+		border-color 200ms ease-out,
+		background-color 200ms ease-out,
+		color 200ms ease-out,
+		opacity 200ms ease-out;
+}
+
+.transition-selector:active:not(:disabled):not(.disabled) {
+	transform: scale(0.95);
+}
+
+.transition-selector:disabled,
+.transition-selector.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* Card padding utility */
+.card-padding {
+	--card-padding: 1rem;
+	padding: var(--card-padding);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.transition-selector {
+		transition: opacity 200ms ease-out;
+	}
+
+	.transition-selector:hover:not(:disabled):not(.disabled),
+	.transition-selector:active:not(:disabled):not(.disabled) {
+		transform: none;
+	}
+}

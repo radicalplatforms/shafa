@@ -9,11 +9,14 @@ import agent from './controllers/agent'
 import items from './controllers/items'
 import outfits from './controllers/outfits'
 import tags from './controllers/tags'
-import injectServices from './utils/inject-services'
+import { HTTPError } from './utils/http-error'
 
 const app = new Hono()
 
 app.onError((err, c) => {
+  if (err instanceof HTTPError) {
+    return c.json({ message: err.message }, err.status as any)
+  }
   console.error(`${err}`)
   return c.text('Internal Service Error', 500)
 })

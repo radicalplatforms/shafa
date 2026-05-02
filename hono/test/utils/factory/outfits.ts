@@ -56,7 +56,9 @@ export class OutfitFactory implements Outfit {
     this.wearDate = options?.wearDate
       ? new Date(options.wearDate as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
-    this.userId = options?.userId ? (options.userId as string) : faker.internet.userName()
+    this.userId = options?.userId
+      ? (options.userId as string)
+      : faker.internet.userName()
   }
 
   async store(name: string, port: number) {
@@ -91,7 +93,9 @@ export class PartialOutfitFactory implements PartialOutfit {
   constructor(seed?: number, options?: Partial<PartialOutfit>) {
     faker.seed(seed ?? undefined)
     this.rating = options?.rating || faker.number.int({ min: 0, max: 2 })
-    this.wearDate = options?.wearDate || new Date(faker.date.past().toISOString().split('T')[0])
+    this.wearDate =
+      options?.wearDate ||
+      new Date(faker.date.past().toISOString().split('T')[0])
   }
 
   formatAPI(): PartialOutfitAPI {

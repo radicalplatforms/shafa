@@ -1,5 +1,5 @@
 {
-  "id": "0ad15a4b-c372-4bea-a192-90f301f3516b",
+  "id": "3b63fce0-9310-4489-adce-f470a2eeacbc",
   "prevId": "d736f3c9-2aa3-4682-af7a-953848e5cfad",
   "version": "7",
   "dialect": "postgresql",
@@ -20,11 +20,18 @@
           "primaryKey": false,
           "notNull": true
         },
-        "state": {
-          "name": "state",
+        "messages": {
+          "name": "messages",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         },
         "last_message_at": {
           "name": "last_message_at",
@@ -32,6 +39,177 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agent_conversations": {
+      "name": "agent_conversations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agent_key": {
+          "name": "agent_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "system_prompt": {
+          "name": "system_prompt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agent_messages": {
+      "name": "agent_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "conversation_id": {
+          "name": "conversation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordinal": {
+          "name": "ordinal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "is_current": {
+          "name": "is_current",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "supersedes_id": {
+          "name": "supersedes_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "agentRole",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parts": {
+          "name": "parts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usage": {
+          "name": "usage",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finish_reason": {
+          "name": "finish_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ui_id": {
+          "name": "ui_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -41,8 +219,81 @@
           "default": "now()"
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
+      "indexes": {
+        "agent_messages_current_uq": {
+          "name": "agent_messages_current_uq",
+          "columns": [
+            {
+              "expression": "conversation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ordinal",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"agent_messages\".\"is_current\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_messages_convo_created_idx": {
+          "name": "agent_messages_convo_created_idx",
+          "columns": [
+            {
+              "expression": "conversation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_messages_supersedes_idx": {
+          "name": "agent_messages_supersedes_idx",
+          "columns": [
+            {
+              "expression": "supersedes_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agent_messages_conversation_id_agent_conversations_id_fk": {
+          "name": "agent_messages_conversation_id_agent_conversations_id_fk",
+          "tableFrom": "agent_messages",
+          "tableTo": "agent_conversations",
+          "columnsFrom": [
+            "conversation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -192,8 +443,12 @@
           "name": "outfit_item_outfit_id_outfit_id_fk",
           "tableFrom": "outfit_item",
           "tableTo": "outfit",
-          "columnsFrom": ["outfit_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "outfit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -201,8 +456,12 @@
           "name": "outfit_item_item_id_item_id_fk",
           "tableFrom": "outfit_item",
           "tableTo": "item",
-          "columnsFrom": ["item_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -210,7 +469,10 @@
       "compositePrimaryKeys": {
         "outfit_item_outfit_id_item_id_pk": {
           "name": "outfit_item_outfit_id_item_id_pk",
-          "columns": ["outfit_id", "item_id"]
+          "columns": [
+            "outfit_id",
+            "item_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -249,8 +511,12 @@
           "name": "outfit_tag_outfit_id_outfit_id_fk",
           "tableFrom": "outfit_tag",
           "tableTo": "outfit",
-          "columnsFrom": ["outfit_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "outfit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -258,8 +524,12 @@
           "name": "outfit_tag_tag_id_tag_id_fk",
           "tableFrom": "outfit_tag",
           "tableTo": "tag",
-          "columnsFrom": ["tag_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -267,7 +537,10 @@
       "compositePrimaryKeys": {
         "outfit_tag_outfit_id_tag_id_pk": {
           "name": "outfit_tag_outfit_id_tag_id_pk",
-          "columns": ["outfit_id", "tag_id"]
+          "columns": [
+            "outfit_id",
+            "tag_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -321,25 +594,45 @@
     }
   },
   "enums": {
+    "public.agentRole": {
+      "name": "agentRole",
+      "schema": "public",
+      "values": [
+        "system",
+        "user",
+        "assistant",
+        "tool"
+      ]
+    },
     "public.itemStatus": {
       "name": "itemStatus",
       "schema": "public",
-      "values": ["available", "withheld", "retired"]
+      "values": [
+        "available",
+        "withheld",
+        "retired"
+      ]
     },
     "public.itemType": {
       "name": "itemType",
       "schema": "public",
-      "values": ["layer", "top", "bottom", "footwear", "accessory"]
-    },
-    "public.reasoningEffort": {
-      "name": "reasoningEffort",
-      "schema": "public",
-      "values": ["minimal", "low", "medium", "high"]
+      "values": [
+        "layer",
+        "top",
+        "bottom",
+        "footwear",
+        "accessory"
+      ]
     },
     "public.tagStatus": {
       "name": "tagStatus",
       "schema": "public",
-      "values": ["manually_assigned", "suggested", "suggestion_accepted", "suggestion_rejected"]
+      "values": [
+        "manually_assigned",
+        "suggested",
+        "suggestion_accepted",
+        "suggestion_rejected"
+      ]
     }
   },
   "schemas": {},

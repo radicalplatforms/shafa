@@ -1,38 +1,76 @@
-import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
+import { and, eq, gte, inArray, lte, or, sql } from 'drizzle-orm'
 
-import { item, outfit, outfitItem, outfitTag, tag } from '../schema'
-import type { DBVariables } from '../utils/inject-db'
+import type {
+  itemTypeEnum} from '../schema';
+import {
+  item,
+  outfit,
+  outfitItem,
+  outfitTag,
+  tag,
+} from '../schema'
+import type { Database } from '../utils/inject-services'
+import { createLogger } from '../utils/logger'
+import type { PaginationInput, PaginationResult } from '../utils/pagination'
+import { createPaginationResult } from '../utils/pagination'
+
+const logger = createLogger('OutfitRepository')
+
+/**
+ * Type for creating a new outfit
+ */
+export type CreateOutfitData = Omit<
+  typeof outfit.$inferInsert,
+  'id' | 'userId'
+> & {
+  itemIdsTypes: Array<{
+    id: string
+    itemType: (typeof itemTypeEnum)[number]
+  }>
+  tagIds: string[]
+}
 
 export interface OutfitWithDetails {
   id: string
   rating: number
-  wearDate: string | null
+  wearDate: Date | null
   locationLatitude: number | null
   locationLongitude: number | null
   userId: string
   outfitItems: Array<{
     itemId: string
     itemType: string
-    item?: any
+    item?: typeof item.$inferSelect
     freshness?: number
   }>
   outfitTags: Array<{
     tagId: string
     status: string
-    tag?: any
+    tag?: typeof tag.$inferSelect
   }>
-  scoringDetails?: any
+  scoringDetails?: Record<string, unknown>
   totalScore?: number
 }
 
-export interface OutfitPaginationOptions {
-  page?: number
-  size?: number
+export interface OutfitWithRelations {
+  id: string
+  userId: string
+  rating: number
+  wearDate: Date | null
+  locationLatitude: number | null
+  locationLongitude: number | null
+  outfitItems: Array<{
+    itemId: string
+    itemType: string
+  }>
+  outfitTags: Array<{
+    tagId: string
+  }>
 }
 
 export interface OutfitSuggestionsOptions {
-  page?: number
-  size?: number
+  pagination?: PaginationInput
   tagId?: string
 }
 
@@ -49,18 +87,34 @@ export interface OutfitSearchInput {
   withItems?: boolean
   sortBy?: 'wearDate' | 'rating'
   sortOrder?: 'asc' | 'desc'
-  limit?: number
-  page?: number
+  pagination?: PaginationInput
 }
 
 export class OutfitRepository {
-  constructor(private db: DBVariables['db']) {}
+  constructor(private db: Database) {}
 
-  async findAll(userId: string, options?: OutfitPaginationOptions) {
-    const pageNumber = options?.page || 0
-    const pageSize = options?.size || 10
+  /**
+   * Find all outfits for a user with pagination.
+   *
+   * @param {string} userId — The user's ID
+   * @param {PaginationInput} pagination — Pagination options
+   * @returns {Promise<PaginationResult<OutfitWithRelations>>} — Promise resolving to paginated outfits with relations
+   */
+  async findAll(
+    userId: string,
+    pagination?: PaginationInput
+  ): Promise<PaginationResult<OutfitWithRelations>> {
+    logger.debug('Finding all outfits for user', {
+      userId,
+      offset: pagination?.offset ?? 'all',
+      limit: pagination?.limit ?? 'all',
+    })
 
-    return this.db.query.outfit.findMany({
+    // If pagination provided, use offset/limit, otherwise fetch all
+    const offset = pagination?.offset ?? 0
+    const limit = pagination?.limit ? pagination.limit + 1 : undefined
+
+    const result = await this.db.query.outfit.findMany({
       where: and(
         eq(outfit.userId, userId),
         sql`${outfit.wearDate} IS NOT NULL` // Exclude ghost outfits
@@ -79,12 +133,28 @@ export class OutfitRepository {
         },
       },
       orderBy: (outfit, { desc }) => [desc(outfit.wearDate)],
-      offset: pageNumber * pageSize,
-      limit: pageSize + 1,
+      ...(limit && { offset, limit }),
     })
+
+    logger.debug('Outfits retrieved successfully', {
+      userId,
+      outfitCount: result.length,
+    })
+
+    return createPaginationResult(result, pagination)
   }
 
-  async findEligibleForSuggestions(userId: string, minRating: number = 1) {
+  /**
+   * Find outfits eligible for suggestions based on rating.
+   *
+   * @param {string} userId — The user's ID
+   * @param {number} minRating — Minimum rating threshold (default: 1)
+   * @returns {Promise<typeof outfit.$inferSelect[]>} — Promise resolving to array of eligible outfits
+   */
+  async findEligibleForSuggestions(
+    userId: string,
+    minRating: number = 1
+  ): Promise<OutfitWithDetails[]> {
     return this.db.query.outfit.findMany({
       where: and(eq(outfit.userId, userId), gte(outfit.rating, minRating)),
       with: {
@@ -103,13 +173,16 @@ export class OutfitRepository {
           },
         },
       },
-      orderBy: (outfits, { desc }) => [desc(outfit.wearDate)],
+      orderBy: (outfits, { desc }) => [desc(outfits.wearDate)],
     })
   }
 
-  async findWithFullDetails(userId: string, outfitIds: string[]) {
+  async findWithFullDetails(
+    userId: string,
+    outfitIds: string[]
+  ): Promise<OutfitWithDetails[]> {
     return this.db.query.outfit.findMany({
-      where: inArray(outfit.id, outfitIds),
+      where: and(eq(outfit.userId, userId), inArray(outfit.id, outfitIds)),
       with: {
         outfitItems: {
           columns: {
@@ -126,10 +199,20 @@ export class OutfitRepository {
     })
   }
 
-  async create(userId: string, data: any) {
+  /**
+   * Create a new outfit for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {CreateOutfitData} data — The outfit data to create
+   * @returns {Promise<typeof outfit.$inferSelect>} — Promise resolving to the created outfit
+   */
+  async create(
+    userId: string,
+    data: CreateOutfitData
+  ): Promise<typeof outfit.$inferSelect> {
     return this.db.transaction(async (tx) => {
       // Check if any of the items being used are archived
-      const itemIds = data.itemIdsTypes.map((e: any) => e.id)
+      const itemIds = data.itemIdsTypes.map((e) => e.id)
 
       if (itemIds.length > 0) {
         // Find which of these items (if any) are currently withheld or retired
@@ -162,12 +245,16 @@ export class OutfitRepository {
       }
 
       const newOutfit = (
-        await tx.insert(outfit).values(outfitData).onConflictDoNothing().returning()
+        await tx
+          .insert(outfit)
+          .values(outfitData)
+          .onConflictDoNothing()
+          .returning()
       )[0]
 
       // Insert item to outfit relationships
       await tx.insert(outfitItem).values(
-        data.itemIdsTypes.map((e: any) => ({
+        data.itemIdsTypes.map((e) => ({
           itemId: e.id,
           outfitId: newOutfit.id,
           itemType: e.itemType,
@@ -177,7 +264,9 @@ export class OutfitRepository {
       // Insert tag to outfit relationships
       if (data.tagIds.length > 0) {
         // Filter out virtual tags (this logic should be moved to service layer)
-        const realTagIds = data.tagIds.filter((tagId: string) => !tagId.startsWith('virtual_'))
+        const realTagIds = data.tagIds.filter(
+          (tagId: string) => !tagId.startsWith('virtual_')
+        )
 
         if (realTagIds.length > 0) {
           await tx.insert(outfitTag).values(
@@ -194,7 +283,17 @@ export class OutfitRepository {
     })
   }
 
-  async delete(userId: string, outfitId: string) {
+  /**
+   * Delete an outfit for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {string} outfitId — The ID of the outfit to delete
+   * @returns {Promise<typeof outfit.$inferSelect>} — Promise resolving to the deleted outfit
+   */
+  async delete(
+    userId: string,
+    outfitId: string
+  ): Promise<typeof outfit.$inferSelect> {
     return (
       await this.db
         .delete(outfit)
@@ -233,15 +332,24 @@ export class OutfitRepository {
 
   async getUnavailableItems(userId: string) {
     return this.db.query.item.findMany({
-      where: and(eq(sql`item.user_id`, userId), sql`item.status != 'available'`),
+      where: and(
+        eq(sql`item.user_id`, userId),
+        sql`item.status != 'available'`
+      ),
       columns: {
         id: true,
       },
     })
   }
 
-  async search(userId: string, input: OutfitSearchInput) {
-    const conditions: any[] = [eq(outfit.userId, userId), sql`${outfit.wearDate} IS NOT NULL`]
+  async search(
+    userId: string,
+    input: OutfitSearchInput
+  ): Promise<PaginationResult<typeof outfit.$inferSelect>> {
+    const conditions: SQL<unknown>[] = [
+      eq(outfit.userId, userId),
+      sql`${outfit.wearDate} IS NOT NULL`,
+    ]
 
     if (input.containsItemId) {
       conditions.push(
@@ -273,7 +381,10 @@ export class OutfitRepository {
               AND LOWER(t.name) = ${tagName.toLowerCase()}
           )`
       )
-      conditions.push(or(...tagConditions))
+      const orCondition = or(...tagConditions)
+      if (orCondition) {
+        conditions.push(orCondition)
+      }
     }
 
     if (input.tagIdsAll && input.tagIdsAll.length > 0) {
@@ -362,15 +473,15 @@ export class OutfitRepository {
       })
     }
 
-    // Handle pagination
-    if (input.page !== undefined && input.limit !== undefined) {
-      const offset = input.page * input.limit
-      results = results.slice(offset, offset + input.limit)
-    } else if (input.limit !== undefined) {
-      results = results.slice(0, input.limit)
+    // Apply pagination if provided
+    if (input.pagination?.limit) {
+      const offset = input.pagination.offset ?? 0
+      const limit = input.pagination.limit
+      const paginatedResults = results.slice(offset, offset + limit + 1)
+      return createPaginationResult(paginatedResults, input.pagination)
     }
 
-    return results
+    return createPaginationResult(results, input.pagination)
   }
 
   async findOutfitItems(userId: string, outfitId: string) {

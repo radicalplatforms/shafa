@@ -1,17 +1,17 @@
 import { zValidator } from '@hono/zod-validator'
-import { isCuid } from '@paralleldrive/cuid2'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { tag } from '../schema'
-import type { TagService } from '../services/TagService'
-import { requireAuth } from '../utils/auth'
+import { getUserId, requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
-import type { DBVariables } from '../utils/inject-db'
-import injectDB from '../utils/inject-db'
 import type { ServiceVariables } from '../utils/inject-services'
 import injectServices from '../utils/inject-services'
+import { PaginationInputSchema } from '../utils/pagination'
+import { isValidUUID } from '../utils/uuid'
+
+const getTagsSchema = PaginationInputSchema
 
 const insertTagSchema = createInsertSchema(tag, {
   name: z.string().min(1).max(60),
@@ -19,79 +19,68 @@ const insertTagSchema = createInsertSchema(tag, {
 }).omit({ id: true, createdAt: true, userId: true })
 
 const selectTagSchema = createSelectSchema(tag, {
-  id: z.string().refine((val) => isCuid(val)),
-})
+  id: z.string().refine(isValidUUID),
+}).pick({ id: true })
 
-const app = new Hono<{ Variables: AuthVariables & DBVariables & ServiceVariables }>()
-  .get('/', requireAuth, injectDB, injectServices, async (c) => {
-    const auth = c.get('auth')
-    const userId = auth?.userId || ''
+const app = new Hono<{
+  Variables: AuthVariables & ServiceVariables
+}>()
+  .get(
+    '/',
+    zValidator('query', getTagsSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const { limit, offset } = c.req.valid('query')
 
-    return c.json(await c.get('tagService').getAllTags(userId))
-  })
+      const result = await c.get('tagService').tags(userId, { limit, offset })
+
+      return c.json(result)
+    }
+  )
   .post(
     '/',
     zValidator('json', insertTagSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
+      const userId = getUserId(c)
       const body = c.req.valid('json')
 
-      try {
-        return c.json(await c.get('tagService').createTag(userId, body))
-      } catch (error) {
-        if (error instanceof Error) {
-          return c.json({ message: error.message }, 400)
-        }
-        throw error
-      }
+      const result = await c.get('tagService').createTag(userId, body)
+
+      return c.json(result)
     }
   )
   .put(
     '/:id',
-    zValidator('param', selectTagSchema.pick({ id: true })),
-    zValidator('json', insertTagSchema),
+    zValidator('param', selectTagSchema),
+    zValidator('json', insertTagSchema.partial()),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const params = c.req.valid('param')
+      const userId = getUserId(c)
+      const { id: tagId } = c.req.valid('param')
       const body = c.req.valid('json')
 
-      try {
-        return c.json(await c.get('tagService').updateTag(userId, params.id, body))
-      } catch (error) {
-        if (error instanceof Error) {
-          return c.json({ message: error.message }, 400)
-        }
-        throw error
-      }
+      const result = await c.get('tagService').updateTag(userId, tagId, body)
+
+      return c.json(result)
     }
   )
   .delete(
     '/:id',
-    zValidator('param', selectTagSchema.pick({ id: true })),
+    zValidator('param', selectTagSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const params = c.req.valid('param')
+      const userId = getUserId(c)
+      const { id: tagId } = c.req.valid('param')
 
-      try {
-        return c.json(await c.get('tagService').deleteTag(userId, params.id))
-      } catch (error) {
-        if (error instanceof Error) {
-          return c.json({ message: error.message }, 400)
-        }
-        throw error
-      }
+      const result = await c.get('tagService').deleteTag(userId, tagId)
+
+      return c.json(result)
     }
   )
 

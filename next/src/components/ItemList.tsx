@@ -11,9 +11,9 @@ interface ItemListProps {
   coreItems?: string[]
   showLastWornAt?: boolean
   showThreeDotsMenu?: boolean
-  onItemView?: (item: ItemsResponse['items'][number]) => void
-  onItemEdit?: (item: ItemsResponse['items'][number]) => void
-  onItemDelete?: (item: ItemsResponse['items'][number]) => void
+  onItemView?: (item: ItemsResponse[number]) => void
+  onItemEdit?: (item: ItemsResponse[number]) => void
+  onItemDelete?: (item: ItemsResponse[number]) => void
   onItemStatusChange?: (itemId: string, status: ItemStatus) => Promise<void>
   statusChangingItemId?: string | null
   changingToStatus?: ItemStatus | null
@@ -42,7 +42,7 @@ export function ItemList({
   }
 
   // Transform outfitItems to items with additional data
-  const transformedItems: (ItemsResponse['items'][number] & { 
+  const transformedItems: (ItemsResponse[number] & { 
     itemType: string
     freshness?: number 
   })[] = outfitItems

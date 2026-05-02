@@ -1,12 +1,24 @@
 import type { ItemRepository } from '../repositories/ItemRepository'
 import type {
-  OutfitPaginationOptions,
+  CreateOutfitData,
   OutfitRepository,
   OutfitSearchInput,
   OutfitSuggestionsOptions,
   OutfitWithDetails,
+  OutfitWithRelations,
 } from '../repositories/OutfitRepository'
-import { VIRTUAL_TAGS, getApplicableVirtualTags, isVirtualTag } from './TagService'
+import type { outfit } from '../schema'
+import type { PaginationInput } from '../utils/pagination'
+import {
+  VIRTUAL_TAGS,
+  getApplicableVirtualTags,
+  isVirtualTag,
+} from './TagService'
+
+export type OutfitQueryVariables = {
+  limit?: number
+  offset?: number
+}
 
 export class OutfitService {
   constructor(
@@ -14,29 +26,46 @@ export class OutfitService {
     private itemRepository: ItemRepository
   ) {}
 
-  async getAllOutfits(userId: string, pagination?: OutfitPaginationOptions) {
-    const pageNumber = pagination?.page || 0
-    const pageSize = pagination?.size || 10
+  async outfits(
+    userId: string,
+    variables?: OutfitQueryVariables
+  ): Promise<{
+    outfits: OutfitWithRelations[]
+    last_page: boolean
+  }> {
+    const pagination: PaginationInput | undefined =
+      variables?.limit !== undefined
+        ? {
+            offset: variables.offset ?? 0,
+            limit: variables.limit,
+          }
+        : undefined
 
-    const outfitsData = await this.outfitRepository.findAll(userId, {
-      page: pageNumber,
-      size: pageSize,
-    })
-
-    const last_page = !(outfitsData.length > pageSize)
-    if (!last_page) outfitsData.pop()
+    const outfitsData = await this.outfitRepository.findAll(userId, pagination)
 
     return {
-      outfits: outfitsData,
-      last_page,
+      outfits: outfitsData.data,
+      last_page: !outfitsData.pagination.hasNext,
     }
   }
 
-  async createOutfit(userId: string, data: any) {
-    return this.outfitRepository.create(userId, data)
+  async createOutfit(
+    userId: string,
+    data: CreateOutfitData
+  ): Promise<OutfitWithDetails> {
+    const createdOutfit = await this.outfitRepository.create(userId, data)
+    // Return the outfit with full details
+    const outfitsWithDetails = await this.outfitRepository.findWithFullDetails(
+      userId,
+      [createdOutfit.id]
+    )
+    return outfitsWithDetails[0]
   }
 
-  async deleteOutfit(userId: string, outfitId: string) {
+  async deleteOutfit(
+    userId: string,
+    outfitId: string
+  ): Promise<typeof outfit.$inferSelect> {
     return this.outfitRepository.delete(userId, outfitId)
   }
 
@@ -48,8 +77,12 @@ export class OutfitService {
    * @returns {Promise<any[]>} - Matching outfits
    * @example searchOutfits(userId, { tagNamesAny: ["casual"], containsItemId: "item123" })
    */
-  async searchOutfits(userId: string, input: OutfitSearchInput) {
-    return this.outfitRepository.search(userId, input)
+  async searchOutfits(
+    userId: string,
+    input: OutfitSearchInput
+  ): Promise<(typeof outfit.$inferSelect)[]> {
+    const result = await this.outfitRepository.search(userId, input)
+    return result.data
   }
 
   /**
@@ -60,8 +93,10 @@ export class OutfitService {
    * @returns {Promise<boolean>} - Whether the outfit exists
    */
   async outfitExists(userId: string, outfitId: string): Promise<boolean> {
-    const outfits = await this.outfitRepository.search(userId, { limit: 1000 })
-    return outfits.some((outfit) => outfit.id === outfitId)
+    const result = await this.outfitRepository.search(userId, {
+      pagination: { offset: 0, limit: 1000 },
+    })
+    return result.data.some((outfit) => outfit.id === outfitId)
   }
 
   /**
@@ -69,11 +104,17 @@ export class OutfitService {
    *
    * @param {string} userId - The user's ID
    * @param {string} outfitId - The outfit ID
-   * @returns {Promise<any | null>} - The outfit or null if not found
+   * @returns {Promise<OutfitWithDetails | null>} - The outfit or null if not found
    */
-  async getOutfitById(userId: string, outfitId: string) {
-    const outfits = await this.outfitRepository.search(userId, { limit: 1000 })
-    return outfits.find((outfit) => outfit.id === outfitId) || null
+  async outfitById(
+    userId: string,
+    outfitId: string
+  ): Promise<OutfitWithDetails | null> {
+    const outfitsWithDetails = await this.outfitRepository.findWithFullDetails(
+      userId,
+      [outfitId]
+    )
+    return outfitsWithDetails[0] || null
   }
 
   /**
@@ -84,15 +125,13 @@ export class OutfitService {
    * @returns {Promise<any[]>} - Outfit items with details
    * @example getOutfitItems(userId, "outfit123")
    */
-  async getOutfitItems(userId: string, outfitId: string) {
+  async getOutfitItems(userId: string, outfitId: string): Promise<any[]> {
     // First verify the outfit exists and belongs to the user
     const exists = await this.outfitExists(userId, outfitId)
     if (!exists) {
       console.warn(
         '[OutfitService] getOutfitItems - outfit not found:',
-        outfitId,
-        'for user:',
-        userId
+        outfitId
       )
       return []
     }
@@ -103,15 +142,16 @@ export class OutfitService {
   /**
    * Build a new outfit from items and criteria.
    *
-   * @param {string} _userId - The user's ID
-   * @param {any} _input - Build criteria
+   * @param {string} userId - The user's ID
+   * @param {any} input - Build criteria
    * @returns {Promise<any>} - Generated outfit
    */
-  async buildOutfit(_userId: string, _input: any) {
+  async buildOutfit(userId: string, input: any): Promise<any> {
     console.log('[OutfitService] buildOutfit called - delegating to agent')
     return {
       success: false,
-      message: 'Outfit building delegated to agent - use search_outfits and compose manually',
+      message:
+        'Outfit building delegated to agent - use search_outfits and compose manually',
     }
   }
 
@@ -186,7 +226,8 @@ export class OutfitService {
       // Prefer items that haven't been worn recently (simple heuristic)
       if (item.lastWornDate) {
         const daysSinceWorn =
-          (Date.now() - new Date(item.lastWornDate).getTime()) / (1000 * 60 * 60 * 24)
+          (Date.now() - new Date(item.lastWornDate).getTime()) /
+          (1000 * 60 * 60 * 24)
         score += Math.min(daysSinceWorn / 30, 3) // Cap at 3 points
       }
 
@@ -219,13 +260,11 @@ export class OutfitService {
    * @param {any} input - Ranking criteria
    * @returns {Promise<any[]>} - Ranked outfits
    */
-  async rankOutfits(userId: string, input: any) {
+  async rankOutfits(userId: string, input: any): Promise<any[]> {
     const { candidates = [], climate, tagPreferences = [] } = input
 
     console.log(
-      '[OutfitService] Ranking outfits for user:',
-      userId,
-      'candidates:',
+      '[OutfitService] Ranking outfits for user, candidates:',
       candidates.length
     )
 
@@ -237,7 +276,7 @@ export class OutfitService {
       // Get user's items for scoring context
       const userItems = await this.itemRepository.search(userId, {
         statusIn: ['available'],
-        limit: 1000,
+        pagination: { offset: 0, limit: 1000 },
       })
 
       // Score each candidate outfit
@@ -419,21 +458,29 @@ export class OutfitService {
     return 1
   }
 
-  async getOutfitsByTag(userId: string, tagId: string) {
+  async getOutfitsByTag(userId: string, tagId: string): Promise<any[]> {
     if (isVirtualTag(tagId)) {
       const virtualTag = VIRTUAL_TAGS[tagId]
       if (!virtualTag) return []
 
-      const allOutfits = await this.outfitRepository.findAll(userId)
-      return allOutfits.filter((outfit) => virtualTag.appliesTo && virtualTag.appliesTo(outfit))
+      const allOutfits = await this.outfitRepository.findEligibleForSuggestions(
+        userId,
+        0
+      )
+      return allOutfits.filter(
+        (outfit) => virtualTag.appliesTo && virtualTag.appliesTo(outfit)
+      )
     }
 
     return []
   }
 
-  async getFlattenedOutfits(userId: string) {
+  async getFlattenedOutfits(userId: string): Promise<any[]> {
     // Get all worn outfits with full details
-    const allOutfits = await this.outfitRepository.findAll(userId)
+    const allOutfits = await this.outfitRepository.findEligibleForSuggestions(
+      userId,
+      0
+    )
 
     // Apply the same deduplication logic as the suggestions algorithm
     const coreItemsMap = new Map()
@@ -462,7 +509,9 @@ export class OutfitService {
 
         // Check if this outfit is more recent than the currently stored one
         const currentMostRecent = mostRecentByCoreItems.get(coreItemsKey)
-        const outfitDate = outfit.wearDate ? new Date(outfit.wearDate) : new Date(0)
+        const outfitDate = outfit.wearDate
+          ? new Date(outfit.wearDate)
+          : new Date(0)
         const currentMostRecentDate = currentMostRecent.wearDate
           ? new Date(currentMostRecent.wearDate)
           : new Date(0)
@@ -508,9 +557,18 @@ export class OutfitService {
     })
   }
 
-  async getSuggestions(userId: string, options?: OutfitSuggestionsOptions) {
-    const pageNumber = options?.page || 0
-    const pageSize = options?.size || 10
+  async suggestions(
+    userId: string,
+    options?: { offset?: number; limit?: number; tagId?: string }
+  ): Promise<{
+    suggestions: any[]
+    totalCount: number
+    generated_at: Date
+    metadata: any
+  }> {
+    const offset = options?.offset ?? 0
+    const pageSize = options?.limit || 10
+    const pageNumber = pageSize > 0 ? Math.floor(offset / pageSize) : 0
     const tagId = options?.tagId
     const today = new Date()
 
@@ -523,7 +581,8 @@ export class OutfitService {
     const allItems = await this.outfitRepository.getAvailableItems(userId)
 
     // Get a list of non-available item IDs for checking if outfits contain unavailable items
-    const unavailableItems = await this.outfitRepository.getUnavailableItems(userId)
+    const unavailableItems =
+      await this.outfitRepository.getUnavailableItems(userId)
 
     // Create a Set of unavailable item IDs for efficient lookup
     const unavailableItemIds = new Set(unavailableItems.map((item) => item.id))
@@ -546,16 +605,32 @@ export class OutfitService {
 
     // Calculate type-specific recency thresholds
     const recencyThresholds = {
-      layer: Math.max(wardrobeCounts.layer * thresholdMultiplier || 7, minRecencyThreshold),
-      top: Math.max(wardrobeCounts.top * thresholdMultiplier || 7, minRecencyThreshold),
-      bottom: Math.max(wardrobeCounts.bottom * thresholdMultiplier || 7, minRecencyThreshold),
-      footwear: Math.max(wardrobeCounts.footwear * thresholdMultiplier || 7, minRecencyThreshold),
-      accessory: Math.max(wardrobeCounts.accessory * thresholdMultiplier || 7, minRecencyThreshold),
+      layer: Math.max(
+        wardrobeCounts.layer * thresholdMultiplier || 7,
+        minRecencyThreshold
+      ),
+      top: Math.max(
+        wardrobeCounts.top * thresholdMultiplier || 7,
+        minRecencyThreshold
+      ),
+      bottom: Math.max(
+        wardrobeCounts.bottom * thresholdMultiplier || 7,
+        minRecencyThreshold
+      ),
+      footwear: Math.max(
+        wardrobeCounts.footwear * thresholdMultiplier || 7,
+        minRecencyThreshold
+      ),
+      accessory: Math.max(
+        wardrobeCounts.accessory * thresholdMultiplier || 7,
+        minRecencyThreshold
+      ),
       default: 7, // Default threshold for unknown types
     }
 
     // STEP 2: Get the last worn date for each item in a single query
-    const itemLastWorn = await this.outfitRepository.getItemLastWornDates(userId)
+    const itemLastWorn =
+      await this.outfitRepository.getItemLastWornDates(userId)
 
     // Create a map of item ID to last worn date
     const itemLastWornMap = new Map()
@@ -570,7 +645,8 @@ export class OutfitService {
       const itemType = item.type as keyof typeof recencyThresholds
 
       // Use type-specific recency threshold
-      const typeRecencyThreshold = recencyThresholds[itemType] || recencyThresholds.default
+      const typeRecencyThreshold =
+        recencyThresholds[itemType] || recencyThresholds.default
 
       if (!lastWornDate) {
         // Item never worn - maximum freshness
@@ -579,7 +655,8 @@ export class OutfitService {
       }
 
       const daysSinceWorn = Math.floor(
-        (today.getTime() - new Date(lastWornDate).getTime()) / (1000 * 60 * 60 * 24)
+        (today.getTime() - new Date(lastWornDate).getTime()) /
+          (1000 * 60 * 60 * 24)
       )
 
       // Parameters that control the curve shape
@@ -603,7 +680,8 @@ export class OutfitService {
         const midpoint = 0.7 // Shifted further right to extend the flat beginning
 
         // Logistic function: 1 / (1 + e^(-steepness * (x - midpoint)))
-        const logisticValue = 1 / (1 + Math.exp(-steepness * (progress - midpoint)))
+        const logisticValue =
+          1 / (1 + Math.exp(-steepness * (progress - midpoint)))
 
         // Normalize to ensure we start at minFreshness and end exactly at maxFreshness
         // We need to calculate what the logistic function outputs at progress=0 and progress=1
@@ -611,9 +689,11 @@ export class OutfitService {
         const endValue = 1 / (1 + Math.exp(-steepness * (1 - midpoint)))
 
         // Normalize the output
-        const normalizedValue = (logisticValue - startValue) / (endValue - startValue)
+        const normalizedValue =
+          (logisticValue - startValue) / (endValue - startValue)
 
-        freshnessFactor = minFreshness + (maxFreshness - minFreshness) * normalizedValue
+        freshnessFactor =
+          minFreshness + (maxFreshness - minFreshness) * normalizedValue
       } else if (daysSinceWorn < risePhase + plateauPhase) {
         // Plateau phase: maintain maximum freshness
         freshnessFactor = maxFreshness
@@ -628,27 +708,36 @@ export class OutfitService {
     }
 
     // STEP 3: Get all eligible outfits in a single query
-    const eligibleOutfits = await this.outfitRepository.findEligibleForSuggestions(userId, 1)
-    console.log('[OutfitService] Eligible outfits count:', eligibleOutfits.length)
+    const eligibleOutfits =
+      await this.outfitRepository.findEligibleForSuggestions(userId, 1)
+    console.log(
+      '[OutfitService] Eligible outfits count:',
+      eligibleOutfits.length
+    )
 
     // Filter out outfits that contain any unavailable items
     const availableOutfits = eligibleOutfits.filter((outfit) => {
       // Return true only if no items in the outfit are unavailable
       return !outfit.outfitItems.some((io) => unavailableItemIds.has(io.itemId))
     })
-    console.log('[OutfitService] Available outfits count:', availableOutfits.length)
+    console.log(
+      '[OutfitService] Available outfits count:',
+      availableOutfits.length
+    )
 
     // If no eligible outfits after filtering unavailable items, return empty result
     if (availableOutfits.length === 0) {
       return {
         suggestions: [],
+        totalCount: 0,
         generated_at: today,
         metadata: {
           wardrobe_size: allItems.length,
           recency_threshold: recencyThresholds,
           last_page: true,
           algorithm_version: 'v2',
-          filter_applied: 'no_eligible_outfits_or_all_contain_unavailable_items',
+          filter_applied:
+            'no_eligible_outfits_or_all_contain_unavailable_items',
         },
       }
     }
@@ -659,24 +748,40 @@ export class OutfitService {
       const hasTopOrLayer = outfit.outfitItems.some(
         (io) => io.itemType === 'top' || io.itemType === 'layer'
       )
-      const hasBottom = outfit.outfitItems.some((io) => io.itemType === 'bottom')
-      const hasFootwear = outfit.outfitItems.some((io) => io.itemType === 'footwear')
+      const hasBottom = outfit.outfitItems.some(
+        (io) => io.itemType === 'bottom'
+      )
+      const hasFootwear = outfit.outfitItems.some(
+        (io) => io.itemType === 'footwear'
+      )
 
       // Check for virtual tag filter
       const matchesVirtualTagFilter =
         !virtualTag || (virtualTag.appliesTo && virtualTag.appliesTo(outfit))
 
       // If regular tagId is provided, check if the outfit has this tag
-      const hasTag = !regularTagId || outfit.outfitTags.some((to) => to.tagId === regularTagId)
+      const hasTag =
+        !regularTagId ||
+        outfit.outfitTags.some((to) => to.tagId === regularTagId)
 
-      return hasTopOrLayer && hasBottom && hasFootwear && hasTag && matchesVirtualTagFilter
+      return (
+        hasTopOrLayer &&
+        hasBottom &&
+        hasFootwear &&
+        hasTag &&
+        matchesVirtualTagFilter
+      )
     })
-    console.log('[OutfitService] Complete outfits count:', completeOutfits.length)
+    console.log(
+      '[OutfitService] Complete outfits count:',
+      completeOutfits.length
+    )
 
     // If no complete outfits after filtering, return empty result
     if (completeOutfits.length === 0) {
       return {
         suggestions: [],
+        totalCount: 0,
         generated_at: today,
         metadata: {
           wardrobe_size: allItems.length,
@@ -716,7 +821,9 @@ export class OutfitService {
 
         // Check if this outfit is more recent than the currently stored one
         const currentMostRecent = mostRecentByCoreItems.get(coreItemsKey)
-        const outfitDate = outfit.wearDate ? new Date(outfit.wearDate) : new Date(0)
+        const outfitDate = outfit.wearDate
+          ? new Date(outfit.wearDate)
+          : new Date(0)
         const currentMostRecentDate = currentMostRecent.wearDate
           ? new Date(currentMostRecent.wearDate)
           : new Date(0)
@@ -771,14 +878,18 @@ export class OutfitService {
       const ratingScore = outfit.rating === 2 ? 10 : 3 // Rating 1 = 3, Rating 2 = 10
 
       // Time Score (0-30)
-      const outfitDate = outfit.wearDate ? new Date(outfit.wearDate) : new Date(0)
+      const outfitDate = outfit.wearDate
+        ? new Date(outfit.wearDate)
+        : new Date(0)
       const daysSinceWorn = Math.floor(
         (today.getTime() - outfitDate.getTime()) / (1000 * 60 * 60 * 24)
       )
 
       // Get item freshness for all items in this outfit
       const itemIds = outfit.outfitItems.map((io) => io.itemId)
-      const nonAccessoryItems = outfit.outfitItems.filter((io) => io.itemType !== 'accessory')
+      const nonAccessoryItems = outfit.outfitItems.filter(
+        (io) => io.itemType !== 'accessory'
+      )
 
       if (itemIds.length === 0) {
         // Empty outfit case - just return rating score
@@ -911,7 +1022,10 @@ export class OutfitService {
 
     // STEP 7: Fetch full details for the paginated outfits in a single query
     const outfitIds = paginatedOutfits.map((o) => o.outfitId)
-    const outfitDetails = await this.outfitRepository.findWithFullDetails(userId, outfitIds)
+    const outfitDetails = await this.outfitRepository.findWithFullDetails(
+      userId,
+      outfitIds
+    )
 
     // Combine the outfit details with their scores
     const outfitsWithScores = outfitDetails
@@ -985,6 +1099,7 @@ export class OutfitService {
     // Return the final result
     return {
       suggestions: outfitsWithScores,
+      totalCount: outfitsWithScores.length,
       generated_at: today,
       metadata: {
         wardrobe_size: allItems.length,
@@ -996,7 +1111,9 @@ export class OutfitService {
           : regularTagId
             ? 'tag_filter'
             : 'complete_outfits_only',
-        virtual_tag_name: isVirtualTagFilter ? VIRTUAL_TAGS[tagId!]?.name : undefined,
+        virtual_tag_name: isVirtualTagFilter
+          ? VIRTUAL_TAGS[tagId!]?.name
+          : undefined,
         tagId: tagId || undefined,
       },
     }

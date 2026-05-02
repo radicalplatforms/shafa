@@ -1,82 +1,155 @@
-import { createId } from '@paralleldrive/cuid2'
-import { eq } from 'drizzle-orm'
+import { safeValidateUIMessages, type CoreMessage, type UIMessage } from 'ai'
 
-import { agentConversation } from '../../schema'
-import type { DBVariables } from '../../utils/inject-db'
+import { agentMessage } from '../../schema'
+import type { MessageRepository } from '../../repositories/MessageRepository'
+import type { ConversationRepository } from '../../repositories/ConversationRepository'
+import { createLogger } from '../../utils/logger'
 import type { AgentState } from './types'
 
+const logger = createLogger('AgentState')
+
+/**
+ * Load conversation state up to a specific message.
+ * For user messages, includes the message in history.
+ * For assistant messages (retry case), excludes the message and includes up to its parent.
+ *
+ * @param {MessageRepository} messageRepository - Message repository
+ * @param {ConversationRepository} conversationRepository - Conversation repository
+ * @param {string} messageId - Message ID to load up to
+ * @returns {Promise<AgentState | null>} - Agent state or null if not found
+ */
 export async function loadState(
-  db: DBVariables['db'],
-  userId: string,
-  conversationId?: string
+  messageRepository: MessageRepository,
+  conversationRepository: ConversationRepository,
+  messageId: string
 ): Promise<AgentState | null> {
-  console.log('[State] Loading state for user:', userId, 'conversationId:', conversationId)
-
-  if (!conversationId) {
-    console.log('[State] No conversationId provided, returning null')
+  const targetMessage = await messageRepository.findById(messageId)
+  if (!targetMessage) {
+    logger.warn(`Message not found [msg:${messageId.slice(0, 8)}]`)
     return null
   }
 
-  const result = await db.query.agentConversation.findFirst({
-    where: eq(agentConversation.id, conversationId),
-  })
-
-  if (!result || result.userId !== userId) {
-    console.log('[State] No conversation found or userId mismatch, returning null')
+  const conversationId = targetMessage.conversationId
+  const conversation = await conversationRepository.findById(conversationId)
+  if (!conversation) {
+    logger.warn(`Conversation not found [conv:${conversationId.slice(0, 8)}]`)
     return null
   }
 
-  const storedState = result.state as { messages: any[]; context: any }
-  console.log('[State] State loaded successfully:', {
-    conversationId: result.id,
-    messageCount: storedState.messages?.length || 0,
-    hasContext: !!storedState.context,
-  })
+  const allMessageRows = await messageRepository.findActivePathMessages(
+    conversationId
+  )
+
+  const targetIndex = allMessageRows.findIndex((m) => m.id === messageId)
+  if (targetIndex === -1) {
+    logger.warn(`Message not in active path [conv:${conversationId.slice(0, 8)} msg:${messageId.slice(0, 8)}]`)
+    return null
+  }
+
+  let messagesToInclude: typeof agentMessage.$inferSelect[]
+  if (targetMessage.role === 'user') {
+    messagesToInclude = allMessageRows.slice(0, targetIndex + 1)
+  } else {
+    messagesToInclude = allMessageRows.slice(0, targetIndex)
+  }
+
+  const messages: UIMessage[] = messagesToInclude.map((row) => ({
+    id: row.id,
+    role: row.role as 'user' | 'assistant',
+    parts: row.parts as any,
+    metadata: row.metadata as any,
+  }))
+
+  const validationResult = await safeValidateUIMessages({ messages })
+
+  if (!validationResult.success) {
+    logger.error(`Validation failed: ${validationResult.error.message} [conv:${conversationId.slice(0, 8)} msg:${messageId.slice(0, 8)}]`)
+    throw new Error(
+      `Invalid UIMessages loaded from database: ${validationResult.error.message}`
+    )
+  }
+
+  logger.debug(`State loaded (${messages.length} msgs, ${targetMessage.role}) [conv:${conversationId.slice(0, 8)} msg:${messageId.slice(0, 8)}]`)
 
   return {
-    conversationId: result.id,
-    userId: result.userId,
-    messages: storedState.messages || [],
-    context: storedState.context || { userId },
-    lastMessageAt: result.lastMessageAt,
-    createdAt: result.createdAt,
+    conversationId: conversation.id,
+    userId: conversation.userId || '',
+    messages: validationResult.data,
+    lastMessageAt: conversation.updatedAt,
+    createdAt: conversation.createdAt,
   }
 }
 
-export async function saveState(db: DBVariables['db'], state: AgentState): Promise<string> {
-  const conversationId = state.conversationId || createId()
-  const now = new Date()
-
-  console.log(
-    '[State] Saving state for user:',
+/**
+ * Save conversation state to database.
+ *
+ * @param {MessageRepository} messageRepository - Message repository
+ * @param {ConversationRepository} conversationRepository - Conversation repository
+ * @param {AgentState} state - Agent state to save
+ * @returns {Promise<string>} - Conversation ID
+ */
+export async function saveState(
+  messageRepository: MessageRepository,
+  conversationRepository: ConversationRepository,
+  state: AgentState
+): Promise<string> {
+  const conversationId = await conversationRepository.getOrCreateConversation(
     state.userId,
-    'conversationId:',
-    conversationId,
-    'messageCount:',
-    state.messages.length
+    state.conversationId,
+    false
   )
 
-  const stateData = {
-    messages: state.messages,
-    context: state.context,
+  const existingMessages = await messageRepository.findActivePathMessages(
+    conversationId
+  )
+
+  const messagesToProcess = state.messages.slice(existingMessages.length)
+
+  let parentId: string | null =
+    existingMessages.length > 0
+      ? existingMessages[existingMessages.length - 1].id
+      : null
+
+  for (const uiMessage of messagesToProcess) {
+    const saved = await messageRepository.createMessage(
+      conversationId,
+      uiMessage,
+      parentId
+    )
+    parentId = saved.id
   }
 
-  await db
-    .insert(agentConversation)
-    .values({
-      id: conversationId,
-      userId: state.userId,
-      state: stateData as any,
-      lastMessageAt: now,
-    })
-    .onConflictDoUpdate({
-      target: agentConversation.id,
-      set: {
-        state: stateData as any,
-        lastMessageAt: now,
-      },
-    })
-
-  console.log('[State] State saved successfully:', conversationId)
+  if (messagesToProcess.length > 0) {
+    logger.debug(`State saved (+${messagesToProcess.length} msgs) [conv:${conversationId.slice(0, 8)}]`)
+  }
   return conversationId
+}
+
+/**
+ * Convert UIMessage to CoreMessage for model consumption.
+ * Extracts text content from parts and preserves role.
+ *
+ * @param {UIMessage} uiMessage - The UIMessage to convert
+ * @returns {CoreMessage} - CoreMessage for model
+ */
+function toModelMessage(uiMessage: UIMessage): CoreMessage {
+  const textContent = uiMessage.parts
+    .filter((part) => part.type === 'text')
+    .map((part) => (part as any).text)
+    .join('')
+
+  return {
+    role: uiMessage.role,
+    content: textContent,
+  }
+}
+
+/**
+ * Convert UIMessages to CoreMessages for model consumption.
+ *
+ * @param {UIMessage[]} messages - UIMessages to convert
+ * @returns {CoreMessage[]} - CoreMessages for model
+ */
+export function toModelMessages(messages: UIMessage[]): CoreMessage[] {
+  return messages.map(toModelMessage)
 }

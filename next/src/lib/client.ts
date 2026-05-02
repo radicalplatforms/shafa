@@ -35,8 +35,10 @@ export function useOutfits() {
   }
 
   const fetcher = async (arg: [string, string, string]) => {
+    const page = Number(arg[1])
+    const size = Number(arg[2])
     const res = await $get({ 
-      query: { page: arg[1], size: arg[2] } 
+      query: { limit: String(size), offset: String(page * size) } 
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -127,9 +129,11 @@ export function useSuggestedOutfits(tagId?: string) {
   }
 
   const fetcher = async (arg: [string, string, string, string | undefined]) => {
-    const queryParams: { page: string; size: string; tagId?: string } = { 
-      page: arg[1], 
-      size: arg[2]
+    const page = Number(arg[1])
+    const size = Number(arg[2])
+    const queryParams: { limit: string; offset: string; tagId?: string } = { 
+      limit: String(size), 
+      offset: String(page * size)
     }
     
     // Add tagId to query params if it exists
@@ -191,7 +195,7 @@ export function useItems() {
 
   const { data, isLoading, error, mutate } = useSWR(
     'get-items', 
-    fetcher({})
+    fetcher({ query: {} })
   )
  
   const updateItemStatus = async (itemId: string, status: ItemStatus) => {
@@ -214,7 +218,7 @@ export function useItems() {
   }
 
   return {
-    items: data?.items || [],
+    items: data?.data || [],
     isLoading,
     isError: error,
     mutate,
@@ -238,11 +242,11 @@ export function useTags() {
 
   const { data, isLoading, error } = useSWR(
     'get-tags', 
-    fetcher({})
+    fetcher({ query: {} })
   )
  
   return {
-    tags: data,
+    tags: data?.data || [],
     isLoading,
     isError: error
   }
@@ -250,11 +254,14 @@ export function useTags() {
 
 export function useAgent() {
   const { getToken } = useAuth()
-  const $post = client.api.agent.$post
+  const $post = client.api.agent.messages.$post
   
-  const sendMessage = async (message: string): Promise<any> => {
+  const sendMessage = async (
+    text: string,
+    conversationId?: string
+  ): Promise<Response> => {
     const res = await $post({ 
-      json: { message } 
+      json: { text, conversationId } 
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -266,10 +273,56 @@ export function useAgent() {
       throw new Error('Failed to send message to agent')
     }
     
-    return await res.json()
+    return res
   }
   
   return { sendMessage }
+}
+
+export async function retryMessage(
+  messageId: string,
+  getToken: () => Promise<string | null>
+): Promise<{ messages: any[] }> {
+  const token = await getToken()
+  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'}/api/agent/messages/${messageId}/retry`
+  
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Failed to retry message: ${response.statusText}`)
+  }
+  
+  return await response.json()
+}
+
+export async function editMessage(
+  messageId: string,
+  text: string,
+  getToken: () => Promise<string | null>
+): Promise<{ messages: any[] }> {
+  const token = await getToken()
+  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'}/api/agent/messages/${messageId}/edit`
+  
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ text }),
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Failed to edit message: ${response.statusText}`)
+  }
+  
+  return await response.json()
 }
 
 

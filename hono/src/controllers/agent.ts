@@ -2,122 +2,112 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { executeAgentStream } from '../services/agent/executor'
-import { requireAuth } from '../utils/auth'
+import { getUserId, requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
-import type { DBVariables } from '../utils/inject-db'
-import injectDB from '../utils/inject-db'
 import type { ServiceVariables } from '../utils/inject-services'
 import injectServices from '../utils/inject-services'
+import { PaginationInputSchema } from '../utils/pagination'
+import { createSSEResponse } from '../utils/sse'
+import { isValidUUID } from '../utils/uuid'
 
-const agentRequestSchema = z.object({
-  message: z.string().min(1).max(2000),
-  conversationId: z.string().optional(),
+const messageRequestSchema = z.object({
+  conversationId: z.string().refine(isValidUUID).optional(),
+  text: z.string().min(1),
 })
 
-const app = new Hono<{ Variables: AuthVariables & DBVariables & ServiceVariables }>().post(
-  '/',
-  zValidator('json', agentRequestSchema),
-  requireAuth,
-  injectDB,
-  injectServices,
-  async (c) => {
-    const auth = c.get('auth')
-    const userId = auth?.userId || ''
-    const { message, conversationId } = c.req.valid('json')
-    const db = c.get('db')
+const messageIdSchema = z.object({
+  id: z.string().refine(isValidUUID),
+})
 
-    c.set('isAgentRequest', true)
+const conversationIdSchema = z.object({
+  id: z.string().refine(isValidUUID),
+})
 
-    // Set SSE headers
-    c.header('Content-Type', 'text/event-stream')
-    c.header('Cache-Control', 'no-cache')
-    c.header('Connection', 'keep-alive')
-    c.header('Access-Control-Allow-Origin', '*')
-    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+const getConversationsSchema = PaginationInputSchema
 
-    const result = executeAgentStream({
-      userId,
-      message,
-      conversationId,
-      itemService: c.get('itemService'),
-      outfitService: c.get('outfitService'),
-      similarityService: c.get('similarityService'),
-      weatherService: c.get('weatherService'),
-      db,
-    })
+const editMessageSchema = z.object({
+  text: z.string().min(1),
+})
 
-    const encoder = new TextEncoder()
-    let chunkCount = 0
-    let totalBytesSent = 0
+const app = new Hono<{
+  Variables: AuthVariables & ServiceVariables
+}>()
+  .get(
+    '/conversations',
+    zValidator('query', getConversationsSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const { limit, offset } = c.req.valid('query')
 
-    console.log('[Controller] Starting SSE stream for user:', userId)
+      const result = await c
+        .get('agentService')
+        .conversations(userId, { limit, offset })
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of result) {
-            chunkCount++
-            let sseData = ''
+      return c.json(result)
+    }
+  )
+  .get(
+    '/conversations/:id',
+    zValidator('param', conversationIdSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const { id: conversationId } = c.req.valid('param')
 
-            if (chunk.type === 'text-delta' && chunk.textDelta && chunk.textDelta.trim()) {
-              sseData = `event: text-delta\ndata: ${JSON.stringify({ textDelta: chunk.textDelta })}\n\n`
-              console.log(`[Controller] Sending text-delta chunk ${chunkCount}:`, {
-                textDeltaLength: chunk.textDelta.length,
-                preview:
-                  chunk.textDelta.substring(0, 50) + (chunk.textDelta.length > 50 ? '...' : ''),
-              })
-            } else if (chunk.type === 'status') {
-              sseData = `event: status\ndata: ${JSON.stringify({ status: chunk.status })}\n\n`
-              console.log(`[Controller] Sending status chunk ${chunkCount}:`, chunk.status)
-            } else if (chunk.type === 'metadata') {
-              sseData = `event: metadata\ndata: ${JSON.stringify({ conversationId: chunk.metadata.conversationId })}\n\n`
-              console.log(
-                `[Controller] Sending metadata chunk ${chunkCount}:`,
-                chunk.metadata.conversationId
-              )
-            }
+      const conversation = await c
+        .get('agentService')
+        .conversationById(userId, conversationId)
 
-            if (sseData) {
-              const encoded = encoder.encode(sseData)
-              totalBytesSent += encoded.length
-              console.log(`[Controller] Enqueuing chunk ${chunkCount}:`, {
-                sseDataLength: sseData.length,
-                encodedLength: encoded.length,
-                totalBytesSent,
-              })
-              controller.enqueue(encoded)
-            }
-          }
+      return c.json(conversation)
+    }
+  )
+  .post(
+    '/messages',
+    zValidator('json', messageRequestSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const { conversationId, text } = c.req.valid('json')
 
-          // Send end event
-          console.log(
-            `[Controller] Stream completed - total chunks: ${chunkCount}, total bytes: ${totalBytesSent}`
-          )
-          controller.enqueue(encoder.encode(`event: end\ndata: {}\n\n`))
-          controller.close()
-        } catch (error) {
-          console.error('[Controller] SSE stream error:', error)
-          controller.enqueue(
-            encoder.encode(
-              `event: error\ndata: ${JSON.stringify({ error: 'Stream error occurred' })}\n\n`
-            )
-          )
-          controller.close()
-        }
-      },
-    })
+      const agentService = c.get('agentService')
+      return agentService.createMessage(userId, text, conversationId)
+    }
+  )
+  .post(
+    '/messages/:id/retry',
+    zValidator('param', messageIdSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const { id: messageId } = c.req.valid('param')
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    })
-  }
-)
+      const agentService = c.get('agentService')
+      const stream = agentService.retryMessage(userId, messageId)
+
+      return createSSEResponse(stream, { userId, messageId })
+    }
+  )
+  .post(
+    '/messages/:id/edit',
+    zValidator('param', messageIdSchema),
+    zValidator('json', editMessageSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const { id: messageId } = c.req.valid('param')
+      const { text } = c.req.valid('json')
+
+      const agentService = c.get('agentService')
+      const stream = agentService.editMessage(userId, messageId, text)
+
+      return createSSEResponse(stream, { userId, messageId })
+    }
+  )
 
 export default app

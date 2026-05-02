@@ -1,613 +1,624 @@
-import type { CoreMessage as Message } from 'ai'
+import {
+  safeValidateUIMessages,
+  type UIMessage,
+  type TextUIPart,
+  type ReasoningUIPart,
+  type ToolUIPart,
+  type DataUIPart,
+  type StepStartUIPart,
+  type UIMessagePart,
+  type UIDataTypes,
+  type UITools,
+  type InferUITools,
+  type InferUIMessageChunk,
+} from 'ai'
 
-import type { DBVariables } from '../../utils/inject-db'
+import { createLogger } from '../../utils/logger'
+import { generateUUID } from '../../utils/uuid'
 import type { ItemService } from '../ItemService'
 import type { OutfitService } from '../OutfitService'
-import type { SimilarityService } from '../SimilarityService'
-import type { WeatherService } from '../WeatherService'
+import type { MessageRepository } from '../../repositories/MessageRepository'
+import type { ConversationRepository } from '../../repositories/ConversationRepository'
 import { createAgent } from './agent'
 import { getGeneralPrompt, getTravelPrompt } from './prompts'
 import { classifyRoute, extractTravelDetails } from './router'
-import { loadState, saveState } from './state'
-import { createTools } from './tools'
+import { loadState, saveState, toModelMessages } from './state'
+import { createTools, type ToolSet } from './tools'
+import type { TravelContext } from './types'
 
-/**
- * Format streaming text to ensure proper newlines and markdown formatting.
- * This addresses Claude 4 Sonnet's streaming behavior where newlines
- * may not be properly streamed between sentences and markdown elements.
- */
-function formatStreamingText(text: string): string {
-  let formatted = text
+type AgentTools = InferUITools<ToolSet>
+export type AgentUIMessage = UIMessage<unknown, UIDataTypes, AgentTools>
 
-  // Add newlines after sentence endings (. ! ?) when followed by capital letter
-  formatted = formatted.replace(/([.!?])(\s*)([A-Z])/g, '$1\n\n$3')
-
-  // Add newlines before MDX tags to ensure they're on their own lines
-  formatted = formatted.replace(/(\S)(<outfit_existing|<outfit_suggested|<item)/g, '$1\n\n$2')
-
-  // Fix markdown formatting - ensure proper spacing for bullets and headings
-  // Add newlines before bullet points that aren't already on new lines
-  formatted = formatted.replace(/(\S)(\s*)([-*+])(\s)/g, '$1\n\n$3$4')
-
-  // Add newlines before headings that aren't already on new lines
-  formatted = formatted.replace(/(\S)(\s*)(#{1,6}\s)/g, '$1\n\n$3')
-
-  // Ensure double newlines before major sections (headings with ## or more)
-  formatted = formatted.replace(/(\S)(\s*)(#{2,6}\s)/g, '$1\n\n$3')
-
-  // Clean up multiple consecutive newlines (more than 2)
-  formatted = formatted.replace(/\n{3,}/g, '\n\n')
-
-  return formatted
+function extractTextFromParts(parts: AgentUIMessage['parts']): string {
+  return parts
+    .filter((part): part is TextUIPart => part.type === 'text')
+    .map((part) => part.text)
+    .join('')
 }
 
+const logger = createLogger('AgentExecutor')
+
 export interface ExecuteAgentStreamParams {
+  messageId: string
   userId: string
-  message: string
-  conversationId?: string
   itemService: ItemService
   outfitService: OutfitService
-  similarityService: SimilarityService
-  weatherService: WeatherService
-  db: DBVariables['db']
+  messageRepository: MessageRepository
+  conversationRepository: ConversationRepository
 }
 
 export type StreamChunk =
   | { type: 'text-delta'; textDelta: string }
+  | { type: 'reasoning-delta'; reasoningDelta: string }
+  | { type: 'tool-call'; toolCall: ToolUIPart }
+  | { type: 'data-part'; dataPart: DataUIPart<UIDataTypes> }
+  | { type: 'step-start'; stepStart: StepStartUIPart }
   | { type: 'metadata'; metadata: { conversationId: string } }
   | { type: 'status'; status: string }
 
 /**
- * Execute agent with new loop stages:
- * 1. Receive message
- * 2. Intent and safety check (unsafe/offtopic/travel/general)
- * 3. Clarification phase (for travel)
- * 4. Tool execution
- * 5. Response assembly
+ * Execute agent conversation flow:
+ * 1. Load state from database up to messageId
+ * 2. Route classification (unsafe/offtopic/travel/general)
+ * 3. Handle route-specific logic
+ * 4. Save state and return response
  *
  * @param {ExecuteAgentStreamParams} params - Execution parameters
- * @returns {AsyncIterable<StreamChunk>} - Stream of text chunks and metadata
+ * @returns {AsyncIterable<StreamChunk>} - Stream of chunks
  */
 export async function* executeAgentStream(
   params: ExecuteAgentStreamParams
 ): AsyncIterable<StreamChunk> {
-  const { userId, message, conversationId } = params
-  const { itemService, outfitService, similarityService, weatherService, db } = params
-
-  console.log('[Executor] Starting agent execution', {
+  const {
+    messageId,
     userId,
-    conversationId,
-    messageLength: message.length,
-    hasServices: {
-      itemService: !!itemService,
-      outfitService: !!outfitService,
-      similarityService: !!similarityService,
-      weatherService: !!weatherService,
-    },
-  })
+    itemService,
+    outfitService,
+    messageRepository,
+    conversationRepository,
+  } = params
 
-  // Stage 1: Receive message
-  yield { type: 'status', status: 'Processing message' }
-  const trimmedMessage = message.trim()
-  console.log('[Executor] Message processed, length:', trimmedMessage.length)
+  yield { type: 'status', status: 'Thinking...' }
 
-  const state = await loadState(db, userId, conversationId)
-  const messages: Message[] = state?.messages || []
-  const context = state?.context || { userId, conversationId }
+  const tools = createTools({ userId, itemService, outfitService }) satisfies ToolSet
+  const state = await loadState(
+    messageRepository,
+    conversationRepository,
+    messageId,
+    tools
+  )
 
-  console.log('[Executor] State loaded', {
-    hasState: !!state,
-    messageCount: messages.length,
-    hasContext: !!context,
-    hasTravelContext: !!context.travelContext,
-  })
+  const messages: AgentUIMessage[] = state.messages
 
-  // Ensure context has the current conversationId
-  if (conversationId && !context.conversationId) {
-    context.conversationId = conversationId
+  if (!messages.length) {
+    throw new Error('No messages found in conversation')
   }
 
-  messages.push({
-    role: 'user',
-    content: trimmedMessage,
-  })
+  const lastMessage = messages[messages.length - 1]
+  if (lastMessage.role !== 'user') {
+    throw new Error('Last message must be a user message')
+  }
 
-  // Stage 2: Intent and safety check
-  yield { type: 'status', status: 'Understanding your request...' }
-  console.log('[Executor] Starting route classification')
+  const messageText = extractTextFromParts(lastMessage.parts)
 
-  // Convert messages to simple format for route classification
-  const conversationHistory = messages.slice(0, -1).map((msg) => ({
-    role: msg.role,
-    content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-  }))
+  const conversationHistory = getClassificationContext(messages.slice(0, -1))
 
-  yield { type: 'status', status: 'Determining the best approach...' }
-  const routeResult = await classifyRoute(trimmedMessage, conversationHistory, context)
-  console.log('[Executor] Route classified', {
-    route: routeResult.route,
-    reason: routeResult.reason,
-    summary: routeResult.summary,
-  })
+  const routeResult = await classifyRoute(
+    messageText.trim(),
+    conversationHistory
+  )
 
-  // Handle unsafe route
-  if (routeResult.route === 'unsafe') {
-    console.log('[Executor] Handling unsafe route - blocking request')
-    const assistantMessage: Message = {
-      role: 'assistant',
-      content: routeResult.response,
-    }
-    messages.push(assistantMessage)
+  logger.info(`✓ ${routeResult.route}: ${routeResult.summary} [conv:${state.conversationId.slice(0, 8)} msg:${messageId.slice(0, 8)}]`)
 
-    const savedConversationId = await saveState(db, {
-      conversationId: conversationId || '',
-      userId,
+  await conversationRepository.updateTitle(
+    state.conversationId,
+    routeResult.summary
+  )
+
+  if (routeResult.route === 'unsafe' || routeResult.route === 'offtopic') {
+    yield* handleSimpleResponse(
+      routeResult.response,
       messages,
-      context,
-      lastMessageAt: new Date(),
-      createdAt: state?.createdAt || new Date(),
-    })
-    console.log('[Executor] Unsafe route handled, conversation saved:', savedConversationId)
-
-    yield { type: 'text-delta', textDelta: routeResult.response }
-    yield { type: 'metadata', metadata: { conversationId: savedConversationId } }
+      state.conversationId,
+      userId,
+      state.createdAt,
+      messageRepository,
+      conversationRepository
+    )
     return
   }
 
-  // Handle offtopic route
-  if (routeResult.route === 'offtopic') {
-    console.log('[Executor] Handling offtopic route - redirecting to wardrobe topics')
-    const assistantMessage: Message = {
-      role: 'assistant',
-      content: routeResult.response,
-    }
-    messages.push(assistantMessage)
-
-    const savedConversationId = await saveState(db, {
-      conversationId: conversationId || '',
-      userId,
-      messages,
-      context,
-      lastMessageAt: new Date(),
-      createdAt: state?.createdAt || new Date(),
-    })
-    console.log('[Executor] Offtopic route handled, conversation saved:', savedConversationId)
-
-    yield { type: 'text-delta', textDelta: routeResult.response }
-    yield { type: 'metadata', metadata: { conversationId: savedConversationId } }
-    return
-  }
-
-  // Stage 3: Clarification phase (travel route)
   if (routeResult.route === 'travel') {
-    console.log('[Executor] Handling travel route - extracting travel details')
-    yield { type: 'status', status: 'Planning your travel wardrobe...' }
-    // Extract travel details from current message
-    yield { type: 'status', status: 'Extracting travel details...' }
-    const extractedDetails = await extractTravelDetails(trimmedMessage)
-    console.log('[Executor] Travel details extracted:', extractedDetails)
+    yield* handleTravelRoute(
+      messageText.trim(),
+      messages,
+      state.conversationId,
+      userId,
+      state.createdAt,
+      itemService,
+      outfitService,
+      messageRepository,
+      conversationRepository
+    )
+    return
+  }
 
-    // Merge with existing travel context
-    const travelContext = {
-      ...context.travelContext,
-      ...extractedDetails,
-    }
+  yield* handleGeneralRoute(
+    messages,
+    state.conversationId,
+    userId,
+    state.createdAt,
+    itemService,
+    outfitService,
+    messageRepository,
+    conversationRepository
+  )
+}
 
-    // Update the context with the merged travel context
-    context.travelContext = travelContext
+/**
+ * Handle simple text response (unsafe/offtopic routes).
+ */
+async function* handleSimpleResponse(
+  response: string,
+  messages: AgentUIMessage[],
+  conversationId: string,
+  userId: string,
+  createdAt: Date,
+  messageRepository: MessageRepository,
+  conversationRepository: ConversationRepository
+): AsyncIterable<StreamChunk> {
+  const assistantMessage: AgentUIMessage = {
+    id: generateUUID(),
+    role: 'assistant',
+    parts: [{ type: 'text', text: response }],
+  } as AgentUIMessage
+  messages.push(assistantMessage)
 
-    // If we still don't have city or dates, try to extract from conversation history
-    if (!travelContext.city || !travelContext.startDate || !travelContext.endDate) {
-      // Look through previous messages for travel details
-      for (const msg of messages) {
-        if (msg.role === 'user' && typeof msg.content === 'string') {
-          const historicalDetails = await extractTravelDetails(msg.content)
-          if (historicalDetails.city && !travelContext.city) {
-            travelContext.city = historicalDetails.city
-          }
-          if (historicalDetails.startDate && !travelContext.startDate) {
-            travelContext.startDate = historicalDetails.startDate
-          }
-          if (historicalDetails.endDate && !travelContext.endDate) {
-            travelContext.endDate = historicalDetails.endDate
-          }
-        }
-      }
-    }
+  const savedConversationId = await saveState(
+    messageRepository,
+    conversationRepository,
+    {
+      conversationId,
+      userId,
+      messages,
+      lastMessageAt: new Date(),
+      createdAt,
+    },
+  )
 
-    // Sequential clarification with defaults
-    let needsClarification = false
-    let clarificationQuestion = ''
+  yield { type: 'text-delta', textDelta: response }
+  yield { type: 'metadata', metadata: { conversationId: savedConversationId } }
+}
 
-    // 1. City (required)
-    if (!travelContext.city) {
-      clarificationQuestion = 'Where are you traveling to?'
-      needsClarification = true
-    }
-    // 2. Dates (required)
-    else if (!travelContext.startDate || !travelContext.endDate) {
-      clarificationQuestion = 'What dates are you traveling?'
-      needsClarification = true
-    }
-    // 3. Tag mix (required)
-    else if (!travelContext.tagMix || Object.keys(travelContext.tagMix).length === 0) {
-      clarificationQuestion =
-        "What mix of outfits do you want? For example: '5 business, 3 casual, 2 running'"
-      needsClarification = true
-    }
-    // 4. Item limits (optional with defaults)
-    else if (!travelContext.itemLimits || Object.keys(travelContext.itemLimits).length === 0) {
-      // Set sensible defaults
-      travelContext.itemLimits = {
-        footwear: 2,
-        layer: 1,
-        accessory: 3,
-      }
-      clarificationQuestion = `Any luggage constraints? I'm assuming 2 pairs of shoes, 1 jacket, and 3 accessories. Let me know if you need different limits for any item type.`
-      needsClarification = true
-    }
-    // 5. Laundry (optional)
-    else if (travelContext.laundryDay === undefined) {
-      clarificationQuestion =
-        'Will you have laundry available mid-trip, or should I plan for reusing items within the limits?'
-      needsClarification = true
-    }
+/**
+ * Handle travel route with clarification and workflow execution.
+ */
+async function* handleTravelRoute(
+  userMessage: string,
+  messages: AgentUIMessage[],
+  conversationId: string,
+  userId: string,
+  createdAt: Date,
+  itemService: ItemService,
+  outfitService: OutfitService,
+  messageRepository: MessageRepository,
+  conversationRepository: ConversationRepository
+): AsyncIterable<StreamChunk> {
+  yield { type: 'status', status: 'Planning your travel wardrobe...' }
 
-    if (needsClarification) {
-      console.log('[Executor] Travel route - asking clarification:', clarificationQuestion)
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: clarificationQuestion,
-      }
-      messages.push(assistantMessage)
+  const recentUserMessages = getExtractionContext(messages)
 
-      const savedConversationId = await saveState(db, {
-        conversationId: conversationId || '',
-        userId,
-        messages,
-        context,
-        lastMessageAt: new Date(),
-        createdAt: state?.createdAt || new Date(),
-      })
-      console.log('[Executor] Travel clarification saved, conversationId:', savedConversationId)
+  const extractedDetails = await extractTravelDetails(
+    userMessage,
+    recentUserMessages
+  )
+  const travelContext: TravelContext = {
+    ...extractedDetails,
+  }
 
-      yield { type: 'text-delta', textDelta: clarificationQuestion }
-      yield { type: 'metadata', metadata: { conversationId: savedConversationId } }
-      return
-    }
+  const clarification = getClarificationQuestion(travelContext)
+  if (clarification) {
+    yield* handleSimpleResponse(
+      clarification,
+      messages,
+      conversationId,
+      userId,
+      createdAt,
+      messageRepository,
+      conversationRepository
+    )
+    return
+  }
 
-    // Stage 4: Pre-agent orchestration
-    console.log('[Executor] Travel route - executing travel workflow', {
-      city: travelContext.city,
-      startDate: travelContext.startDate,
-      endDate: travelContext.endDate,
-      tagMix: travelContext.tagMix,
-      itemLimits: travelContext.itemLimits,
-    })
-
-    yield { type: 'status', status: 'Fetching weather forecast...' }
-
-    // Fetch weather and derive climate buckets
-    const weatherData = await weatherService.weatherRange({
-      location: travelContext.city!,
+  yield { type: 'status', status: 'Building your travel outfits...' }
+  yield* runAgentWorkflow(
+    getTravelPrompt({
+      city: travelContext.city!,
       startDate: travelContext.startDate!,
       endDate: travelContext.endDate!,
-    })
-
-    console.log('[Executor] Weather data fetched:', weatherData.length, 'days')
-
-    // Derive climate buckets from weather
-    const climateBuckets = weatherData.map((day) => {
-      const avgTemp = (day.tempHigh + day.tempLow) / 2
-      let bucket = 'mild'
-
-      if (avgTemp < 45) bucket = 'cold'
-      else if (avgTemp < 60) bucket = 'cool'
-      else if (avgTemp < 70) bucket = 'mild'
-      else if (avgTemp < 80) bucket = 'warm'
-      else bucket = 'hot'
-
-      // Add wet classification for precipitation
-      if (day.conditions.includes('rain')) {
-        bucket += '_wet'
-      }
-
-      return {
-        date: day.date,
-        climate: bucket,
-        tempHigh: day.tempHigh,
-        tempLow: day.tempLow,
-        conditions: day.conditions,
-      }
-    })
-
-    console.log(
-      '[Executor] Climate buckets derived:',
-      climateBuckets.map((cb: any) => `${cb.date}: ${cb.climate}`)
-    )
-
-    // Create itinerary plan with day slots
-    const totalDays =
-      Math.ceil(
-        (new Date(travelContext.endDate!).getTime() -
-          new Date(travelContext.startDate!).getTime()) /
-          (1000 * 60 * 60 * 24)
-      ) + 1
-    const itineraryPlan = []
-
-    // Distribute outfit types across days
-    const tagDistribution = distributeOutfitsAcrossDays(travelContext.tagMix || {}, totalDays)
-
-    for (let i = 0; i < totalDays; i++) {
-      const dayClimate = climateBuckets[i] || { climate: 'mild', date: travelContext.startDate }
-      const dayTag = tagDistribution[i] || 'casual'
-
-      itineraryPlan.push({
-        day: i + 1,
-        date: dayClimate.date,
-        tag: dayTag,
-        climate: dayClimate.climate,
-        tempHigh: dayClimate.tempHigh,
-        tempLow: dayClimate.tempLow,
-        conditions: dayClimate.conditions,
-      })
-    }
-
-    const planLength: number = itineraryPlan.length
-    console.log('[Executor] Itinerary plan created:', planLength, 'days')
-
-    // Update travel context with derived data
-    const contextWithData = travelContext as any
-    contextWithData.climateBuckets = climateBuckets
-    contextWithData.itineraryPlan = itineraryPlan
-
-    yield { type: 'status', status: 'Preparing to build your travel outfits...' }
-    yield* executeTravelWorkflow({
-      userId,
-      travelContext,
-      messages,
-      context,
-      conversationId,
-      weatherService,
-      outfitService,
-      itemService,
-      similarityService,
-      db,
-      state,
-    })
-    return
-  }
-
-  // Stage 4: Tool execution (general route)
-  console.log('[Executor] General route - executing general workflow')
-  yield { type: 'status', status: 'Analyzing your request and planning response...' }
-  yield* executeGeneralWorkflow({
-    userId,
-    trimmedMessage,
+    }),
     messages,
-    context,
     conversationId,
+    userId,
+    createdAt,
     itemService,
     outfitService,
-    similarityService,
-    weatherService,
-    db,
-    state,
-  })
-}
-
-/**
- * Execute travel workflow:
- * 1. Fetch weather_range
- * 2. Search/build outfits
- * 3. Return structured response with text + outfits + items
- */
-async function* executeTravelWorkflow(params: any): AsyncIterable<StreamChunk> {
-  const {
-    userId,
-    travelContext,
-    messages,
-    context,
-    conversationId,
-    weatherService,
-    outfitService,
-    itemService,
-    similarityService,
-    db,
-    state,
-  } = params
-
-  console.log('[Executor] Starting travel workflow', {
-    userId,
-    conversationId,
-    travelContext,
-  })
-
-  yield { type: 'status', status: 'Preparing travel wardrobe tools...' }
-  const tools = createTools({
-    userId,
-    itemService,
-    outfitService,
-    similarityService,
-    weatherService,
-  })
-  console.log('[Executor] Travel workflow - tools created')
-
-  const systemPrompt = getTravelPrompt(travelContext)
-  console.log('[Executor] Travel workflow - system prompt generated')
-
-  const agentMessages: Message[] = [{ role: 'system', content: systemPrompt }, ...messages]
-  console.log('[Executor] Travel workflow - agent messages prepared, count:', agentMessages.length)
-
-  yield { type: 'status', status: 'Analyzing weather and planning travel outfits...' }
-  const agent = createAgent(tools)
-  console.log('[Executor] Travel workflow - starting agent stream')
-  const result = await agent.stream({ messages: agentMessages })
-
-  // Add a brief thinking pause before streaming the response
-  yield { type: 'status', status: 'Preparing your travel wardrobe recommendations...' }
-
-  // Stream the text using textStream for proper newline handling
-  console.log('[Executor] Travel workflow - streaming response')
-  let chunkCount = 0
-  let totalTextLength = 0
-  for await (const chunk of result.textStream) {
-    chunkCount++
-    totalTextLength += chunk.length
-    console.log(`[Executor] Travel workflow - chunk ${chunkCount}:`, {
-      chunkLength: chunk.length,
-      totalLength: totalTextLength,
-      chunkPreview: chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''),
-    })
-    const formatted = formatStreamingText(chunk)
-    yield { type: 'text-delta', textDelta: formatted }
-  }
-  console.log(
-    `[Executor] Travel workflow - streaming completed: ${chunkCount} chunks, ${totalTextLength} total chars`
+    messageRepository,
+    conversationRepository,
   )
-
-  const fullResponse = await result.text
-  console.log('[Executor] Travel workflow - response completed, length:', fullResponse.length)
-
-  const assistantMessage: Message = {
-    role: 'assistant',
-    content: fullResponse,
-  }
-
-  const savedConversationId = await saveState(db, {
-    conversationId: conversationId || '',
-    userId,
-    messages: [...messages, assistantMessage],
-    context,
-    lastMessageAt: new Date(),
-    createdAt: state?.createdAt || new Date(),
-  })
-  console.log('[Executor] Travel workflow - conversation saved:', savedConversationId)
-
-  yield { type: 'metadata', metadata: { conversationId: savedConversationId } }
 }
 
 /**
- * Execute general workflow for everyday wardrobe queries
+ * Handle general route with agent workflow.
  */
-async function* executeGeneralWorkflow(params: any): AsyncIterable<StreamChunk> {
-  const {
-    userId,
+async function* handleGeneralRoute(
+  messages: AgentUIMessage[],
+  conversationId: string,
+  userId: string,
+  createdAt: Date,
+  itemService: ItemService,
+  outfitService: OutfitService,
+  messageRepository: MessageRepository,
+  conversationRepository: ConversationRepository
+): AsyncIterable<StreamChunk> {
+  yield { type: 'status', status: 'Analyzing your wardrobe...' }
+  yield* runAgentWorkflow(
+    getGeneralPrompt(),
     messages,
-    context,
     conversationId,
+    userId,
+    createdAt,
     itemService,
     outfitService,
-    similarityService,
-    weatherService,
-    db,
-    state,
-  } = params
-
-  console.log('[Executor] Starting general workflow', {
-    userId,
-    conversationId,
-    messageCount: messages.length,
-  })
-
-  yield { type: 'status', status: 'Preparing wardrobe analysis tools...' }
-  const tools = createTools({
-    userId,
-    itemService,
-    outfitService,
-    similarityService,
-    weatherService,
-  })
-  console.log('[Executor] General workflow - tools created')
-
-  const systemPrompt = getGeneralPrompt()
-  console.log('[Executor] General workflow - system prompt generated')
-
-  const agentMessages: Message[] = [{ role: 'system', content: systemPrompt }, ...messages]
-  console.log('[Executor] General workflow - agent messages prepared, count:', agentMessages.length)
-
-  yield { type: 'status', status: 'Analyzing your wardrobe and crafting response...' }
-  const agent = createAgent(tools)
-  console.log('[Executor] General workflow - starting agent stream')
-  const result = await agent.stream({ messages: agentMessages })
-
-  // Add a brief thinking pause before streaming the response
-  yield { type: 'status', status: 'Preparing your personalized response...' }
-
-  // Stream the text using textStream for proper newline handling
-  console.log('[Executor] General workflow - streaming response')
-  let chunkCount = 0
-  let totalTextLength = 0
-  for await (const chunk of result.textStream) {
-    chunkCount++
-    totalTextLength += chunk.length
-    console.log(`[Executor] General workflow - chunk ${chunkCount}:`, {
-      chunkLength: chunk.length,
-      totalLength: totalTextLength,
-      chunkPreview: chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''),
-    })
-    const formatted = formatStreamingText(chunk)
-    yield { type: 'text-delta', textDelta: formatted }
-  }
-  console.log(
-    `[Executor] General workflow - streaming completed: ${chunkCount} chunks, ${totalTextLength} total chars`
+    messageRepository,
+    conversationRepository,
   )
-
-  const fullResponse = await result.text
-  console.log('[Executor] General workflow - response completed, length:', fullResponse.length)
-  const assistantMessage: Message = {
-    role: 'assistant',
-    content: fullResponse,
-  }
-
-  const savedConversationId = await saveState(db, {
-    conversationId: conversationId || '',
-    userId,
-    messages: [...messages, assistantMessage],
-    context,
-    lastMessageAt: new Date(),
-    createdAt: state?.createdAt || new Date(),
-  })
-  console.log('[Executor] General workflow - conversation saved:', savedConversationId)
-
-  yield { type: 'metadata', metadata: { conversationId: savedConversationId } }
 }
 
 /**
- * Distribute outfit types across days for itinerary planning
+ * Run agent workflow with proper UIMessage streaming.
+ * 
+ * Captures and stores all supported UIMessage part types:
+ * - TextUIPart: Collected from text-delta chunks, merged into final text blocks
+ * - ReasoningUIPart: Collected from reasoning-delta chunks, merged into final reasoning blocks
+ * - ToolUIPart: Collected from tool-* chunks, stored directly (preserves tool call state, including error states)
+ * - DataUIPart: Collected from data-* chunks, stored directly (preserves data structure)
+ * - StepStartUIPart: Collected from step-start chunks, stored directly
+ * 
+ * All parts are validated and stored in the database via saveState.
  */
-function distributeOutfitsAcrossDays(tagMix: Record<string, number>, totalDays: number): string[] {
-  const distribution: string[] = []
-  const tags = Object.keys(tagMix)
-  const counts = Object.values(tagMix)
+async function* runAgentWorkflow(
+  systemPrompt: string,
+  messages: AgentUIMessage[],
+  conversationId: string,
+  userId: string,
+  createdAt: Date,
+  itemService: ItemService,
+  outfitService: OutfitService,
+  messageRepository: MessageRepository,
+  conversationRepository: ConversationRepository
+): AsyncIterable<StreamChunk> {
+  const tools = createTools({ userId, itemService, outfitService }) satisfies ToolSet
+  const agent = createAgent(tools)
 
-  if (tags.length === 0) {
-    // Default to casual if no tag mix specified
-    return Array(totalDays).fill('casual')
-  }
+  const modelMessages = [
+    { role: 'system' as const, content: systemPrompt },
+    ...toModelMessages(messages),
+  ]
 
-  // Create array of tags to distribute
-  const tagArray: string[] = []
-  for (let i = 0; i < tags.length; i++) {
-    const tag = tags[i]
-    const count = counts[i]
-    for (let j = 0; j < count; j++) {
-      tagArray.push(tag)
-    }
-  }
+  const result = await agent.stream({ messages: modelMessages })
 
-  // Shuffle and distribute across days
-  const shuffled = [...tagArray].sort(() => Math.random() - 0.5)
+  const collectedParts: AgentUIMessage['parts'] = []
 
-  for (let day = 0; day < totalDays; day++) {
-    if (day < shuffled.length) {
-      distribution.push(shuffled[day])
+  type Chunk = InferUIMessageChunk<AgentUIMessage>
+  
+  for await (const chunk of result.toUIMessageStream<AgentUIMessage>({
+    sendStart: false,
+  })) {
+    if (chunk.type === 'text-delta') {
+      const textPart: TextUIPart = {
+        type: 'text',
+        text: chunk.delta,
+        state: 'streaming',
+      }
+      collectedParts.push(textPart)
+      yield { type: 'text-delta', textDelta: chunk.delta }
+    } else if (chunk.type === 'reasoning-delta') {
+      const reasoningPart: ReasoningUIPart = {
+        type: 'reasoning',
+        text: chunk.delta,
+        state: 'streaming',
+      }
+      collectedParts.push(reasoningPart)
+      yield { type: 'reasoning-delta', reasoningDelta: chunk.delta }
+    } else if (chunk.type === 'tool-input-available') {
+      const toolChunk = chunk
+      const toolPart = {
+        type: `tool-${toolChunk.toolName}` as const,
+        toolCallId: toolChunk.toolCallId,
+        state: 'input-available' as const,
+        input: toolChunk.input,
+        ...(toolChunk.providerExecuted !== undefined && { providerExecuted: toolChunk.providerExecuted }),
+      } as unknown as ToolUIPart<AgentTools>
+      collectedParts.push(toolPart)
+      yield { type: 'tool-call', toolCall: toolPart }
+    } else if (chunk.type === 'tool-output-available') {
+      const toolChunk = chunk
+      // Find the corresponding input part to get the tool name
+      const inputPart = collectedParts
+        .filter((p): p is ToolUIPart<AgentTools> => p.type.startsWith('tool-'))
+        .find((p) => p.toolCallId === toolChunk.toolCallId && 'input' in p)
+      
+      if (!inputPart) {
+        logger.warn(`No input part found for tool call ${toolChunk.toolCallId}`)
+        continue
+      }
+      
+      const toolPart = {
+        ...inputPart,
+        state: 'output-available' as const,
+        output: toolChunk.output,
+        ...(toolChunk.providerExecuted !== undefined && { providerExecuted: toolChunk.providerExecuted }),
+      } as unknown as ToolUIPart<AgentTools>
+      
+      // Replace the input part with the complete part
+      const inputIndex = collectedParts.indexOf(inputPart)
+      if (inputIndex !== -1) {
+        collectedParts[inputIndex] = toolPart
+      }
+      yield { type: 'tool-call', toolCall: toolPart }
+    } else if (chunk.type === 'tool-input-error') {
+      const toolChunk = chunk
+      const toolPart = {
+        type: `tool-${toolChunk.toolName}` as const,
+        toolCallId: toolChunk.toolCallId,
+        state: 'input-available' as const,
+        input: toolChunk.input,
+        errorText: toolChunk.errorText,
+        ...(toolChunk.providerExecuted !== undefined && { providerExecuted: toolChunk.providerExecuted }),
+      } as unknown as ToolUIPart<AgentTools>
+      collectedParts.push(toolPart)
+      yield { type: 'tool-call', toolCall: toolPart }
+    } else if (chunk.type === 'tool-output-error') {
+      const toolChunk = chunk
+      // Find the corresponding input part to get the tool name
+      const inputPart = collectedParts
+        .filter((p): p is ToolUIPart<AgentTools> => p.type.startsWith('tool-'))
+        .find((p) => p.toolCallId === toolChunk.toolCallId && 'input' in p)
+      
+      if (!inputPart) {
+        logger.warn(`No input part found for tool call ${toolChunk.toolCallId}`)
+        continue
+      }
+      
+      const toolPart = {
+        ...inputPart,
+        state: 'output-error' as const,
+        errorText: toolChunk.errorText,
+        ...(toolChunk.providerExecuted !== undefined && { providerExecuted: toolChunk.providerExecuted }),
+      } as unknown as ToolUIPart<AgentTools>
+      
+      // Replace the input part with the error part
+      const inputIndex = collectedParts.indexOf(inputPart)
+      if (inputIndex !== -1) {
+        collectedParts[inputIndex] = toolPart
+      }
+      yield { type: 'tool-call', toolCall: toolPart }
+    } else if (chunk.type.startsWith('data-')) {
+      const dataChunk = chunk as Extract<Chunk, { type: `data-${string}` }>
+      const dataPart: DataUIPart<UIDataTypes> = {
+        type: dataChunk.type,
+        id: dataChunk.id,
+        data: dataChunk.data,
+      }
+      collectedParts.push(dataPart)
+      yield { type: 'data-part', dataPart }
+    } else if (chunk.type === 'start-step') {
+      const stepStartPart: StepStartUIPart = { type: 'step-start' }
+      collectedParts.push(stepStartPart)
+      yield { type: 'step-start', stepStart: stepStartPart }
+    } else if (
+      chunk.type === 'text-start' ||
+      chunk.type === 'text-end' ||
+      chunk.type === 'reasoning-start' ||
+      chunk.type === 'reasoning-end' ||
+      chunk.type === 'finish-step' ||
+      chunk.type === 'finish' ||
+      chunk.type === 'start' ||
+      chunk.type === 'abort' ||
+      chunk.type === 'message-metadata' ||
+      chunk.type === 'tool-input-start' ||
+      chunk.type === 'tool-input-delta' ||
+      chunk.type === 'tool-approval-request' ||
+      chunk.type === 'tool-output-denied' ||
+      chunk.type === 'error' ||
+      chunk.type === 'source-url' ||
+      chunk.type === 'source-document' ||
+      chunk.type === 'file'
+    ) {
+      // Store control and lifecycle chunks as data parts for full auditing
+      // These chunks contain important metadata about the stream lifecycle
+      const auditPart: DataUIPart<UIDataTypes> = {
+        type: `data-audit-${chunk.type}` as `data-${string}`,
+        id: 'id' in chunk && typeof chunk.id === 'string' ? chunk.id : generateUUID(),
+        data: chunk as unknown,
+      } as DataUIPart<UIDataTypes>
+      collectedParts.push(auditPart)
+      continue
     } else {
-      // Fill remaining days with the most common tag
-      const mostCommonTag = tags[counts.indexOf(Math.max(...counts))]
-      distribution.push(mostCommonTag)
+      logger.warn(`Unknown chunk type: ${chunk.type}`, { chunk })
     }
   }
 
-  return distribution
+  const mergedParts: AgentUIMessage['parts'] = []
+  let currentText = ''
+  let currentReasoning = ''
+
+  const flushAccumulatedParts = () => {
+    if (currentText) {
+      mergedParts.push({ type: 'text', text: currentText, state: 'done' } as TextUIPart)
+      currentText = ''
+    }
+    if (currentReasoning) {
+      mergedParts.push({
+        type: 'reasoning',
+        text: currentReasoning,
+        state: 'done',
+      } as ReasoningUIPart)
+      currentReasoning = ''
+    }
+  }
+
+  for (const part of collectedParts) {
+    if (part.type === 'text') {
+      currentText += part.text
+    } else if (part.type === 'reasoning') {
+      currentReasoning += part.text
+    } else {
+      flushAccumulatedParts()
+      mergedParts.push(part)
+    }
+  }
+  flushAccumulatedParts()
+
+  const assistantMessage: AgentUIMessage = {
+    id: generateUUID(),
+    role: 'assistant',
+    parts: mergedParts as AgentUIMessage['parts'],
+  }
+
+  const validationResult = await safeValidateUIMessages<AgentUIMessage>({
+    messages: [assistantMessage],
+    tools,
+  })
+
+  if (!validationResult.success) {
+    logger.error('UIMessage validation failed', {
+      error: validationResult.error.message,
+      parts: mergedParts.map((p) => p.type),
+    })
+    throw new Error(`Invalid UIMessage: ${validationResult.error.message}`)
+  }
+
+  messages.push(assistantMessage)
+
+  const savedConversationId = await saveState(
+    messageRepository,
+    conversationRepository,
+    {
+      conversationId,
+      userId,
+      messages,
+      lastMessageAt: new Date(),
+      createdAt,
+    },
+  )
+
+  logger.info('Workflow completed', {
+    conversationId: savedConversationId,
+    partCount: mergedParts.length,
+    partTypes: mergedParts.map((p) => p.type),
+  })
+  yield { type: 'metadata', metadata: { conversationId: savedConversationId } }
+}
+
+/**
+ * Get clarification question for incomplete travel context.
+ *
+ * @param {TravelContext} travelContext - Travel context
+ * @returns {string | null} - Clarification question or null if complete
+ */
+function getClarificationQuestion(travelContext: TravelContext): string | null {
+  if (!travelContext.city) {
+    return 'Where are you traveling to?'
+  }
+  if (!travelContext.startDate || !travelContext.endDate) {
+    return 'What dates are you traveling?'
+  }
+  if (!travelContext.tagMix || Object.keys(travelContext.tagMix).length === 0) {
+    return "What mix of outfits do you want? For example: '5 business, 3 casual, 2 running'"
+  }
+  if (
+    !travelContext.itemLimits ||
+    Object.keys(travelContext.itemLimits).length === 0
+  ) {
+    travelContext.itemLimits = { footwear: 2, layer: 1, accessory: 3 }
+    return `Any luggage constraints? I'm assuming 2 pairs of shoes, 1 jacket, and 3 accessories. Let me know if you need different limits.`
+  }
+  if (travelContext.laundryDay === undefined) {
+    return 'Will you have laundry available mid-trip, or should I plan for reusing items?'
+  }
+  return null
+}
+
+/**
+ * Get conversation context for route classification.
+ * Returns last 3-4 conversation turns (6-8 messages) to understand flow state.
+ * Includes both user and assistant messages to detect conversation patterns.
+ *
+ * @param {UIMessage[]} messages - All messages except the current one
+ * @returns {Array<{ role: string; content: string }>} - Formatted conversation history
+ */
+function getClassificationContext(
+  messages: AgentUIMessage[]
+): Array<{ role: string; content: string }> {
+  const recentMessages = messages.slice(-2)
+  return toModelMessages(recentMessages)
+    .map((msg) => ({
+      role: msg.role,
+      content: trimForClassification(
+        typeof msg.content === 'string' ? msg.content : '',
+      ),
+    }))
+    .filter((msg) => msg.content.length > 0)
+}
+
+/**
+ * Get user message context for travel details extraction.
+ * Returns last 10 user messages for context, as details may be spread across turns.
+ * Always includes recent history to ensure comprehensive extraction.
+ *
+ * @param {UIMessage[]} messages - All messages including current
+ * @returns {string[]} - Recent user messages for context (excluding current)
+ */
+function getExtractionContext(messages: AgentUIMessage[]): string[] {
+  const userMessages = messages
+    .filter((msg) => msg.role === 'user')
+    .slice(-10)
+    .map((msg) => extractTextFromParts(msg.parts))
+    .filter((text) => text.length > 0)
+
+  return userMessages.slice(0, -1).map((text) => trimForExtraction(text))
+}
+
+/**
+ * Trim message content for classification context.
+ * Preserves beginning (intent) and end (details) when possible.
+ *
+ * @param {string} content - Message content to trim
+ * @param {number} maxLength - Maximum length (default: 300)
+ * @returns {string} - Trimmed content
+ */
+function trimForClassification(content: string, maxLength: number = 300): string {
+  if (content.length <= maxLength) {
+    return content
+  }
+  const start = content.slice(0, Math.floor(maxLength * 0.4))
+  const end = content.slice(-Math.floor(maxLength * 0.6))
+  return `${start}...${end}`
+}
+
+/**
+ * Trim message content for extraction context.
+ * Preserves full message when possible, only trims if extremely long.
+ *
+ * @param {string} content - Message content to trim
+ * @param {number} maxLength - Maximum length (default: 400)
+ * @returns {string} - Trimmed content
+ */
+function trimForExtraction(content: string, maxLength: number = 400): string {
+  if (content.length <= maxLength) {
+    return content
+  }
+  return content.slice(-maxLength)
 }

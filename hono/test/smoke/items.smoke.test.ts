@@ -5,7 +5,11 @@ import postgres from 'postgres'
 import app from '../../src/index'
 import * as schema from '../../src/schema'
 import { clean, provision } from '../utils/db'
-import { type ItemAPI, ItemFactory, PartialItemFactory } from '../utils/factory/items'
+import {
+  type ItemAPI,
+  ItemFactory,
+  PartialItemFactory,
+} from '../utils/factory/items'
 import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
 import { itemsComputeLastWornAt } from '../utils/factory/items-outfits'
 import type { OutfitFactory } from '../utils/factory/outfits'
@@ -105,7 +109,9 @@ describe('[Smoke] Items: simple test on each endpoint, no seeding', () => {
     })
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
-    expect(resJSON).toMatchObject(testItems[0].formatAPI({ omitLastWornAt: true }))
+    expect(resJSON).toMatchObject(
+      testItems[0].formatAPI({ omitLastWornAt: true })
+    )
     testItems.splice(0, 1)
   })
 })
@@ -118,11 +124,13 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
   let testTagsToItems: TagToOutfitFactory[] = []
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] = await basicSmallSeed(
-      DB_NAME,
-      DB_PORT
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] =
+      await basicSmallSeed(DB_NAME, DB_PORT)
+    testItems = itemsComputeLastWornAt(
+      testItems,
+      testOutfits,
+      testItemsToOutfits
     )
-    testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
   })
 
   afterAll(async () => {
@@ -131,8 +139,15 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
 
   async function validateItemsGetter() {
     const res = await app.request('/api/items')
-    const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: boolean }
-    testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
+    const resJSON = (await res.json()) as {
+      items: ItemAPI[]
+      last_page: boolean
+    }
+    testItems = itemsComputeLastWornAt(
+      testItems,
+      testOutfits,
+      testItemsToOutfits
+    )
     expect(res.status).toBe(200)
     expect(resJSON.items).toEqual(
       testItems.map((item) => ({
@@ -141,7 +156,9 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
           .filter((tagToItem) => tagToItem.outfitId === item.id)
           .map((tagToItem) => ({
             status: tagToItem.status,
-            tag: testTags.find((tag) => tagToItem.tagId === tag.id)?.formatAPI(),
+            tag: testTags
+              .find((tag) => tagToItem.tagId === tag.id)
+              ?.formatAPI(),
           })),
       }))
     )
@@ -156,7 +173,9 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     })
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
-    expect(resJSON).toMatchObject(testItems[0].formatAPI({ omitLastWornAt: true }))
+    expect(resJSON).toMatchObject(
+      testItems[0].formatAPI({ omitLastWornAt: true })
+    )
     testItems.splice(0, 1)
     testOutfits = []
     testItemsToOutfits = []
@@ -192,7 +211,10 @@ describe('[Smoke] Items: simple test, seeded [basic-small-seed]', () => {
     testItems[0] = new ItemFactory(undefined, resJSON)
   })
 
-  test('GET /items: should return 5 seeded/inserted/updated items', validateItemsGetter)
+  test(
+    'GET /items: should return 5 seeded/inserted/updated items',
+    validateItemsGetter
+  )
 })
 
 describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
@@ -203,11 +225,13 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
   let testTagsToItems: TagToOutfitFactory[] = []
 
   beforeAll(async () => {
-    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] = await basicSmallSeed(
-      DB_NAME,
-      DB_PORT
+    ;[testItems, testOutfits, testItemsToOutfits, testTags, testTagsToItems] =
+      await basicSmallSeed(DB_NAME, DB_PORT)
+    testItems = itemsComputeLastWornAt(
+      testItems,
+      testOutfits,
+      testItemsToOutfits
     )
-    testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
   })
 
   afterAll(async () => {
@@ -216,8 +240,15 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
 
   async function validateItemsGetter() {
     const res = await app.request('/api/items')
-    const resJSON = (await res.json()) as { items: ItemAPI[]; last_page: boolean }
-    testItems = itemsComputeLastWornAt(testItems, testOutfits, testItemsToOutfits)
+    const resJSON = (await res.json()) as {
+      items: ItemAPI[]
+      last_page: boolean
+    }
+    testItems = itemsComputeLastWornAt(
+      testItems,
+      testOutfits,
+      testItemsToOutfits
+    )
     expect(res.status).toBe(200)
     expect(resJSON.items).toEqual(
       testItems.map((item) => ({
@@ -226,7 +257,9 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
           .filter((tagToItem) => tagToItem.outfitId === item.id)
           .map((tagToItem) => ({
             status: tagToItem.status,
-            tag: testTags.find((tag) => tagToItem.tagId === tag.id)?.formatAPI(),
+            tag: testTags
+              .find((tag) => tagToItem.tagId === tag.id)
+              ?.formatAPI(),
           })),
       }))
     )
@@ -256,11 +289,16 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
     })
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
-    expect(resJSON).toMatchObject(testItems[0].formatAPI({ omitLastWornAt: true }))
+    expect(resJSON).toMatchObject(
+      testItems[0].formatAPI({ omitLastWornAt: true })
+    )
     testItems.splice(0, 1)
   })
 
-  test('GET /items: should return 5 seeded items after inserted deletion', validateItemsGetter)
+  test(
+    'GET /items: should return 5 seeded items after inserted deletion',
+    validateItemsGetter
+  )
 
   test('DELETE /items: should delete existing seeded item', async () => {
     const res = await app.request(`/api/items/${testItems[0].id}`, {
@@ -268,11 +306,16 @@ describe('[Smoke] Items: sorting, seeded [basic-small-seed]', () => {
     })
     expect(res.status).toBe(200)
     const resJSON = (await res.json()) as ItemAPI
-    expect(resJSON).toMatchObject(testItems[0].formatAPI({ omitLastWornAt: true }))
+    expect(resJSON).toMatchObject(
+      testItems[0].formatAPI({ omitLastWornAt: true })
+    )
     testItems.splice(0, 1)
     testOutfits = []
     testItemsToOutfits = []
   })
 
-  test('GET /items: should return 4 seeded items after seeded deletion', validateItemsGetter)
+  test(
+    'GET /items: should return 4 seeded items after seeded deletion',
+    validateItemsGetter
+  )
 })

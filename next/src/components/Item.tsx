@@ -21,7 +21,7 @@ export const itemTypeIcons = {
 type ItemType = keyof typeof itemTypeIcons
 
 interface ItemProps {
-  item: ItemsResponse['items'][number]
+  item: ItemsResponse[number]
   itemType?: string
   isCoreItem?: boolean
   showLastWornAt?: boolean
@@ -32,9 +32,9 @@ interface ItemProps {
   changingToStatus?: ItemStatus
   onStatusChange?: (itemId: string, status: ItemStatus) => Promise<void>
   // Action handlers
-  onView?: (item: ItemsResponse['items'][number]) => void
-  onEdit?: (item: ItemsResponse['items'][number]) => void
-  onDelete?: (item: ItemsResponse['items'][number]) => void
+  onView?: (item: ItemsResponse[number]) => void
+  onEdit?: (item: ItemsResponse[number]) => void
+  onDelete?: (item: ItemsResponse[number]) => void
   // Display options
   showThreeDotsMenu?: boolean
   className?: string

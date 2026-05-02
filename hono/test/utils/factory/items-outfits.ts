@@ -12,7 +12,10 @@ export interface ItemToOutfit {
 }
 
 export class ItemToOutfitFactory implements ItemToOutfit {
-  constructor(seed: number | undefined, options: ItemToOutfit | Omit<ItemToOutfit, 'itemType'>) {
+  constructor(
+    seed: number | undefined,
+    options: ItemToOutfit | Omit<ItemToOutfit, 'itemType'>
+  ) {
     faker.seed(seed)
     this.itemId = options.itemId
     this.outfitId = options.outfitId
@@ -41,7 +44,9 @@ export function itemsComputeLastWornAt(
     .map((item) => {
       const relevantOutfits = outfits
         .filter((outfit) =>
-          itemsToOutfits.some((io) => io.outfitId === outfit.id && io.itemId === item.id)
+          itemsToOutfits.some(
+            (io) => io.outfitId === outfit.id && io.itemId === item.id
+          )
         )
         .sort((a, b) => {
           if (!a.wearDate) return -1
@@ -50,14 +55,17 @@ export function itemsComputeLastWornAt(
         })
 
       item.lastWornAt =
-        relevantOutfits.length > 0 ? relevantOutfits[0].wearDate.toISOString().split('T')[0] : null
+        relevantOutfits.length > 0
+          ? relevantOutfits[0].wearDate.toISOString().split('T')[0]
+          : null
       return item
     })
     .sort((a, b) => {
       if (!a.lastWornAt && !b.lastWornAt) return a.name.localeCompare(b.name)
       if (!a.lastWornAt) return -1
       if (!b.lastWornAt) return 1
-      const dateCompare = new Date(a.lastWornAt).getTime() - new Date(b.lastWornAt).getTime()
+      const dateCompare =
+        new Date(a.lastWornAt).getTime() - new Date(b.lastWornAt).getTime()
       return dateCompare === 0 ? a.name.localeCompare(b.name) : dateCompare
     })
 }

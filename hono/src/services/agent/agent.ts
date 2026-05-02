@@ -1,23 +1,30 @@
-import { anthropic } from '@ai-sdk/anthropic'
 import { Experimental_Agent as Agent, stepCountIs } from 'ai'
 
+import { createLogger } from '../../utils/logger'
+import { getMediumModel } from '../../utils/model-provider'
 import type { ToolSet } from './tools'
 
+const logger = createLogger('AgentService')
+const STEP_LIMIT = 20
+
 /**
- * Create an AI agent with Claude Sonnet model and configured tools.
+ * Create an AI agent with configured model and tools.
  *
  * @param {ToolSet} tools - The set of tools available to the agent
  * @returns {Agent} - Configured agent instance
  */
 export function createAgent(tools: ToolSet) {
-  console.log('[Agent] Creating agent with Claude Sonnet model and tools:', Object.keys(tools))
+  const model = getMediumModel()
+  const toolCount = Object.keys(tools).length
+  const toolNames = Object.keys(tools).join(',')
 
   const agent = new Agent({
-    model: anthropic('claude-haiku-4-5-20251001'),
+    model,
     tools,
-    stopWhen: stepCountIs(20),
+    stopWhen: stepCountIs(STEP_LIMIT),
   })
 
-  console.log('[Agent] Agent created successfully with 20 step limit')
+  logger.debug(`Agent created (${toolCount} tools: ${toolNames}, limit:${STEP_LIMIT})`)
+
   return agent
 }

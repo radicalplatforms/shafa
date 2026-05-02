@@ -10,14 +10,19 @@ export interface TagToOutfit {
 }
 
 export class TagToOutfitFactory implements TagToOutfit {
-  constructor(seed: number | undefined, options: TagToOutfit | Omit<TagToOutfit, 'status'>) {
+  constructor(
+    seed: number | undefined,
+    options: TagToOutfit | Omit<TagToOutfit, 'status'>
+  ) {
     faker.seed(seed)
     this.tagId = options.tagId
     this.outfitId = options.outfitId
     this.status =
       'status' in options
         ? options.status
-        : (faker.helpers.arrayElement(tagStatusEnum) as (typeof tagStatusEnum)[number])
+        : (faker.helpers.arrayElement(
+            tagStatusEnum
+          ) as (typeof tagStatusEnum)[number])
   }
 
   async store(name: string, port: number) {

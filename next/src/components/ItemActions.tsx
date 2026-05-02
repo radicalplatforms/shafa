@@ -18,10 +18,10 @@ import {
 import { Button } from '@/components/ui/button'
 
 interface ItemActionsProps {
-  item: ItemsResponse['items'][number]
-  onView?: (item: ItemsResponse['items'][number]) => void
-  onEdit?: (item: ItemsResponse['items'][number]) => void
-  onDelete?: (item: ItemsResponse['items'][number]) => void
+  item: ItemsResponse[number]
+  onView?: (item: ItemsResponse[number]) => void
+  onEdit?: (item: ItemsResponse[number]) => void
+  onDelete?: (item: ItemsResponse[number]) => void
   onStatusChange?: (itemId: string, status: ItemStatus) => Promise<void>
   isStatusChanging?: boolean
   changingToStatus?: ItemStatus

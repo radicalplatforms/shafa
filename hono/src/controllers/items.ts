@@ -1,17 +1,25 @@
 import { zValidator } from '@hono/zod-validator'
-import { isCuid } from '@paralleldrive/cuid2'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { item, itemStatusEnum, itemTypeEnum } from '../schema'
-import type { ItemService } from '../services/ItemService'
-import { requireAuth } from '../utils/auth'
+import { getUserId, requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
-import type { DBVariables } from '../utils/inject-db'
-import injectDB from '../utils/inject-db'
 import type { ServiceVariables } from '../utils/inject-services'
 import injectServices from '../utils/inject-services'
+import { HTTPError } from '../utils/http-error'
+import { createLogger } from '../utils/logger'
+import { PaginationInputSchema } from '../utils/pagination'
+import { isValidUUID } from '../utils/uuid'
+
+const logger = createLogger('ItemsController')
+
+const getItemsSchema = z
+  .object({
+    search: z.string().optional(),
+  })
+  .merge(PaginationInputSchema)
 
 const insertItemSchema = createInsertSchema(item, {
   name: z.string().min(1).max(60),
@@ -21,63 +29,42 @@ const insertItemSchema = createInsertSchema(item, {
 }).omit({ id: true, createdAt: true, userId: true })
 
 const selectItemSchema = createSelectSchema(item, {
-  id: z.string().refine((val) => isCuid(val)),
-})
+  id: z.string().refine(isValidUUID),
+}).pick({ id: true })
 
-const paginationValidationItems = z
-  .object({
-    page: z
-      .string()
-      .optional()
-      .refine((val) => val === undefined || (!isNaN(+val) && +val >= 0), {
-        message: 'Items page number must be a non-negative number',
-      }),
-    size: z
-      .string()
-      .optional()
-      .refine((val) => val === undefined || (!isNaN(+val) && +val > 0 && +val <= 1000), {
-        message: 'Items page size must be a positive number and less than or equal to 1000',
-      }),
-    search: z.string().optional(),
-  })
-  .optional()
-
-const app = new Hono<{ Variables: AuthVariables & DBVariables & ServiceVariables }>()
+const app = new Hono<{
+  Variables: AuthVariables & ServiceVariables
+}>()
   .get(
     '/',
-    zValidator('query', paginationValidationItems),
+    zValidator('query', getItemsSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const { page, size, search } = c.req.query()
-      const pageNumber: number | undefined = page ? +page : undefined
-      const pageSize: number | undefined = size ? +size : undefined
+      const userId = getUserId(c)
+      const { search, limit, offset } = c.req.valid('query')
 
       const result = await c
         .get('itemService')
-        .getAllItems(userId, { page: pageNumber, size: pageSize }, search)
+        .items(userId, search, { limit, offset })
 
       return c.json(result)
     }
   )
   .get(
     '/:id',
-    zValidator('param', selectItemSchema.pick({ id: true })),
+    zValidator('param', selectItemSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const { id } = c.req.valid('param')
+      const userId = getUserId(c)
+      const { id: itemId } = c.req.valid('param')
 
-      const itemData = await c.get('itemService').getItemById(userId, id)
+      const itemData = await c.get('itemService').itemById(userId, itemId)
 
       if (!itemData) {
-        return c.json({ message: 'Item not found' }, 404)
+        logger.warn(`Item not found [user:${userId.slice(0, 8)} item:${itemId.slice(0, 8)}]`)
+        throw new HTTPError(404, 'Item not found')
       }
 
       return c.json(itemData)
@@ -85,52 +72,46 @@ const app = new Hono<{ Variables: AuthVariables & DBVariables & ServiceVariables
   )
   .post(
     '/',
-    zValidator(
-      'json',
-      insertItemSchema.required({
-        name: true,
-        type: true,
-      })
-    ),
+    zValidator('json', insertItemSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
+      const userId = getUserId(c)
       const body = c.req.valid('json')
 
-      return c.json(await c.get('itemService').createItem(userId, body))
+      const result = await c.get('itemService').createItem(userId, body)
+
+      return c.json(result)
     }
   )
   .put(
     '/:id',
-    zValidator('param', selectItemSchema.pick({ id: true })),
+    zValidator('param', selectItemSchema),
     zValidator('json', insertItemSchema.partial()),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const params = c.req.valid('param')
+      const userId = getUserId(c)
+      const { id: itemId } = c.req.valid('param')
       const body = c.req.valid('json')
 
-      return c.json(await c.get('itemService').updateItem(userId, params.id, body))
+      const result = await c.get('itemService').updateItem(userId, itemId, body)
+
+      return c.json(result)
     }
   )
   .delete(
     '/:id',
-    zValidator('param', selectItemSchema.pick({ id: true })),
+    zValidator('param', selectItemSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const params = c.req.valid('param')
+      const userId = getUserId(c)
+      const { id: itemId } = c.req.valid('param')
 
-      return c.json(await c.get('itemService').deleteItem(userId, params.id))
+      const result = await c.get('itemService').deleteItem(userId, itemId)
+
+      return c.json(result)
     }
   )
 

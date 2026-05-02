@@ -3,7 +3,7 @@ import { ItemsResponse } from '@/lib/client'
 import { itemTypeIcons } from '@/components/Item'
 
 interface UseItemSearchProps {
-  items: ItemsResponse['items']
+  items: ItemsResponse
   typeFilter?: keyof typeof itemTypeIcons | null
 }
 
@@ -14,7 +14,7 @@ interface UseItemSearchResult {
   setAddMode: (value: boolean) => void
   highlightedIndex: number
   setHighlightedIndex: React.Dispatch<React.SetStateAction<number>>
-  filteredItems: ItemsResponse['items']
+  filteredItems: ItemsResponse
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
   handleNewItem: (itemId: string, itemType: string) => void

@@ -1,17 +1,21 @@
 import { zValidator } from '@hono/zod-validator'
-import { isCuid } from '@paralleldrive/cuid2'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
 import { itemTypeEnum, outfit } from '../schema'
-import type { OutfitService } from '../services/OutfitService'
-import { requireAuth } from '../utils/auth'
+import { getUserId, requireAuth } from '../utils/auth'
 import type { AuthVariables } from '../utils/auth'
-import type { DBVariables } from '../utils/inject-db'
-import injectDB from '../utils/inject-db'
 import type { ServiceVariables } from '../utils/inject-services'
 import injectServices from '../utils/inject-services'
+import { HTTPError } from '../utils/http-error'
+import { createLogger } from '../utils/logger'
+import { PaginationInputSchema } from '../utils/pagination'
+import { isValidUUID } from '../utils/uuid'
+
+const logger = createLogger('OutfitsController')
+
+const getOutfitsSchema = PaginationInputSchema
 
 const insertOutfitSchema = createInsertSchema(outfit, {
   rating: z.number().min(0).max(2).default(1),
@@ -23,7 +27,7 @@ const insertOutfitSchema = createInsertSchema(outfit, {
     itemIdsTypes: z
       .array(
         z.object({
-          id: z.string().refine((val) => isCuid(val)),
+          id: z.string().refine(isValidUUID),
           itemType: z.enum(itemTypeEnum),
         })
       )
@@ -34,131 +38,97 @@ const insertOutfitSchema = createInsertSchema(outfit, {
   .omit({ id: true, userId: true })
 
 const selectOutfitSchema = createSelectSchema(outfit, {
-  id: z.string().refine((val) => isCuid(val)),
-})
+  id: z.string().refine(isValidUUID),
+}).pick({ id: true })
 
-const paginationValidationOutfits = z.object({
-  page: z
-    .string()
-    .refine((val) => !isNaN(+val) && +val >= 0, {
-      message: 'Outfits page number must be a non-negative number',
-    })
-    .optional(),
-  size: z
-    .string()
-    .refine((val) => !isNaN(+val) && +val > 0 && +val <= 300, {
-      message: 'Outfits page size must be a positive number and less than or equal to 300',
-    })
-    .optional(),
-})
-
-const suggestionsValidation = z.object({
-  page: z
-    .string()
-    .refine((val) => !isNaN(+val) && +val >= 0, {
-      message: 'Suggestions page number must be a non-negative number',
-    })
-    .optional(),
-  size: z
-    .string()
-    .refine((val) => !isNaN(+val) && +val > 0 && +val <= 100, {
-      message: 'Suggestions page size must be a positive number and less than or equal to 100',
-    })
-    .optional(),
+const getSuggestionsSchema = PaginationInputSchema.extend({
   tagId: z.string().optional(),
 })
 
-const app = new Hono<{ Variables: AuthVariables & DBVariables & ServiceVariables }>()
+const app = new Hono<{
+  Variables: AuthVariables & ServiceVariables
+}>()
   .get(
     '/',
-    zValidator('query', paginationValidationOutfits),
+    zValidator('query', getOutfitsSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const { page, size } = c.req.query()
-
-      const pageNumber: number = page ? +page : 0
-      const pageSize: number = size ? +size : 10
+      const userId = getUserId(c)
+      const { limit, offset } = c.req.valid('query')
 
       const result = await c
         .get('outfitService')
-        .getAllOutfits(userId, { page: pageNumber, size: pageSize })
+        .outfits(userId, { limit, offset })
 
       return c.json(result)
     }
   )
-  .post(
-    '/',
-    zValidator('json', insertOutfitSchema),
-    requireAuth,
-    injectDB,
-    injectServices,
-    async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const body = c.req.valid('json')
-
-      return c.json(await c.get('outfitService').createOutfit(userId, body))
-    }
-  )
   .get(
     '/suggest',
-    zValidator('query', suggestionsValidation),
+    zValidator('query', getSuggestionsSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const { page, size, tagId } = c.req.query()
-      const pageNumber: number = page ? +page : 0
-      const pageSize: number = size ? +size : 10
+      const userId = getUserId(c)
+      const { offset, limit, tagId } = c.req.valid('query')
 
-      const result = await c.get('outfitService').getSuggestions(userId, {
-        page: pageNumber,
-        size: pageSize,
+      const result = await c.get('outfitService').suggestions(userId, {
+        offset,
+        limit,
         tagId,
       })
 
       return c.json(result)
     }
   )
-  .delete(
-    '/:id',
-    zValidator('param', selectOutfitSchema.pick({ id: true })),
-    requireAuth,
-    injectDB,
-    injectServices,
-    async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const params = c.req.valid('param')
-
-      return c.json(await c.get('outfitService').deleteOutfit(userId, params.id))
-    }
-  )
   .get(
     '/:id',
-    zValidator('param', selectOutfitSchema.pick({ id: true })),
+    zValidator('param', selectOutfitSchema),
     requireAuth,
-    injectDB,
     injectServices,
     async (c) => {
-      const auth = c.get('auth')
-      const userId = auth?.userId || ''
-      const params = c.req.valid('param')
+      const userId = getUserId(c)
+      const { id: outfitId } = c.req.valid('param')
 
-      // Get the specific outfit
-      const outfit = await c.get('outfitService').getOutfitById(userId, params.id)
+      const outfitData = await c
+        .get('outfitService')
+        .outfitById(userId, outfitId)
 
-      if (!outfit) {
-        return c.json({ error: 'Outfit not found' }, 404)
+      if (!outfitData) {
+        logger.warn(`Outfit not found [user:${userId.slice(0, 8)} outfit:${outfitId.slice(0, 8)}]`)
+        throw new HTTPError(404, 'Outfit not found')
       }
 
-      return c.json(outfit)
+      return c.json(outfitData)
+    }
+  )
+  .post(
+    '/',
+    zValidator('json', insertOutfitSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const body = c.req.valid('json')
+
+      const result = await c.get('outfitService').createOutfit(userId, body)
+
+      return c.json(result)
+    }
+  )
+  .delete(
+    '/:id',
+    zValidator('param', selectOutfitSchema),
+    requireAuth,
+    injectServices,
+    async (c) => {
+      const userId = getUserId(c)
+      const { id: outfitId } = c.req.valid('param')
+
+      const result = await c.get('outfitService').deleteOutfit(userId, outfitId)
+
+      return c.json(result)
     }
   )
 

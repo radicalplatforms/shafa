@@ -23,7 +23,11 @@ export async function start(
   }
 }
 
-export async function provision(name: string, port: number = 5555, version: number = 16) {
+export async function provision(
+  name: string,
+  port: number = 5555,
+  version: number = 16
+) {
   const url = `postgres://localhost:${port}/${name}`
 
   try {
@@ -45,7 +49,11 @@ export function instance(name: string, port: number = 5555) {
   return drizzle(client, { schema })
 }
 
-export async function clean(name: string, port: number = 5555, version: number = 16) {
+export async function clean(
+  name: string,
+  port: number = 5555,
+  version: number = 16
+) {
   try {
     const db = instance(name, port)
 
@@ -89,7 +97,9 @@ function getInstallationScript(
 ): string {
   switch (platform()) {
     case 'darwin': {
-      const installation = includeInstallation ? `brew install postgresql@${version};` : ''
+      const installation = includeInstallation
+        ? `brew install postgresql@${version};`
+        : ''
 
       return `
        ${installation}

@@ -1,4 +1,4 @@
-import type { CoreMessage as Message } from 'ai'
+import type { UIMessage } from 'ai'
 
 export type Route = 'unsafe' | 'offtopic' | 'travel' | 'general'
 
@@ -9,26 +9,20 @@ export interface RouteResult {
   response: string
 }
 
-export interface ConversationContext {
-  userId: string
-  conversationId?: string
-  // Travel session memory
-  travelContext?: {
-    city?: string
-    startDate?: string
-    endDate?: string
-    tripLength?: number
-    tagMix?: Record<string, number> // outfit counts per tag
-    itemLimits?: Record<string, number> // limits per item type (e.g., { footwear: 2, layer: 1, accessory: 3 })
-    laundryDay?: number | null
-  }
+export interface TravelContext {
+  city?: string
+  startDate?: string
+  endDate?: string
+  tripLength?: number
+  tagMix?: Record<string, number>
+  itemLimits?: Record<string, number>
+  laundryDay?: number | null
 }
 
 export interface AgentState {
   conversationId: string
   userId: string
-  messages: Message[]
-  context: ConversationContext
+  messages: UIMessage[]
   lastMessageAt: Date
   createdAt: Date
 }

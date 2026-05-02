@@ -9,7 +9,11 @@ import { clean, provision } from '../utils/db'
 import type { ItemFactory } from '../utils/factory/items'
 import type { ItemToOutfitFactory } from '../utils/factory/items-outfits'
 import type { OutfitSuggestionAPI } from '../utils/factory/outfits'
-import { type OutfitAPI, OutfitFactory, PartialOutfitFactory } from '../utils/factory/outfits'
+import {
+  type OutfitAPI,
+  OutfitFactory,
+  PartialOutfitFactory,
+} from '../utils/factory/outfits'
 import type { TagFactory } from '../utils/factory/tags'
 import type { TagToOutfitFactory } from '../utils/factory/tags-outfits'
 import basicSmallSeed from '../utils/seeds/basic-small-seed'
@@ -83,7 +87,10 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
   test('GET /outfits: should return 1 seeded outfit with items', async () => {
     const res = await app.request('/api/outfits')
     expect(res.status).toBe(200)
-    const resJSON = (await res.json()) as { outfits: OutfitAPI[]; last_page: boolean }
+    const resJSON = (await res.json()) as {
+      outfits: OutfitAPI[]
+      last_page: boolean
+    }
     expect(resJSON.outfits).toEqual(
       testOutfits.map((outfit) => ({
         ...outfit.formatAPI(),
@@ -99,7 +106,9 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
           .filter((tagToOutfit) => tagToOutfit.outfitId === outfit.id)
           .map((tagToOutfit) => ({
             status: tagToOutfit.status,
-            tag: testTags.find((tag) => tagToOutfit.tagId === tag.id)?.formatAPI(),
+            tag: testTags
+              .find((tag) => tagToOutfit.tagId === tag.id)
+              ?.formatAPI(),
           })),
       }))
     )
@@ -189,7 +198,9 @@ describe('[Smoke] Outfits: Seeded [basic-small-seed]', () => {
 
     // Validate total score is sum of all components
     expect(scoringDetails.total_score).toBe(
-      scoringDetails.ratingScore + scoringDetails.timeScore + scoringDetails.frequencyScore
+      scoringDetails.ratingScore +
+        scoringDetails.timeScore +
+        scoringDetails.frequencyScore
     )
 
     // Validate raw data structure and types

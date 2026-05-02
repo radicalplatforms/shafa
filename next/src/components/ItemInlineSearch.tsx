@@ -91,7 +91,6 @@ export function ItemInlineSearch({
           name: confirmedName,
           ...(confirmedBrand ? { brand: confirmedBrand } : {}),
           type: type,
-          rating: 2,
         }
       }, {
         headers: {

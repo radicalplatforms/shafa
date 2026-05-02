@@ -1,8 +1,12 @@
 import type { SQL } from 'drizzle-orm'
-import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
-
+import { and, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
 import { item, outfit, outfitItem, outfitTag, tag } from '../schema'
-import type { DBVariables } from '../utils/inject-db'
+import type { Database } from '../utils/inject-services'
+import { createLogger } from '../utils/logger'
+import type { PaginationInput, PaginationResult } from '../utils/pagination'
+import { createPaginationResult } from '../utils/pagination'
+
+const logger = createLogger('ItemRepository')
 
 export interface ItemWithAggregatedTags {
   id: string
@@ -40,12 +44,11 @@ export interface ItemSearchInput {
   taggedWithAnyTagNames?: string[]
   sortBy?: 'createdAt' | 'name' | 'brand' | 'wornCount'
   sortOrder?: 'asc' | 'desc'
-  limit?: number
-  page?: number
+  pagination?: PaginationInput
 }
 
 export class ItemRepository {
-  constructor(private db: DBVariables['db']) {}
+  constructor(private db: Database) {}
 
   private getItemQuery(whereClause: SQL<unknown> | undefined) {
     return this.db.query.item
@@ -119,7 +122,8 @@ export class ItemRepository {
             createdAt: item.createdAt,
             userId: item.userId,
             lastWornAt: item.outfitItems.length
-              ? item.outfitItems.filter((rel) => rel.outfit.wearDate !== null).length > 0
+              ? item.outfitItems.filter((rel) => rel.outfit.wearDate !== null)
+                  .length > 0
                 ? new Date(
                     Math.max(
                       ...item.outfitItems
@@ -137,13 +141,47 @@ export class ItemRepository {
       )
   }
 
-  async findById(userId: string, itemId: string): Promise<ItemWithAggregatedTags | null> {
-    const items = await this.getItemQuery(and(eq(item.id, itemId), eq(item.userId, userId)))
-    return items[0] || null
+  /**
+   * Find a specific item by ID for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {string} itemId — The ID of the item to find
+   * @returns {Promise<ItemWithAggregatedTags | null>} — Promise resolving to the item with aggregated tags or null
+   */
+  async findById(
+    userId: string,
+    itemId: string
+  ): Promise<ItemWithAggregatedTags | null> {
+    logger.debug('Finding item by ID', { userId, itemId })
+
+    const items = await this.getItemQuery(
+      and(eq(item.id, itemId), eq(item.userId, userId))
+    )
+    const result = items[0] || null
+
+    logger.debug('Item lookup completed', {
+      userId,
+      itemId,
+      found: !!result,
+    })
+
+    return result
   }
 
-  async create(userId: string, data: any) {
-    return (
+  /**
+   * Create a new item for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {Omit<typeof item.$inferInsert, 'id' | 'createdAt' | 'userId'>} data — The item data to create
+   * @returns {Promise<typeof item.$inferSelect>} — Promise resolving to the created item
+   */
+  async create(
+    userId: string,
+    data: Omit<typeof item.$inferInsert, 'id' | 'createdAt' | 'userId'>
+  ): Promise<typeof item.$inferSelect> {
+    logger.info('Creating new item', { userId, data })
+
+    const result = (
       await this.db
         .insert(item)
         .values({
@@ -153,50 +191,123 @@ export class ItemRepository {
         .onConflictDoNothing()
         .returning()
     )[0]
+
+    logger.info('Item created successfully', {
+      userId,
+      itemId: result.id,
+    })
+
+    return result
   }
 
-  async update(userId: string, itemId: string, data: any) {
-    return (
+  /**
+   * Update an existing item for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {string} itemId — The ID of the item to update
+   * @param {Partial<Omit<typeof item.$inferInsert, 'id' | 'createdAt' | 'userId' | 'type'>>} data — The item data to update
+   * @returns {Promise<typeof item.$inferSelect>} — Promise resolving to the updated item
+   */
+  async update(
+    userId: string,
+    itemId: string,
+    data: Partial<
+      Omit<typeof item.$inferInsert, 'id' | 'createdAt' | 'userId' | 'type'>
+    >
+  ): Promise<typeof item.$inferSelect> {
+    logger.info('Updating item', { userId, itemId, data })
+
+    const result = (
       await this.db
         .update(item)
-        .set({
-          ...data,
-          userId,
-        })
+        .set(data)
         .where(and(eq(item.id, itemId), eq(item.userId, userId)))
         .returning()
     )[0]
+
+    logger.info('Item updated successfully', { userId, itemId })
+
+    return result
   }
 
-  async delete(userId: string, itemId: string) {
-    return (
+  /**
+   * Delete an item for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {string} itemId — The ID of the item to delete
+   * @returns {Promise<typeof item.$inferSelect>} — Promise resolving to the deleted item
+   */
+  async delete(
+    userId: string,
+    itemId: string
+  ): Promise<typeof item.$inferSelect> {
+    logger.info('Deleting item', { userId, itemId })
+
+    const result = (
       await this.db
         .delete(item)
         .where(and(eq(item.id, itemId), eq(item.userId, userId)))
         .returning()
     )[0]
+
+    logger.info('Item deleted successfully', { userId, itemId })
+
+    return result
   }
 
-  async findByType(userId: string, itemType: string) {
+  /**
+   * Find all items of a specific type for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {string} itemType — The type of items to find
+   * @returns {Promise<typeof item.$inferSelect[]>} — Promise resolving to array of items
+   */
+  async findByType(
+    userId: string,
+    itemType: string
+  ): Promise<(typeof item.$inferSelect)[]> {
     return this.db.query.item.findMany({
       where: and(eq(item.userId, userId), eq(item.type, itemType)),
     })
   }
 
-  async findByStatus(userId: string, status: string) {
+  /**
+   * Find all items with a specific status for a user.
+   *
+   * @param {string} userId — The user's ID
+   * @param {string} status — The status of items to find
+   * @returns {Promise<typeof item.$inferSelect[]>} — Promise resolving to array of items
+   */
+  async findByStatus(
+    userId: string,
+    status: string
+  ): Promise<(typeof item.$inferSelect)[]> {
     return this.db.query.item.findMany({
       where: and(eq(item.userId, userId), eq(item.status, status)),
     })
   }
 
-  async search(userId: string, input: ItemSearchInput): Promise<ItemWithAggregatedTags[]> {
+  /**
+   * Search items with advanced filtering options.
+   *
+   * @param {string} userId — The user's ID
+   * @param {ItemSearchInput} input — The search criteria and filters
+   * @returns {Promise<PaginationResult<ItemWithAggregatedTags>>} — Promise resolving to paginated items with aggregated tags
+   */
+  async search(
+    userId: string,
+    input: ItemSearchInput
+  ): Promise<PaginationResult<ItemWithAggregatedTags>> {
     const conditions: SQL<unknown>[] = [eq(item.userId, userId)]
 
     if (input.text) {
       const textConditions = input.text
         .toLowerCase()
         .split(/\s+/)
-        .flatMap((word) => [ilike(item.name, `%${word}%`), ilike(item.brand, `%${word}%`)])
+        .flatMap((word) => [
+          ilike(item.name, `%${word}%`),
+          ilike(item.brand, `%${word}%`),
+        ])
       conditions.push(or(...textConditions)!)
     }
 
@@ -374,16 +485,16 @@ export class ItemRepository {
       }
     }
 
-    let results = await orderedQuery
+    const results = await orderedQuery
 
-    // Handle pagination
-    if (input.page !== undefined && input.limit !== undefined) {
-      const offset = input.page * input.limit
-      results = results.slice(offset, offset + input.limit)
-    } else if (input.limit !== undefined) {
-      results = results.slice(0, input.limit)
+    // Apply pagination if provided
+    if (input.pagination?.limit) {
+      const offset = input.pagination.offset ?? 0
+      const limit = input.pagination.limit
+      const paginatedResults = results.slice(offset, offset + limit + 1)
+      return createPaginationResult(paginatedResults, input.pagination)
     }
 
-    return results
+    return createPaginationResult(results, input.pagination)
   }
 }

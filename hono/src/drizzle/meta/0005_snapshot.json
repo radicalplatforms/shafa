@@ -353,7 +353,12 @@
     "public.tagStatus": {
       "name": "tagStatus",
       "schema": "public",
-      "values": ["manually_assigned", "suggested", "suggestion_accepted", "suggestion_rejected"]
+      "values": [
+        "manually_assigned",
+        "suggested",
+        "suggestion_accepted",
+        "suggestion_rejected"
+      ]
     }
   },
   "schemas": {},

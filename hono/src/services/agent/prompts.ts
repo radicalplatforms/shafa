@@ -60,9 +60,8 @@ Travel details:
 - Dates: ${travelContext.startDate} to ${travelContext.endDate}
 
 Your task:
-1. Call weather_range to get the forecast
-2. Search for existing travel outfits OR build new ones based on the weather
-3. Return natural text with MDX tags for outfits and items
+1. Search for existing travel outfits OR build new ones
+2. Return natural text with MDX tags for outfits and items
 ${RESPONSE_FORMAT}`
 }
 
@@ -78,27 +77,14 @@ export function getGeneralPrompt(): string {
  */
 export function getRouteClassificationPrompt(
   message: string,
-  conversationHistory?: Array<{ role: string; content: string }>,
-  context?: any
+  conversationHistory?: Array<{ role: string; content: string }>
 ): string {
   let contextInfo = ''
 
   if (conversationHistory && conversationHistory.length > 0) {
     contextInfo = `\n\nCONVERSATION CONTEXT:
-Previous messages in this conversation:
-${conversationHistory
-  .slice(-6)
-  .map((msg) => `${msg.role}: ${msg.content}`)
-  .join('\n')}
-
-`
-  }
-
-  if (context?.travelContext) {
-    contextInfo += `\nTRAVEL CONTEXT:
-${context.travelContext.city ? `Destination: ${context.travelContext.city}` : ''}
-${context.travelContext.startDate ? `Start Date: ${context.travelContext.startDate}` : ''}
-${context.travelContext.endDate ? `End Date: ${context.travelContext.endDate}` : ''}
+Previous messages in this conversation (last ${conversationHistory.length}):
+${conversationHistory.map((msg) => `${msg.role}: ${msg.content}`).join('\n')}
 
 `
   }
@@ -167,15 +153,29 @@ Return:
 /**
  * Travel details extraction prompt
  */
-export function getTravelExtractionPrompt(message: string): string {
-  return `Extract travel details from this message. Only include fields that are explicitly mentioned.
+export function getTravelExtractionPrompt(
+  message: string,
+  recentMessages?: string[]
+): string {
+  let contextInfo = ''
 
-User message: "${message}"
+  if (recentMessages && recentMessages.length > 0) {
+    contextInfo = `\n\nRECENT CONVERSATION CONTEXT:
+Previous user messages that may contain travel details:
+${recentMessages.map((msg, i) => `${i + 1}. "${msg}"`).join('\n')}
+
+`
+  }
+
+  return `Extract travel details from this message and recent conversation context. Only include fields that are explicitly mentioned in the current message or recent context.
+
+${contextInfo}Current user message: "${message}"
 
 Examples:
 - "I'm going to Chicago next week" → city: "Chicago" (no dates provided)
 - "Trip to Paris March 4-10" → city: "Paris", startDate: "2025-03-04", endDate: "2025-03-10"
 - "5-day trip to Tokyo" → city: "Tokyo", tripLength: 5
+- If previous message mentioned "going to Paris" and current message says "March 4-10", extract both city and dates.
 
-Return only the fields that are clearly mentioned. Use null/undefined for missing fields.`
+Return only the fields that are clearly mentioned in the current message or recent context. Use null/undefined for missing fields.`
 }

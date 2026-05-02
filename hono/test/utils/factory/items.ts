@@ -34,8 +34,12 @@ export class ItemFactory implements Item {
     this.id = options?.id
       ? (options.id as string)
       : faker.string.alphanumeric({ length: 24, casing: 'lower' })
-    this.name = options?.name ? (options.name as string) : faker.commerce.productName()
-    this.brand = options?.brand ? (options.brand as string) : faker.company.name()
+    this.name = options?.name
+      ? (options.name as string)
+      : faker.commerce.productName()
+    this.brand = options?.brand
+      ? (options.brand as string)
+      : faker.company.name()
     this.type = options?.type
       ? (options.type as ItemType)
       : (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
@@ -45,8 +49,12 @@ export class ItemFactory implements Item {
     this.createdAt = options?.createdAt
       ? new Date(options.createdAt as Date)
       : new Date(faker.date.past().toISOString().split('T')[0])
-    this.userId = options?.userId ? (options.userId as string) : faker.internet.userName()
-    this.lastWornAt = options?.lastWornAt ? (options.lastWornAt as string) : null
+    this.userId = options?.userId
+      ? (options.userId as string)
+      : faker.internet.userName()
+    this.lastWornAt = options?.lastWornAt
+      ? (options.lastWornAt as string)
+      : null
   }
 
   async store(name: string, port: number) {
@@ -54,7 +62,9 @@ export class ItemFactory implements Item {
     await db.insert(item).values(this).onConflictDoNothing()
   }
 
-  formatAPI({ omitLastWornAt = false }: { omitLastWornAt?: boolean } = {}): ItemAPI {
+  formatAPI({
+    omitLastWornAt = false,
+  }: { omitLastWornAt?: boolean } = {}): ItemAPI {
     const formatted = {
       ...this,
       createdAt: this.createdAt.toISOString(),
@@ -91,7 +101,8 @@ export class PartialItemFactory implements PartialItem {
     faker.seed(seed ?? undefined)
     this.name = options?.name || faker.commerce.productName()
     this.brand = options?.brand || faker.company.name()
-    this.type = options?.type || (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
+    this.type =
+      options?.type || (faker.helpers.arrayElement(itemTypeEnum) as ItemType)
   }
 
   formatAPI(): PartialItem {

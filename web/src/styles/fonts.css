@@ -1,0 +1,328 @@
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-light-italic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-regular-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-medium-italic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-semibold-italic.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk';
+  src: url('/fonts/test-founders-grotesk-bold-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Condensed';
+  src: url('/fonts/test-founders-grotesk-condensed-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Condensed';
+  src: url('/fonts/test-founders-grotesk-condensed-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Condensed';
+  src: url('/fonts/test-founders-grotesk-condensed-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Condensed';
+  src: url('/fonts/test-founders-grotesk-condensed-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Condensed';
+  src: url('/fonts/test-founders-grotesk-condensed-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Mono';
+  src: url('/fonts/test-founders-grotesk-mono-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Mono';
+  src: url('/fonts/test-founders-grotesk-mono-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Mono';
+  src: url('/fonts/test-founders-grotesk-mono-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Mono';
+  src: url('/fonts/test-founders-grotesk-mono-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Mono';
+  src: url('/fonts/test-founders-grotesk-mono-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-light-italic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-regular-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-medium-italic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-semibold-italic.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk Text';
+  src: url('/fonts/test-founders-grotesk-text-bold-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk X-Condensed';
+  src: url('/fonts/test-founders-grotesk-x-condensed-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk X-Condensed';
+  src: url('/fonts/test-founders-grotesk-x-condensed-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk X-Condensed';
+  src: url('/fonts/test-founders-grotesk-x-condensed-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk X-Condensed';
+  src: url('/fonts/test-founders-grotesk-x-condensed-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Founders Grotesk X-Condensed';
+  src: url('/fonts/test-founders-grotesk-x-condensed-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Tiempos Fine';
+  src: url('/fonts/test-tiempos-fine-vf-roman.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Tiempos Fine';
+  src: url('/fonts/test-tiempos-fine-vf-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Tiempos Headline';
+  src: url('/fonts/test-tiempos-headline-vf-roman.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Tiempos Headline';
+  src: url('/fonts/test-tiempos-headline-vf-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Tiempos Text';
+  src: url('/fonts/test-tiempos-text-vf-roman.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Test Tiempos Text';
+  src: url('/fonts/test-tiempos-text-vf-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
