@@ -17,33 +17,6 @@ export interface OutfitAPI {
   userId: string
 }
 
-export interface OutfitSuggestionAPI extends OutfitAPI {
-  scoring_details: {
-    ratingScore: number
-    timeScore: number
-    frequencyScore: number
-    total_score: number
-    rawData: {
-      daysSinceWorn: number
-      itemCount: number
-      nonAccessoryItemCount: number
-      wearCount: number
-      avgItemFreshness: string
-      minItemFreshness: string
-      typeWeightedFreshness: string
-      recentlyWornItems: number
-      outfitFreshness: string
-      wardrobeRatios: {
-        layer: number
-        top: number
-        bottom: number
-        footwear: number
-      }
-    }
-  }
-  totalScore: number
-}
-
 export class OutfitFactory implements Outfit {
   constructor(seed?: number, options?: Partial<Outfit> | OutfitAPI) {
     faker.seed(seed ?? undefined)
